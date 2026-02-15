@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ProfileIntroPage extends StatefulWidget {
@@ -13,6 +15,8 @@ class ProfileIntroPage extends StatefulWidget {
 class _ProfileIntroPageState extends State<ProfileIntroPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
+  final FocusNode _nameFocusNode = FocusNode();
+  final FocusNode _ageFocusNode = FocusNode();
   bool _showError = false;
 
   bool get _isValid =>
@@ -20,20 +24,30 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
       _ageController.text.trim().isNotEmpty;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _nameFocusNode.requestFocus();
+      SystemChannels.textInput.invokeMethod('TextInput.show');
+    });
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _ageController.dispose();
+    _nameFocusNode.dispose();
+    _ageFocusNode.dispose();
     super.dispose();
   }
 
   void _onContinue() {
     if (_isValid) {
-      Navigator.of(context).pushNamed(AppRoutes.gender);
+      Navigator.of(context).pushReplacementNamed(AppRoutes.gender);
       return;
     }
-    setState(() {
-      _showError = true;
-    });
+    setState(() => _showError = true);
   }
 
   @override
@@ -75,10 +89,10 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                               ),
                             ),
                             Text(
-                              'Roomie',
+                              AppStrings.appBrand,
                               style: textTheme.titleMedium?.copyWith(
                                 fontFamily: 'Gilroy',
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                                 color: const Color(0xFF001561),
                               ),
                             ),
@@ -93,7 +107,7 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                           children: [
                             Center(
                               child: Text(
-                                'Как вас зовут?',
+                                AppStrings.profileRuTitle,
                                 style: textTheme.headlineSmall?.copyWith(
                                   fontFamily: 'Gilroy',
                                   fontWeight: FontWeight.w600,
@@ -104,7 +118,7 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                             const SizedBox(height: 20),
                             Center(
                               child: Text(
-                                'Расскажите нам о себе',
+                                AppStrings.profileRuSubtitle,
                                 style: textTheme.bodyLarge?.copyWith(
                                   fontFamily: 'Gilroy',
                                   fontWeight: FontWeight.w400,
@@ -113,24 +127,34 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                               ),
                             ),
                             const SizedBox(height: 25),
-                            const _FieldLabel(text: 'Ваше имя'),
+                            const _FieldLabel(
+                              text: AppStrings.profileRuNameLabel,
+                            ),
                             const SizedBox(height: 8),
                             _Input(
                               controller: _nameController,
-                              hint: 'Калдоев Диас',
+                              focusNode: _nameFocusNode,
+                              hint: AppStrings.profileRuNameHint,
                               onChanged: (_) {
-                                if (_showError) setState(() => _showError = false);
+                                if (_showError) {
+                                  setState(() => _showError = false);
+                                }
                               },
                             ),
                             const SizedBox(height: 20),
-                            const _FieldLabel(text: 'Ваш возраст'),
+                            const _FieldLabel(
+                              text: AppStrings.profileRuAgeLabel,
+                            ),
                             const SizedBox(height: 8),
                             _Input(
                               controller: _ageController,
-                              hint: 'дд.мм.гггг',
+                              focusNode: _ageFocusNode,
+                              hint: AppStrings.profileRuAgeHint,
                               keyboardType: TextInputType.number,
                               onChanged: (_) {
-                                if (_showError) setState(() => _showError = false);
+                                if (_showError) {
+                                  setState(() => _showError = false);
+                                }
                               },
                             ),
                             const SizedBox(height: 20),
@@ -144,7 +168,7 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'Пожалуйста заполните все поля',
+                                    AppStrings.profileRuFillAll,
                                     style: textTheme.bodySmall?.copyWith(
                                       fontFamily: 'Gilroy',
                                       fontWeight: FontWeight.w400,
@@ -164,11 +188,14 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                           child: ElevatedButton(
                             style: ButtonStyle(
                               backgroundColor: WidgetStateProperty.resolveWith(
-                                (states) =>
-                                    _isValid ? const Color(0xFF7C3AED) : const Color(0x4D7C3AED),
+                                (states) => _isValid
+                                    ? const Color(0xFF7C3AED)
+                                    : const Color(0x4D7C3AED),
                               ),
                               foregroundColor: WidgetStateProperty.resolveWith(
-                                (states) => _isValid ? Colors.white : const Color(0x80FFFFFF),
+                                (states) => _isValid
+                                    ? Colors.white
+                                    : const Color(0x80FFFFFF),
                               ),
                               padding: WidgetStateProperty.all(
                                 const EdgeInsets.symmetric(vertical: 14),
@@ -181,7 +208,7 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                             ),
                             onPressed: _onContinue,
                             child: const Text(
-                              'Продолжить',
+                              AppStrings.profileContinue,
                               style: TextStyle(
                                 fontFamily: 'Gilroy',
                                 fontWeight: FontWeight.w600,
@@ -228,12 +255,14 @@ class _FieldLabel extends StatelessWidget {
 class _Input extends StatelessWidget {
   const _Input({
     required this.controller,
+    required this.focusNode,
     required this.hint,
     required this.onChanged,
     this.keyboardType,
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final String hint;
   final ValueChanged<String> onChanged;
   final TextInputType? keyboardType;
@@ -242,8 +271,10 @@ class _Input extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       onChanged: onChanged,
+      onTap: () => SystemChannels.textInput.invokeMethod('TextInput.show'),
       style: const TextStyle(
         fontFamily: 'Gilroy',
         fontWeight: FontWeight.w600,
@@ -266,7 +297,10 @@ class _Input extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
       ),
     );
   }

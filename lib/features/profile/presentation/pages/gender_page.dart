@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 
@@ -46,10 +47,10 @@ class _GenderPageState extends State<GenderPage> {
                     ),
                   ),
                   Text(
-                    'Roomie',
+                    AppStrings.appBrand,
                     style: textTheme.titleMedium?.copyWith(
                       fontFamily: 'Gilroy',
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: const Color(0xFF001561),
                     ),
                   ),
@@ -57,7 +58,7 @@ class _GenderPageState extends State<GenderPage> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Укажите ваш пол',
+                AppStrings.genderRuTitle,
                 textAlign: TextAlign.center,
                 style: textTheme.headlineSmall?.copyWith(
                   fontFamily: 'Gilroy',
@@ -91,9 +92,11 @@ class _GenderPageState extends State<GenderPage> {
               ),
               const Spacer(),
               AppPrimaryButton(
-                label: 'Продолжить',
+                label: AppStrings.profileContinue,
                 onPressed: isValid
-                    ? () => Navigator.of(context).pushNamed(AppRoutes.location)
+                    ? () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed(AppRoutes.location)
                     : null,
                 enabledColor: const Color(0xFF7C3AED),
                 disabledColor: const Color(0x4D7C3AED),
@@ -129,8 +132,7 @@ class _GenderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background =
-        isSelected ? activeColor : const Color(0xFFCAD0E1);
+    final background = isSelected ? activeColor : const Color(0xFFCAD0E1);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -138,15 +140,8 @@ class _GenderButton extends StatelessWidget {
         child: Container(
           height: 92,
           width: 92,
-          decoration: BoxDecoration(
-            color: background,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF001561),
-            size: 38,
-          ),
+          decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+          child: Icon(icon, color: const Color(0xFF001561), size: 38),
         ),
       ),
     );

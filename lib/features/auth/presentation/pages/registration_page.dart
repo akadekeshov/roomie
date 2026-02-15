@@ -56,11 +56,19 @@ class RegistrationPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _FieldLabel(text: AppStrings.registerEmailLabel),
+              _FieldLabel(
+                text: state.useEmail
+                    ? AppStrings.registerEmailLabel
+                    : AppStrings.registerPhoneTab,
+              ),
               const SizedBox(height: 8),
               AppInputField(
-                hint: AppStrings.registerEmailHint,
-                keyboardType: TextInputType.emailAddress,
+                hint: state.useEmail
+                    ? AppStrings.registerEmailHint
+                    : '+7 777 123 45 67',
+                keyboardType: state.useEmail
+                    ? TextInputType.emailAddress
+                    : TextInputType.phone,
                 showError: state.emailError,
                 errorText: AppStrings.registerEmailError,
                 onChanged: controller.setEmail,
@@ -130,15 +138,15 @@ class RegistrationPage extends ConsumerWidget {
               const SizedBox(height: 20),
               _RememberRow(
                 value: state.rememberMe,
-                onChanged: (value) =>
-                    controller.setRememberMe(value ?? false),
+                onChanged: (value) => controller.setRememberMe(value ?? false),
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
                 label: AppStrings.registerButton,
                 onPressed: state.isValid
-                    ? () =>
-                        Navigator.of(context).pushNamed(AppRoutes.verifyEmail)
+                    ? () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed(AppRoutes.verifyEmail)
                     : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
@@ -200,10 +208,7 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _RememberRow extends StatelessWidget {
-  const _RememberRow({
-    required this.value,
-    required this.onChanged,
-  });
+  const _RememberRow({required this.value, required this.onChanged});
 
   final bool value;
   final ValueChanged<bool?> onChanged;

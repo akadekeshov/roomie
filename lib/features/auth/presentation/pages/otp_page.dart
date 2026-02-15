@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -20,9 +21,17 @@ class _OtpPageState extends State<OtpPage> {
   @override
   void initState() {
     super.initState();
-    _controllers =
-        List.generate(_length, (_) => TextEditingController(), growable: false);
+    _controllers = List.generate(
+      _length,
+      (_) => TextEditingController(),
+      growable: false,
+    );
     _nodes = List.generate(_length, (_) => FocusNode(), growable: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _nodes.first.requestFocus();
+      SystemChannels.textInput.invokeMethod('TextInput.show');
+    });
   }
 
   @override
@@ -109,8 +118,9 @@ class _OtpPageState extends State<OtpPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.profileIntro),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushReplacementNamed(AppRoutes.profileIntro),
                   child: const Text(AppStrings.otpVerify),
                 ),
               ),
@@ -163,7 +173,8 @@ class _OtpBoxState extends State<_OtpBox> {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = widget.focusNode.hasFocus || widget.controller.text.isNotEmpty;
+    final isActive =
+        widget.focusNode.hasFocus || widget.controller.text.isNotEmpty;
     return SizedBox(
       width: 44,
       child: TextField(
@@ -186,10 +197,7 @@ class _OtpBoxState extends State<_OtpBox> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: AppColors.primary,
-              width: 1.6,
-            ),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
           ),
         ),
       ),

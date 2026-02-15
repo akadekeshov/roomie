@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 
@@ -32,7 +33,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     _startTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _focusNode.requestFocus();
+        _focusCodeInput();
       }
     });
   }
@@ -47,9 +48,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
   void _startTimer() {
     _timer?.cancel();
-    setState(() {
-      _secondsLeft = 35;
-    });
+    setState(() => _secondsLeft = 35);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -59,9 +58,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
         timer.cancel();
         return;
       }
-      setState(() {
-        _secondsLeft--;
-      });
+      setState(() => _secondsLeft--);
     });
   }
 
@@ -73,19 +70,20 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
         selection: TextSelection.collapsed(offset: digitsOnly.length),
       );
     }
-    setState(() {
-      _showError = false;
-    });
+    setState(() => _showError = false);
   }
 
   void _onConfirm() {
     if (_isButtonEnabled) {
-      Navigator.of(context).pushNamed(AppRoutes.profileIntro);
+      Navigator.of(context).pushReplacementNamed(AppRoutes.profileIntro);
       return;
     }
-    setState(() {
-      _showError = true;
-    });
+    setState(() => _showError = true);
+  }
+
+  void _focusCodeInput() {
+    _focusNode.requestFocus();
+    SystemChannels.textInput.invokeMethod('TextInput.show');
   }
 
   @override
@@ -115,10 +113,10 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                   ),
                   const Spacer(),
                   Text(
-                    'Roomie',
+                    AppStrings.appBrand,
                     style: textTheme.titleMedium?.copyWith(
                       fontFamily: 'Gilroy',
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: const Color(0xFF001561),
                     ),
                   ),
@@ -128,7 +126,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               ),
               const SizedBox(height: 28),
               Text(
-                'Подтвердите почту',
+                AppStrings.verifyTitle,
                 style: textTheme.headlineSmall?.copyWith(
                   fontFamily: 'Gilroy',
                   fontWeight: FontWeight.w600,
@@ -137,7 +135,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               ),
               const SizedBox(height: 14),
               Text(
-                'Введите код из СМС отправленный вам на почту:',
+                AppStrings.verifySubtitle,
                 textAlign: TextAlign.center,
                 style: textTheme.bodyMedium?.copyWith(
                   fontFamily: 'Gilroy',
@@ -156,38 +154,60 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               ),
               const SizedBox(height: 26),
               GestureDetector(
-                onTap: () => _focusNode.requestFocus(),
-                child: _code.isEmpty
-                    ? const _CodeDots(length: _codeLength)
-                    : Text(
-                        _code.split('').join(' '),
-                        style: textTheme.headlineSmall?.copyWith(
-                          fontFamily: 'Gilroy',
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF001561),
-                          letterSpacing: 6,
+                onTap: _focusCodeInput,
+                behavior: HitTestBehavior.opaque,
+                child: SizedBox(
+                  width: 220,
+                  height: 44,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(_codeLength, (index) {
+                          final hasDigit = index < _code.length;
+                          return SizedBox(
+                            width: 28,
+                            child: Center(
+                              child: Text(
+                                hasDigit ? _code[index] : '\u2022',
+                                style: textTheme.headlineSmall?.copyWith(
+                                  fontFamily: 'Gilroy',
+                                  fontWeight: FontWeight.w400,
+                                  color: hasDigit
+                                      ? const Color(0xFF001561)
+                                      : const Color(0x80828DB7),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: 0.01,
+                          child: TextField(
+                            controller: _codeController,
+                            focusNode: _focusNode,
+                            autofocus: true,
+                            keyboardType: TextInputType.number,
+                            maxLength: _codeLength,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(_codeLength),
+                            ],
+                            onChanged: _onCodeChanged,
+                            cursorColor: Colors.transparent,
+                            style: const TextStyle(color: Colors.transparent),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              counterText: '',
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
                         ),
                       ),
-              ),
-              SizedBox(
-                height: 1,
-                width: 1,
-                child: TextField(
-                  controller: _codeController,
-                  focusNode: _focusNode,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  maxLength: _codeLength,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(_codeLength),
-                  ],
-                  onChanged: _onCodeChanged,
-                  cursorColor: Colors.transparent,
-                  style: const TextStyle(color: Colors.transparent),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    counterText: '',
+                    ],
                   ),
                 ),
               ),
@@ -199,7 +219,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                     const Icon(Icons.error, color: Color(0xFFFF0D0D), size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      'Неверный код',
+                      AppStrings.verifyInvalidCode,
                       style: textTheme.bodyMedium?.copyWith(
                         fontFamily: 'Gilroy',
                         fontWeight: FontWeight.w400,
@@ -210,7 +230,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  'Отправить код еще раз',
+                  AppStrings.verifyResendNow,
                   style: textTheme.titleSmall?.copyWith(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w600,
@@ -220,8 +240,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               ] else if (_code.isEmpty) ...[
                 Text(
                   _secondsLeft > 0
-                      ? 'Получить новый код через $_secondsLeft с'
-                      : 'Отправить код еще раз',
+                      ? '${AppStrings.verifyResendInPrefix}$_secondsLeft${AppStrings.verifyResendInSuffix}'
+                      : AppStrings.verifyResendNow,
                   style: textTheme.titleSmall?.copyWith(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w600,
@@ -237,10 +257,10 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                     _codeController.clear();
                   });
                   _startTimer();
-                  _focusNode.requestFocus();
+                  _focusCodeInput();
                 },
                 child: Text(
-                  'Изменить email',
+                  AppStrings.verifyChangeEmail,
                   style: textTheme.titleSmall?.copyWith(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w600,
@@ -250,7 +270,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               ),
               const SizedBox(height: 14),
               AppPrimaryButton(
-                label: 'Подтвердить',
+                label: AppStrings.verifyConfirm,
                 enabledColor: const Color(0xFF7C3AED),
                 disabledColor: const Color(0x4D7C3AED),
                 enabledTextColor: Colors.white,
@@ -263,33 +283,10 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 8 : 20),
+              SizedBox(
+                height: MediaQuery.of(context).viewInsets.bottom > 0 ? 8 : 20,
+              ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CodeDots extends StatelessWidget {
-  const _CodeDots({required this.length});
-
-  final int length;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(
-        length,
-        (index) => Container(
-          width: 8,
-          height: 8,
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          decoration: const BoxDecoration(
-            color: Color(0x80828DB7),
-            shape: BoxShape.circle,
           ),
         ),
       ),

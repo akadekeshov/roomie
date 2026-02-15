@@ -62,13 +62,13 @@ flutter:
   fonts:
     - family: Gilroy
       fonts:
-        - asset: assets/fonts/Gilroy-Light.otf
+        - asset: assets/fonts/gilroy_full/Gilroy-Light.ttf
           weight: 300
-        - asset: assets/fonts/Gilroy-Regular.ttf
+        - asset: assets/fonts/gilroy_full/Gilroy-Regular.ttf
           weight: 400
-        - asset: assets/fonts/Gilroy-Semibold.ttf
+        - asset: assets/fonts/gilroy_full/Gilroy-Semibold.ttf
           weight: 600
-        - asset: assets/fonts/Gilroy-ExtraBold.otf
+        - asset: assets/fonts/gilroy_full/Gilroy-Extrabold.ttf
           weight: 800
 
   # To add assets to your application, add an assets section, like this:

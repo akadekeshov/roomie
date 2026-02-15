@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../app/app_routes.dart';
+import '../../../../core/widgets/app_segmented_control.dart';
 
 class BioAuthPage extends StatefulWidget {
   const BioAuthPage({super.key});
@@ -37,95 +38,19 @@ class _BioAuthPageState extends State<BioAuthPage> {
               const SizedBox(height: AppSpacing.spaceTitle),
               _AuthHeader(textTheme: textTheme),
               const SizedBox(height: AppSpacing.spaceBeforeSwitcher),
-              _SegmentedSwitcher(
-                isLeft: _usePhone,
+              AppSegmentedControl(
+                isLeftSelected: _usePhone,
                 onChanged: (value) => setState(() => _usePhone = value),
+                leftLabel: AppStrings.authPhone,
+                rightLabel: AppStrings.authEmail,
+                leftIcon: Icons.phone_outlined,
+                rightIcon: Icons.mail_outline,
               ),
               const SizedBox(height: AppSpacing.spaceAfterSwitcher),
               _AuthForm(isPhone: _usePhone, textTheme: textTheme),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SegmentedSwitcher extends StatelessWidget {
-  const _SegmentedSwitcher({
-    required this.isLeft,
-    required this.onChanged,
-  });
-
-  final bool isLeft;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      decoration: BoxDecoration(
-        color: AppColors.mutedChip,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Stack(
-        children: [
-          AnimatedAlign(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Container(
-                width: (MediaQuery.of(context).size.width - 56) / 2,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => onChanged(true),
-                  child: Center(
-                    child: Text(
-                      AppStrings.authPhone,
-                      style: TextStyle(
-                        color: isLeft ? AppColors.primary : Colors.grey.shade600,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => onChanged(false),
-                  child: Center(
-                    child: Text(
-                      AppStrings.authEmail,
-                      style: TextStyle(
-                        color: isLeft ? Colors.grey.shade600 : AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -143,16 +68,12 @@ class _AuthHeader extends StatelessWidget {
       children: [
         Text(
           AppStrings.authTitle,
-          style: textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: AppSpacing.spaceSubtitle),
         Text(
           AppStrings.authSubtitle,
-          style: textTheme.bodyMedium?.copyWith(
-            color: AppColors.mutedText,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
         ),
       ],
     );
@@ -160,10 +81,7 @@ class _AuthHeader extends StatelessWidget {
 }
 
 class _AuthForm extends StatelessWidget {
-  const _AuthForm({
-    required this.isPhone,
-    required this.textTheme,
-  });
+  const _AuthForm({required this.isPhone, required this.textTheme});
 
   final bool isPhone;
   final TextTheme textTheme;
@@ -186,8 +104,9 @@ class _AuthForm extends StatelessWidget {
               ? TextInputType.phone
               : TextInputType.emailAddress,
           decoration: InputDecoration(
-            hintText:
-                isPhone ? AppStrings.authPhoneHint : AppStrings.authEmailHint,
+            hintText: isPhone
+                ? AppStrings.authPhoneHint
+                : AppStrings.authEmailHint,
             filled: true,
             fillColor: AppColors.fieldFill,
             border: OutlineInputBorder(
@@ -212,7 +131,8 @@ class _AuthForm extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.otp),
+            onPressed: () =>
+                Navigator.of(context).pushReplacementNamed(AppRoutes.otp),
             child: const Text(AppStrings.authContinue),
           ),
         ),
@@ -222,9 +142,7 @@ class _AuthForm extends StatelessWidget {
           child: Text(
             AppStrings.authTerms,
             textAlign: TextAlign.center,
-            style: textTheme.bodySmall?.copyWith(
-              color: Colors.grey.shade500,
-            ),
+            style: textTheme.bodySmall?.copyWith(color: Colors.grey.shade500),
           ),
         ),
       ],
