@@ -8,6 +8,14 @@ import '../features/auth/presentation/pages/registration_page.dart';
 import '../features/profile/presentation/pages/profile_intro_page.dart';
 import '../features/profile/presentation/pages/gender_page.dart';
 import '../features/profile/presentation/pages/location_page.dart';
+import '../features/profile/presentation/pages/profile_page.dart';
+import '../features/profile/presentation/pages/profile_about_page.dart';
+import '../features/profile/presentation/pages/profile_lifestyle_page.dart';
+import '../features/profile/presentation/pages/profile_search_page.dart';
+import '../features/profile/presentation/pages/profile_finish_page.dart';
+import '../features/profile/presentation/pages/profile_completed_page.dart';
+import '../features/profile/presentation/pages/profile_verification_page.dart';
+import '../features/profile/presentation/pages/profile_verification_upload_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/onboarding/presentation/pages/welcome_page.dart';
 import 'app_routes.dart';
@@ -33,6 +41,16 @@ class RoommateApp extends StatelessWidget {
         AppRoutes.gender: (context) => const GenderPage(),
         AppRoutes.location: (context) => const LocationPage(),
         AppRoutes.home: (context) => const HomePage(),
+        AppRoutes.profile: (context) => const ProfilePage(),
+        AppRoutes.profileAbout: (context) => const ProfileAboutPage(),
+        AppRoutes.profileLifestyle: (context) => const ProfileLifestylePage(),
+        AppRoutes.profileSearch: (context) => const ProfileSearchPage(),
+        AppRoutes.profileFinish: (context) => const ProfileFinishPage(),
+        AppRoutes.profileCompleted: (context) => const ProfileCompletedPage(),
+        AppRoutes.profileVerification: (context) =>
+            const ProfileVerificationPage(),
+        AppRoutes.profileVerificationUpload: (context) =>
+            const ProfileVerificationUploadPage(),
       },
     );
   }

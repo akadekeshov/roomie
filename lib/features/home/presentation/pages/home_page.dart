@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,41 +21,51 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     final allProfiles = <_RoommateProfile>[
       const _RoommateProfile(
-        name: 'Диана Ерланова',
+        name:
+            '\u0414\u0438\u0430\u043d\u0430 \u0415\u0440\u043b\u0430\u043d\u043e\u0432\u0430',
         age: 26,
-        location: 'Ауезовский район',
-        status: 'Работает и учится',
-        budget: '50 000-100 000 /месяц',
+        location:
+            '\u0410\u0443\u0435\u0437\u043e\u0432\u0441\u043a\u0438\u0439 \u0440\u0430\u0439\u043e\u043d',
+        status:
+            '\u0420\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0438 \u0443\u0447\u0438\u0442\u0441\u044f',
+        budget: '50 000-100 000 /\u043c\u0435\u0441\u044f\u0446',
         imageUrl:
             'https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?w=1400&auto=format&fit=crop',
         verified: true,
       ),
       const _RoommateProfile(
-        name: 'Еркебулан Нурлан',
+        name:
+            '\u0415\u0440\u043a\u0435\u0431\u0443\u043b\u0430\u043d \u041d\u0443\u0440\u043b\u0430\u043d',
         age: 24,
-        location: 'Бостандыкский район',
-        status: 'Работает в IT',
-        budget: '90 000-140 000 /месяц',
+        location:
+            '\u0411\u043e\u0441\u0442\u0430\u043d\u0434\u044b\u043a\u0441\u043a\u0438\u0439 \u0440\u0430\u0439\u043e\u043d',
+        status: '\u0420\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0432 IT',
+        budget: '90 000-140 000 /\u043c\u0435\u0441\u044f\u0446',
         imageUrl:
             'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=1400&auto=format&fit=crop',
         verified: false,
       ),
       const _RoommateProfile(
-        name: 'Алина Тулеу',
+        name: '\u0410\u043b\u0438\u043d\u0430 \u0422\u0443\u043b\u0435\u0443',
         age: 23,
-        location: 'Алмалинский район',
-        status: 'Студент и фрилансер',
-        budget: '70 000-120 000 /месяц',
+        location:
+            '\u0410\u043b\u043c\u0430\u043b\u0438\u043d\u0441\u043a\u0438\u0439 \u0440\u0430\u0439\u043e\u043d',
+        status:
+            '\u0421\u0442\u0443\u0434\u0435\u043d\u0442 \u0438 \u0444\u0440\u0438\u043b\u0430\u043d\u0441\u0435\u0440',
+        budget: '70 000-120 000 /\u043c\u0435\u0441\u044f\u0446',
         imageUrl:
             'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=1400&auto=format&fit=crop',
         verified: true,
       ),
       const _RoommateProfile(
-        name: 'Максат Сарсен',
+        name:
+            '\u041c\u0430\u043a\u0441\u0430\u0442 \u0421\u0430\u0440\u0441\u0435\u043d',
         age: 27,
-        location: 'Наурызбайский район',
-        status: 'Полный рабочий день',
-        budget: '100 000-160 000 /месяц',
+        location:
+            '\u041d\u0430\u0443\u0440\u044b\u0437\u0431\u0430\u0439\u0441\u043a\u0438\u0439 \u0440\u0430\u0439\u043e\u043d',
+        status:
+            '\u041f\u043e\u043b\u043d\u044b\u0439 \u0440\u0430\u0431\u043e\u0447\u0438\u0439 \u0434\u0435\u043d\u044c',
+        budget: '100 000-160 000 /\u043c\u0435\u0441\u044f\u0446',
         imageUrl:
             'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=1400&auto=format&fit=crop',
         verified: true,
@@ -79,10 +90,11 @@ class _HomePageState extends State<HomePage> {
               Row(
                 children: [
                   Text(
-                    'Поиск соседей',
+                    '\u041f\u043e\u0438\u0441\u043a \u0441\u043e\u0441\u0435\u0434\u0435\u0439',
                     style: textTheme.headlineSmall?.copyWith(
                       color: const Color(0xFF001561),
                       fontWeight: FontWeight.w700,
+                      fontSize: 34 / 2,
                     ),
                   ),
                   const Spacer(),
@@ -108,7 +120,13 @@ class _HomePageState extends State<HomePage> {
       ),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
-        onChanged: (value) => setState(() => _currentIndex = value),
+        onChanged: (value) {
+          if (value == 3) {
+            Navigator.of(context).pushReplacementNamed(AppRoutes.profile);
+            return;
+          }
+          setState(() => _currentIndex = value);
+        },
       ),
     );
   }
@@ -172,7 +190,7 @@ class _RoommateCard extends StatelessWidget {
                           ),
                           SizedBox(width: 5),
                           Text(
-                            'Подтверждён',
+                            '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0451\u043d',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -196,24 +214,25 @@ class _RoommateCard extends StatelessWidget {
                   style: textTheme.titleLarge?.copyWith(
                     color: const Color(0xFF001561),
                     fontWeight: FontWeight.w700,
+                    fontSize: 32 / 2,
                   ),
                 ),
                 const SizedBox(height: 10),
                 _InfoRow(
                   icon: Icons.location_on_outlined,
-                  label: 'Локация',
+                  label: '\u041b\u043e\u043a\u0430\u0446\u0438\u044f',
                   value: profile.location,
                 ),
                 const SizedBox(height: 8),
                 _InfoRow(
                   icon: Icons.person_outline,
-                  label: 'Статус',
+                  label: '\u0421\u0442\u0430\u0442\u0443\u0441',
                   value: profile.status,
                 ),
                 const SizedBox(height: 8),
                 _InfoRow(
                   icon: Icons.account_balance_wallet_outlined,
-                  label: 'Бюджет',
+                  label: '\u0411\u044e\u0434\u0436\u0435\u0442',
                   value: profile.budget,
                 ),
                 const SizedBox(height: 10),
@@ -224,14 +243,15 @@ class _RoommateCard extends StatelessWidget {
                     Expanded(
                       child: _ActionOutlinedButton(
                         icon: Icons.block,
-                        label: 'Скрыть',
+                        label: '\u0421\u043a\u0440\u044b\u0442\u044c',
                       ),
                     ),
                     SizedBox(width: 12),
                     Expanded(
                       child: _ActionOutlinedButton(
                         icon: Icons.favorite_border,
-                        label: 'Сохранить',
+                        label:
+                            '\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c',
                       ),
                     ),
                   ],
@@ -281,7 +301,7 @@ class _InfoRow extends StatelessWidget {
             style: textTheme.titleMedium?.copyWith(
               color: const Color(0xFF001561),
               fontWeight: FontWeight.w700,
-              fontSize: 14.5,
+              fontSize: 13.5,
             ),
           ),
         ),
@@ -314,6 +334,7 @@ class _ActionOutlinedButton extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: const Color(0xFF707070),
               fontWeight: FontWeight.w600,
+              fontSize: 15,
             ),
           ),
         ],
