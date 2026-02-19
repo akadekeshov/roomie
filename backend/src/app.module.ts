@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ListingsModule } from './listings/listings.module';
 import { SavedModule } from './saved/saved.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SavedModule } from './saved/saved.module';
     UsersModule,
     ListingsModule,
     SavedModule,
+    OnboardingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

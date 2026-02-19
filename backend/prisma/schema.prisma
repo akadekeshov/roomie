@@ -28,23 +28,62 @@ enum RoomType {
   ENTIRE_PLACE
 }
 
+enum OTPChannel {
+  EMAIL
+  PHONE
+}
+
+enum OTPPurpose {
+  REGISTER
+}
+
+enum OnboardingStep {
+  NAME_AGE
+  GENDER
+  CITY
+  DONE
+}
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  gender    Gender?
-  age       Int?
-  bio       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String          @id @default(uuid())
+  email              String?         @unique
+  phone              String?         @unique
+  password           String
+  emailVerified      Boolean         @default(false)
+  phoneVerified      Boolean         @default(false)
+  firstName          String?
+  lastName           String?
+  gender             Gender?
+  age                Int?
+  city               String?
+  bio                String?
+  onboardingCompleted Boolean        @default(false)
+  onboardingStep    OnboardingStep  @default(NAME_AGE)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   refreshTokens RefreshToken[]
   listings      Listing[]
   savedListings SavedListing[]
 
   @@map("users")
+}
+
+model OtpCode {
+  id         String     @id @default(uuid())
+  channel    OTPChannel
+  purpose    OTPPurpose
+  target     String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int        @default(0)
+  lastSentAt DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@unique([channel, purpose, target])
+  @@index([channel, purpose, target])
+  @@map("otp_codes")
 }
 
 model RefreshToken {
