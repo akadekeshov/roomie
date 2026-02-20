@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  SHARED
+  ENTIRE_PLACE
+}
+
+enum OTPChannel {
+  EMAIL
+  PHONE
+}
+
+enum OTPPurpose {
+  REGISTER
+}
+
+enum OnboardingStep {
+  NAME_AGE
+  GENDER
+  CITY
+  DONE
+}
+
+model User {
+  id                 String          @id @default(uuid())
+  email              String?         @unique
+  phone              String?         @unique
+  password           String
+  emailVerified      Boolean         @default(false)
+  phoneVerified      Boolean         @default(false)
+  firstName          String?
+  lastName           String?
+  gender             Gender?
+  age                Int?
+  city               String?
+  bio                String?
+  onboardingCompleted Boolean        @default(false)
+  onboardingStep    OnboardingStep  @default(NAME_AGE)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  refreshTokens RefreshToken[]
+  listings      Listing[]
+  savedListings SavedListing[]
+
+  @@map("users")
+}
+
+model OtpCode {
+  id         String     @id @default(uuid())
+  channel    OTPChannel
+  purpose    OTPPurpose
+  target     String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int        @default(0)
+  lastSentAt DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@unique([channel, purpose, target])
+  @@index([channel, purpose, target])
+  @@map("otp_codes")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Listing {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  address     String
+  city        String
+  state       String?
+  zipCode     String?
+  country     String
+  price       Float
+  roomType    RoomType
+  availableFrom DateTime?
+  availableTo   DateTime?
+  amenities   String[]
+  images      String[]
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  savedBy SavedListing[]
+
+  @@map("listings")
+}
+
+model SavedListing {
+  id        String   @id @default(uuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("saved_listings")
+}
