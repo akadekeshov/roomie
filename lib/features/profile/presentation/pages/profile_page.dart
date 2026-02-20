@@ -89,30 +89,38 @@ class ProfilePage extends StatelessWidget {
                           '\u041e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0438',
                     ),
                     const SizedBox(height: 22),
-                    Row(
-                      children: [
-                        Container(
-                          height: 32,
-                          width: 32,
-                          decoration: BoxDecoration(
-                            color: const Color(0x14FF3B30),
-                            borderRadius: BorderRadius.circular(10),
+                    InkWell(
+                      onTap: () =>
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            AppRoutes.login,
+                            (route) => false,
                           ),
-                          child: const Icon(
-                            Icons.logout,
-                            color: Color(0xFFFF3B30),
-                            size: 18,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Row(
+                        children: [
+                          Container(
+                            height: 32,
+                            width: 32,
+                            decoration: BoxDecoration(
+                              color: const Color(0x14FF3B30),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.logout,
+                              color: Color(0xFFFF3B30),
+                              size: 18,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          '\u0412\u044b\u0445\u043e\u0434',
-                          style: textTheme.titleMedium?.copyWith(
-                            color: const Color(0xFFFF3B30),
-                            fontWeight: FontWeight.w500,
+                          const SizedBox(width: 12),
+                          Text(
+                            '\u0412\u044b\u0445\u043e\u0434',
+                            style: textTheme.titleMedium?.copyWith(
+                              color: const Color(0xFFFF3B30),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),

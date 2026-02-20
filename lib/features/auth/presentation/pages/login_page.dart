@@ -7,16 +7,16 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
-import '../state/registration_state.dart';
+import '../state/login_state.dart';
 
-class RegistrationPage extends ConsumerWidget {
-  const RegistrationPage({super.key});
+class LoginPage extends ConsumerWidget {
+  const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
-    final state = ref.watch(registrationProvider);
-    final controller = ref.read(registrationProvider.notifier);
+    final state = ref.watch(loginProvider);
+    final controller = ref.read(loginProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -29,7 +29,7 @@ class RegistrationPage extends ConsumerWidget {
               Align(
                 alignment: Alignment.center,
                 child: Text(
-                  AppStrings.registerTitle,
+                  AppStrings.loginTitle,
                   textAlign: TextAlign.center,
                   style: textTheme.titleLarge?.copyWith(
                     fontFamily: 'Gilroy',
@@ -69,9 +69,9 @@ class RegistrationPage extends ConsumerWidget {
                 keyboardType: state.useEmail
                     ? TextInputType.emailAddress
                     : TextInputType.phone,
-                showError: state.emailError,
+                showError: state.identityError,
                 errorText: AppStrings.registerEmailError,
-                onChanged: controller.setEmail,
+                onChanged: controller.setIdentity,
                 inputTextStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,
@@ -88,7 +88,7 @@ class RegistrationPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _FieldLabel(text: AppStrings.registerPasswordLabel),
+              const _FieldLabel(text: AppStrings.registerPasswordLabel),
               const SizedBox(height: 8),
               AppInputField(
                 hint: AppStrings.registerPasswordHint,
@@ -112,42 +112,21 @@ class RegistrationPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _FieldLabel(text: AppStrings.registerConfirmLabel),
-              const SizedBox(height: 8),
-              AppInputField(
-                hint: AppStrings.registerConfirmHint,
-                obscureText: true,
-                showError: state.confirmError,
-                errorText: AppStrings.registerConfirmError,
-                onChanged: controller.setConfirm,
-                inputTextStyle: const TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 16,
-                  height: 20 / 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF001561),
-                ),
-                hintTextStyle: const TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 16,
-                  height: 20 / 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0x33001561),
-                ),
-              ),
-              const SizedBox(height: 20),
               _RememberRow(
                 value: state.rememberMe,
                 onChanged: (value) => controller.setRememberMe(value ?? false),
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
-                label: AppStrings.registerButton,
+                label: AppStrings.loginButton,
                 onPressed: state.isValid
-                    ? () => Navigator.of(
-                        context,
-                      ).pushReplacementNamed(AppRoutes.verifyEmail)
-                    : null,
+                    ? () => Navigator.of(context).pushNamedAndRemoveUntil(
+                        AppRoutes.home,
+                        (route) => false,
+                      )
+                    : () {
+                        controller.showValidationErrors();
+                      },
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,
@@ -160,10 +139,10 @@ class RegistrationPage extends ConsumerWidget {
                 child: InkWell(
                   onTap: () => Navigator.of(
                     context,
-                  ).pushReplacementNamed(AppRoutes.login),
+                  ).pushReplacementNamed(AppRoutes.register),
                   child: Text.rich(
                     TextSpan(
-                      text: AppStrings.registerLoginPrefix,
+                      text: AppStrings.loginRegisterPrefix,
                       style: const TextStyle(
                         fontFamily: 'Gilroy',
                         fontSize: 12,
@@ -171,10 +150,10 @@ class RegistrationPage extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                         color: Color(0xCC001561),
                       ),
-                      children: [
+                      children: const [
                         TextSpan(
-                          text: AppStrings.registerLoginLink,
-                          style: const TextStyle(
+                          text: AppStrings.loginRegisterLink,
+                          style: TextStyle(
                             color: Color(0xFF6C4BFF),
                             fontWeight: FontWeight.w700,
                           ),

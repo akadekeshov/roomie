@@ -5,6 +5,7 @@ import '../features/auth/presentation/pages/otp_page.dart';
 import '../features/auth/presentation/pages/bio_auth_page.dart';
 import '../features/auth/presentation/pages/verify_email_page.dart';
 import '../features/auth/presentation/pages/registration_page.dart';
+import '../features/auth/presentation/pages/login_page.dart';
 import '../features/profile/presentation/pages/profile_intro_page.dart';
 import '../features/profile/presentation/pages/gender_page.dart';
 import '../features/profile/presentation/pages/location_page.dart';
@@ -34,6 +35,7 @@ class RoommateApp extends StatelessWidget {
       routes: {
         AppRoutes.welcome: (context) => const WelcomePage(),
         AppRoutes.auth: (context) => const BioAuthPage(),
+        AppRoutes.login: (context) => const LoginPage(),
         AppRoutes.otp: (context) => const OtpPage(),
         AppRoutes.register: (context) => const RegistrationPage(),
         AppRoutes.verifyEmail: (context) => const VerifyEmailPage(),
