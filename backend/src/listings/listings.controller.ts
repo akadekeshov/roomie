@@ -9,7 +9,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
@@ -26,7 +32,10 @@ export class ListingsController {
   @Post()
   @ApiOperation({ summary: 'Create a new listing' })
   @ApiResponse({ status: 201, description: 'Listing created successfully' })
-  async create(@CurrentUser() user: any, @Body() createListingDto: CreateListingDto) {
+  async create(
+    @CurrentUser() user: any,
+    @Body() createListingDto: CreateListingDto,
+  ) {
     return this.listingsService.create(user.id, createListingDto);
   }
 
@@ -51,7 +60,10 @@ export class ListingsController {
   @ApiResponse({ status: 200, description: 'Listing updated successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - not the owner' })
   @ApiResponse({ status: 404, description: 'Listing not found' })
-  async update(@Param('id') id: string, @Body() updateListingDto: UpdateListingDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateListingDto: UpdateListingDto,
+  ) {
     return this.listingsService.update(id, updateListingDto);
   }
 

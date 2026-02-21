@@ -1,5 +1,10 @@
 import { Controller, Get, Patch, Body, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
@@ -22,7 +27,10 @@ export class UsersController {
   @Patch('me')
   @ApiOperation({ summary: 'Update current user' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
-  async updateMe(@CurrentUser() user: any, @Body() updateUserDto: UpdateUserDto) {
+  async updateMe(
+    @CurrentUser() user: any,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     return this.usersService.updateMe(user.id, updateUserDto);
   }
 

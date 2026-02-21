@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -24,7 +29,9 @@ export class OwnershipGuard implements CanActivate {
     }
 
     if (listing.ownerId !== user.id) {
-      throw new ForbiddenException('You do not have permission to access this resource');
+      throw new ForbiddenException(
+        'You do not have permission to access this resource',
+      );
     }
 
     return true;

@@ -1,21 +1,71 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/dashed_border_container.dart';
+import '../../data/onboarding_repository.dart';
 import '../widgets/profile_flow_header.dart';
 
-class ProfileVerificationUploadPage extends StatefulWidget {
+class ProfileVerificationUploadPage extends ConsumerStatefulWidget {
   const ProfileVerificationUploadPage({super.key});
 
   @override
-  State<ProfileVerificationUploadPage> createState() =>
+  ConsumerState<ProfileVerificationUploadPage> createState() =>
       _ProfileVerificationUploadPageState();
 }
 
 class _ProfileVerificationUploadPageState
-    extends State<ProfileVerificationUploadPage> {
-  bool _uploaded = false;
+    extends ConsumerState<ProfileVerificationUploadPage> {
+  final ImagePicker _imagePicker = ImagePicker();
+
+  String? _documentPath;
+  bool _isSubmitting = false;
+
+  bool get _uploaded => _documentPath != null && _documentPath!.isNotEmpty;
+
+  Future<void> _pickDocument() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+      maxWidth: 2048,
+    );
+    if (!mounted || picked == null) return;
+    setState(() => _documentPath = picked.path);
+  }
+
+  Future<void> _submit() async {
+    if (!_uploaded || _isSubmitting || _documentPath == null) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await ref
+          .read(onboardingRepositoryProvider)
+          .uploadVerificationDocument(_documentPath!);
+      await ref.read(onboardingRepositoryProvider).submitVerification();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Документ отправлен на проверку')),
+      );
+      Navigator.of(context).pop();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(serverMessage ?? 'Не удалось отправить документ'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +86,7 @@ class _ProfileVerificationUploadPageState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0435 \u0441\u0432\u043e\u0439 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442',
+                        'Загрузите свой документ',
                         style: textTheme.headlineSmall?.copyWith(
                           color: const Color(0xFF001561),
                           fontWeight: FontWeight.w700,
@@ -45,17 +95,14 @@ class _ProfileVerificationUploadPageState
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        '\u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f\n\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0438 \u043d\u0435 \u043e\u0442\u043e\u0431\u0440\u0430\u0436\u0430\u0435\u0442\u0441\u044f \u0434\u0440\u0443\u0433\u0438\u043c',
+                        'Документ используется только для\nпроверки и не отображается другим',
                         style: textTheme.bodyLarge?.copyWith(
                           color: const Color(0xFFA0A6B7),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 14),
-                      _UploadBox(
-                        uploaded: _uploaded,
-                        onTap: () => setState(() => _uploaded = true),
-                      ),
+                      _UploadBox(path: _documentPath, onTap: _pickDocument),
                       const SizedBox(height: 14),
                       Container(
                         width: double.infinity,
@@ -68,27 +115,18 @@ class _ProfileVerificationUploadPageState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '\u0423\u0431\u0435\u0434\u0438\u0442\u0435\u0441\u044c, \u0447\u0442\u043e:',
+                              'Убедитесь, что:',
                               style: textTheme.titleMedium?.copyWith(
                                 color: const Color(0xFF001561),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const _BulletLine(
-                              text:
-                                  '\u0424\u043e\u0442\u043e \u0447\u0451\u0442\u043a\u043e\u0435',
-                            ),
+                            const _BulletLine(text: 'Фото чёткое'),
                             const SizedBox(height: 6),
-                            const _BulletLine(
-                              text:
-                                  '\u0411\u0435\u0437 \u0431\u043b\u0438\u043a\u043e\u0432',
-                            ),
+                            const _BulletLine(text: 'Без бликов'),
                             const SizedBox(height: 6),
-                            const _BulletLine(
-                              text:
-                                  '\u0412\u0441\u0435 \u043a\u0440\u0430\u044f \u0432\u0438\u0434\u043d\u044b',
-                            ),
+                            const _BulletLine(text: 'Все края видны'),
                           ],
                         ),
                       ),
@@ -98,9 +136,8 @@ class _ProfileVerificationUploadPageState
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
-                label:
-                    '\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443',
-                onPressed: _uploaded ? () => Navigator.of(context).pop() : null,
+                label: 'Отправить на проверку',
+                onPressed: (_uploaded && !_isSubmitting) ? _submit : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,
@@ -116,13 +153,15 @@ class _ProfileVerificationUploadPageState
 }
 
 class _UploadBox extends StatelessWidget {
-  const _UploadBox({required this.uploaded, required this.onTap});
+  const _UploadBox({required this.path, required this.onTap});
 
-  final bool uploaded;
+  final String? path;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final uploaded = path != null && path!.isNotEmpty;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -130,34 +169,42 @@ class _UploadBox extends StatelessWidget {
         color: uploaded ? AppColors.primary : const Color(0xFFC6CAD6),
         radius: 10,
         height: 170,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: uploaded
-                    ? const Color(0x1A7C3AED)
-                    : const Color(0xFFE3E4E8),
-                shape: BoxShape.circle,
+        child: uploaded
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  File(path!),
+                  width: double.infinity,
+                  height: 170,
+                  fit: BoxFit.cover,
+                ),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE3E4E8),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_downward_rounded,
+                      color: Color(0xFFA6AABB),
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Загрузить фото документа',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: const Color(0xFF001561),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(
-                uploaded ? Icons.check : Icons.arrow_downward_rounded,
-                color: uploaded ? AppColors.primary : const Color(0xFFA6AABB),
-                size: 30,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              uploaded ? 'Документ загружен' : 'Загрузить фото документа',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF001561),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -173,7 +220,7 @@ class _BulletLine extends StatelessWidget {
     return Row(
       children: [
         const Text(
-          '\u2022',
+          '•',
           style: TextStyle(
             color: AppColors.primary,
             fontSize: 15,

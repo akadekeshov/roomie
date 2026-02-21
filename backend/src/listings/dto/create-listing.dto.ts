@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsEnum, IsOptional, IsArray, IsDateString, Min } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  IsDateString,
+  Min,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RoomType } from '@prisma/client';
 
@@ -58,7 +66,10 @@ export class CreateListingDto {
   @IsString({ each: true })
   amenities?: string[];
 
-  @ApiPropertyOptional({ example: ['https://example.com/image1.jpg'], type: [String] })
+  @ApiPropertyOptional({
+    example: ['https://example.com/image1.jpg'],
+    type: [String],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

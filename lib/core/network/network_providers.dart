@@ -1,0 +1,36 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../storage/auth_token_storage.dart';
+import 'api_config.dart';
+
+final authTokenStorageProvider = Provider<AuthTokenStorage>(
+  (ref) => AuthTokenStorage(),
+);
+
+final dioProvider = Provider<Dio>((ref) {
+  final tokenStorage = ref.read(authTokenStorageProvider);
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: ApiConfig.baseUrl,
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 20),
+      sendTimeout: const Duration(seconds: 20),
+      headers: {'Content-Type': 'application/json'},
+    ),
+  );
+
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await tokenStorage.getAccessToken();
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+    ),
+  );
+
+  return dio;
+});

@@ -49,7 +49,13 @@ class RegistrationController extends StateNotifier<RegistrationState> {
   RegistrationController() : super(const RegistrationState());
 
   void toggleMode(bool useEmail) {
-    state = state.copyWith(useEmail: useEmail);
+    state = state.copyWith(
+      useEmail: useEmail,
+      email: '',
+      password: '',
+      confirm: '',
+      showErrors: false,
+    );
   }
 
   void setRememberMe(bool value) {

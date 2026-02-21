@@ -1,36 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/birth_date_utils.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
+import '../../data/onboarding_repository.dart';
 
-class ProfileIntroPage extends StatefulWidget {
+class ProfileIntroPage extends ConsumerStatefulWidget {
   const ProfileIntroPage({super.key});
 
   @override
-  State<ProfileIntroPage> createState() => _ProfileIntroPageState();
+  ConsumerState<ProfileIntroPage> createState() => _ProfileIntroPageState();
 }
 
-class _ProfileIntroPageState extends State<ProfileIntroPage> {
+class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
+  static const _birthDateDraftKey = 'profile_birth_date_draft';
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final FocusNode _nameFocusNode = FocusNode();
   final FocusNode _ageFocusNode = FocusNode();
   bool _showError = false;
+  bool _isSubmitting = false;
 
   bool get _isValid =>
       _nameController.text.trim().isNotEmpty &&
-      _ageController.text.trim().isNotEmpty;
+      BirthDateUtils.isCompleteDateInput(_ageController.text);
 
   @override
   void initState() {
     super.initState();
+    _restoreBirthDateDraft();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _nameFocusNode.requestFocus();
       SystemChannels.textInput.invokeMethod('TextInput.show');
     });
+  }
+
+  Future<void> _restoreBirthDateDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_birthDateDraftKey);
+    if (value == null || value.isEmpty || !mounted) return;
+    _ageController.text = value;
+    setState(() {});
   }
 
   @override
@@ -42,12 +59,59 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
     super.dispose();
   }
 
-  void _onContinue() {
-    if (_isValid) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.gender);
+  Future<void> _onContinue() async {
+    if (!_isValid || _isSubmitting) {
+      setState(() => _showError = true);
       return;
     }
-    setState(() => _showError = true);
+    final age = BirthDateUtils.ageFromInput(_ageController.text);
+    if (age == null) {
+      setState(() => _showError = true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Введите корректный возраст или дату рождения'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _showError = false;
+      _isSubmitting = true;
+    });
+    try {
+      final result = await ref
+          .read(onboardingRepositoryProvider)
+          .submitNameAge(
+            NameAgePayload(firstName: _nameController.text.trim(), age: age),
+          );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_birthDateDraftKey, _ageController.text.trim());
+      if (!mounted) return;
+      final route = OnboardingRouteMapper.fromStep(result.nextStep);
+      Navigator.of(context).pushReplacementNamed(route);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      final message = (serverMessage != null && serverMessage.isNotEmpty)
+          ? serverMessage
+          : 'Ошибка сохранения. Попробуйте снова.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось сохранить данные')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -77,7 +141,9 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                             Align(
                               alignment: Alignment.centerLeft,
                               child: IconButton(
-                                onPressed: () => Navigator.of(context).pop(),
+                                onPressed: () => Navigator.of(
+                                  context,
+                                ).pushReplacementNamed(AppRoutes.verifyEmail),
                                 icon: const Icon(Icons.arrow_back_ios_new),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
@@ -151,6 +217,9 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                               focusNode: _ageFocusNode,
                               hint: AppStrings.profileRuAgeHint,
                               keyboardType: TextInputType.number,
+                              inputFormatters: const [
+                                BirthDateInputFormatter(),
+                              ],
                               onChanged: (_) {
                                 if (_showError) {
                                   setState(() => _showError = false);
@@ -206,7 +275,7 @@ class _ProfileIntroPageState extends State<ProfileIntroPage> {
                                 ),
                               ),
                             ),
-                            onPressed: _onContinue,
+                            onPressed: _isSubmitting ? null : _onContinue,
                             child: const Text(
                               AppStrings.profileContinue,
                               style: TextStyle(
@@ -259,6 +328,7 @@ class _Input extends StatelessWidget {
     required this.hint,
     required this.onChanged,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final TextEditingController controller;
@@ -266,6 +336,7 @@ class _Input extends StatelessWidget {
   final String hint;
   final ValueChanged<String> onChanged;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -273,6 +344,7 @@ class _Input extends StatelessWidget {
       controller: controller,
       focusNode: focusNode,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       onChanged: onChanged,
       onTap: () => SystemChannels.textInput.invokeMethod('TextInput.show'),
       style: const TextStyle(

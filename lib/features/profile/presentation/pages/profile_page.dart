@@ -1,10 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../data/onboarding_repository.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends ConsumerState<ProfilePage> {
+  bool _completed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    try {
+      final status = await ref.read(onboardingRepositoryProvider).getStatus();
+      final profile = status.profile;
+      final lifestyle =
+          (profile['lifestyle'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final search =
+          (profile['search'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final photos =
+          (profile['photos'] as List?)?.whereType<String>().toList() ??
+          const <String>[];
+
+      bool hasText(Object? value) =>
+          value is String && value.trim().isNotEmpty;
+
+      final lifestyleDone =
+          hasText(lifestyle['chronotype']) &&
+          hasText(lifestyle['noisePreference']) &&
+          hasText(lifestyle['personalityType']) &&
+          hasText(lifestyle['smokingPreference']) &&
+          hasText(lifestyle['petsPreference']);
+
+      final searchDone =
+          search['budgetMin'] != null &&
+          search['budgetMax'] != null &&
+          hasText(search['district']) &&
+          hasText(search['roommateGenderPreference']) &&
+          hasText(search['stayTerm']);
+
+      final profileDone =
+          hasText(profile['occupationStatus']) &&
+          hasText(profile['university']) &&
+          hasText(profile['bio']) &&
+          lifestyleDone &&
+          searchDone &&
+          photos.any((p) => p.trim().isNotEmpty);
+
+      if (!mounted) return;
+      setState(() => _completed = profileDone);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,20 +104,31 @@ class ProfilePage extends StatelessWidget {
                   children: [
                     const _ProfileHeader(),
                     const SizedBox(height: 16),
-                    const _ProfileProgress(),
-                    const SizedBox(height: 18),
-                    _CompleteProfileCard(
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pushNamed(AppRoutes.profileAbout),
-                    ),
-                    const SizedBox(height: 12),
+                    if (_completed) ...[
+                      const _ProfileDoneCard(),
+                      const SizedBox(height: 12),
+                    ] else ...[
+                      const _ProfileProgress(),
+                      const SizedBox(height: 18),
+                      _CompleteProfileCard(
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.profileAbout),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     _VerificationCard(
                       onTap: () => Navigator.of(
                         context,
                       ).pushNamed(AppRoutes.profileVerification),
                     ),
                     const SizedBox(height: 18),
+                    const _MenuItem(
+                      icon: Icons.edit_outlined,
+                      title:
+                          '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c',
+                    ),
+                    const SizedBox(height: 8),
                     const _MenuItem(
                       icon: Icons.notifications_none,
                       title:
@@ -132,6 +202,53 @@ class ProfilePage extends StatelessWidget {
       bottomNavigationBar: _BottomNav(
         onTapHome: () =>
             Navigator.of(context).pushReplacementNamed(AppRoutes.home),
+      ),
+    );
+  }
+}
+
+class _ProfileDoneCard extends StatelessWidget {
+  const _ProfileDoneCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: const Color(0x1A2EC766),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x802EC766)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_box_outlined, color: Color(0xFF2EC766), size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d \u043d\u0430 100%',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFF001561),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '\u0422\u0435\u043f\u0435\u0440\u044c \u0432\u0430\u0441 \u043c\u043e\u0433\u0443\u0442 \u043d\u0430\u0445\u043e\u0434\u0438\u0442\u044c \u0434\u0440\u0443\u0433\u0438\u0435 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: const Color(0x99001561),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

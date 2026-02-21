@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -7,13 +8,86 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
+import '../../data/auth_repository.dart';
 import '../state/registration_state.dart';
 
-class RegistrationPage extends ConsumerWidget {
+class RegistrationPage extends ConsumerStatefulWidget {
   const RegistrationPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RegistrationPage> createState() => _RegistrationPageState();
+}
+
+class _RegistrationPageState extends ConsumerState<RegistrationPage> {
+  bool _isSubmitting = false;
+
+  Future<void> _submit() async {
+    final state = ref.read(registrationProvider);
+    final controller = ref.read(registrationProvider.notifier);
+
+    final identity = state.email.trim();
+    final password = state.password.trim();
+    final confirm = state.confirm.trim();
+    if (identity.isEmpty || password.isEmpty || confirm.isEmpty) {
+      controller.showValidationErrors();
+      return;
+    }
+    if (password != confirm) {
+      controller.showValidationErrors();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Пароли не совпадают')));
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await ref
+          .read(authRepositoryProvider)
+          .register(
+            useEmail: state.useEmail,
+            identity: identity,
+            password: password,
+          );
+      if (!mounted) return;
+
+      if (result.next == 'VERIFY_EMAIL' || result.next == 'VERIFY_PHONE') {
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.verifyEmail,
+          arguments: {'useEmail': state.useEmail, 'identity': identity},
+        );
+        return;
+      }
+
+      Navigator.of(context).pushReplacementNamed(AppRoutes.verifyEmail);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      final message = (serverMessage != null && serverMessage.isNotEmpty)
+          ? serverMessage
+          : 'Ошибка регистрации. Проверьте данные.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось зарегистрироваться. Попробуйте снова.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(registrationProvider);
     final controller = ref.read(registrationProvider.notifier);
@@ -63,6 +137,7 @@ class RegistrationPage extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               AppInputField(
+                key: ValueKey<String>('register-identity-${state.useEmail}'),
                 hint: state.useEmail
                     ? AppStrings.registerEmailHint
                     : '+7 777 123 45 67',
@@ -142,12 +217,10 @@ class RegistrationPage extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
-                label: AppStrings.registerButton,
-                onPressed: state.isValid
-                    ? () => Navigator.of(
-                        context,
-                      ).pushReplacementNamed(AppRoutes.verifyEmail)
-                    : null,
+                label: _isSubmitting
+                    ? 'Регистрация...'
+                    : AppStrings.registerButton,
+                onPressed: _isSubmitting ? null : _submit,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,

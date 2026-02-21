@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../data/onboarding_repository.dart';
 import '../data/profile_search_options.dart';
 import '../widgets/profile_flow_header.dart';
 import '../widgets/profile_step_progress.dart';
 
-class ProfileSearchPage extends StatefulWidget {
+class ProfileSearchPage extends ConsumerStatefulWidget {
   const ProfileSearchPage({super.key});
 
   @override
-  State<ProfileSearchPage> createState() => _ProfileSearchPageState();
+  ConsumerState<ProfileSearchPage> createState() => _ProfileSearchPageState();
 }
 
-class _ProfileSearchPageState extends State<ProfileSearchPage> {
+class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
   static const double _budgetMin = 50000;
   static const double _budgetMax = 500000;
 
@@ -22,8 +26,80 @@ class _ProfileSearchPageState extends State<ProfileSearchPage> {
   String? _district;
   String? _term;
   String? _gender;
+  bool _isSubmitting = false;
 
   bool get _isValid => _district != null && _term != null && _gender != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefillFromStatus();
+  }
+
+  Future<void> _prefillFromStatus() async {
+    try {
+      final status = await ref.read(onboardingRepositoryProvider).getStatus();
+      final search =
+          (status.profile['search'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      if (!mounted) return;
+      setState(() {
+        final min = search['budgetMin'] as num?;
+        final max = search['budgetMax'] as num?;
+        if (min != null && max != null) {
+          _budget = RangeValues(
+            min.toDouble().clamp(_budgetMin, _budgetMax),
+            max.toDouble().clamp(_budgetMin, _budgetMax),
+          );
+        }
+        _district = search['district'] as String?;
+        _term = search['stayTerm'] as String?;
+        final rg = search['roommateGenderPreference'] as String?;
+        if (rg == 'MALE') _gender = 'male';
+        if (rg == 'FEMALE') _gender = 'female';
+        if (rg == 'ANY') _gender = 'any';
+      });
+    } catch (_) {
+      // keep screen usable if status fetch fails
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_isValid || _isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final nextStep = await ref
+          .read(onboardingRepositoryProvider)
+          .submitSearchStep(
+            SearchStepPayload(
+              budgetMin: _budget.start.round(),
+              budgetMax: _budget.end.round(),
+              district: _district!,
+              roommateGenderPreference: _gender == 'male'
+                  ? 'MALE'
+                  : _gender == 'female'
+                  ? 'FEMALE'
+                  : 'ANY',
+              stayTerm: _term!,
+            ),
+          );
+      if (!mounted) return;
+      final route = OnboardingRouteMapper.fromStep(nextStep);
+      Navigator.of(context).pushNamed(route);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(serverMessage ?? 'Не удалось сохранить шаг')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   String _formatMoney(double value) {
     final digits = value.round().toString();
@@ -49,8 +125,11 @@ class _ProfileSearchPageState extends State<ProfileSearchPage> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
             children: [
-              const ProfileFlowHeader(
-                progress: ProfileStepProgress(activeStep: 3),
+              ProfileFlowHeader(
+                progress: const ProfileStepProgress(activeStep: 3),
+                onBack: () => Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppRoutes.profileLifestyle),
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -186,11 +265,7 @@ class _ProfileSearchPageState extends State<ProfileSearchPage> {
               AppPrimaryButton(
                 label:
                     '\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c',
-                onPressed: _isValid
-                    ? () => Navigator.of(
-                        context,
-                      ).pushNamed(AppRoutes.profileFinish)
-                    : null,
+                onPressed: (_isValid && !_isSubmitting) ? _submit : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,

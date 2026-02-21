@@ -1,5 +1,18 @@
-import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -20,7 +33,10 @@ export class AuthController {
   @Post('register/email')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register with email' })
-  @ApiResponse({ status: 201, description: 'OTP sent to email. Next step: VERIFY_EMAIL' })
+  @ApiResponse({
+    status: 201,
+    description: 'OTP sent to email. Next step: VERIFY_EMAIL',
+  })
   @ApiResponse({ status: 409, description: 'Email already registered' })
   async registerEmail(@Body() registerEmailDto: RegisterEmailDto) {
     return this.authService.registerEmail(registerEmailDto);
@@ -30,7 +46,10 @@ export class AuthController {
   @Post('register/phone')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register with phone' })
-  @ApiResponse({ status: 201, description: 'OTP sent to phone. Next step: VERIFY_PHONE' })
+  @ApiResponse({
+    status: 201,
+    description: 'OTP sent to phone. Next step: VERIFY_PHONE',
+  })
   @ApiResponse({ status: 409, description: 'Phone already registered' })
   async registerPhone(@Body() registerPhoneDto: RegisterPhoneDto) {
     return this.authService.registerPhone(registerPhoneDto);
@@ -73,7 +92,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email or phone' })
   @ApiResponse({ status: 200, description: 'Login successful' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials or not verified' })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid credentials or not verified',
+  })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
@@ -93,10 +115,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
-  async logout(
-    @CurrentUser() user: any,
-    @Body() body?: RefreshDto,
-  ) {
+  async logout(@CurrentUser() user: any, @Body() body?: RefreshDto) {
     return this.authService.logout(user.id, body?.refreshToken);
   }
 

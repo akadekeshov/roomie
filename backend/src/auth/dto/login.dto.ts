@@ -1,28 +1,11 @@
-import { IsEmail, IsString, ValidateIf, IsNotEmpty, Validate } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  ValidateIf,
+  IsNotEmpty,
+  Matches,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
-
-function IsEmailOrPhone(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
-    registerDecorator({
-      name: 'isEmailOrPhone',
-      target: object.constructor,
-      propertyName: propertyName,
-      options: validationOptions,
-      validator: {
-        validate(value: any, args: ValidationArguments) {
-          const obj = args.object as LoginDto;
-          const hasEmail = !!obj.email;
-          const hasPhone = !!obj.phone;
-          return hasEmail !== hasPhone; // Exactly one must be present
-        },
-        defaultMessage(args: ValidationArguments) {
-          return 'Exactly one of email or phone must be provided';
-        },
-      },
-    });
-  };
-}
 
 export class LoginDto {
   @ApiPropertyOptional({ example: 'user@example.com' })
@@ -35,6 +18,9 @@ export class LoginDto {
   @ValidateIf((o) => !o.email)
   @IsNotEmpty({ message: 'Either email or phone must be provided' })
   @IsString()
+  @Matches(/^\+[1-9]\d{1,14}$/, {
+    message: 'Phone must be in E.164 format (e.g., +77767767676)',
+  })
   phone?: string;
 
   @ApiProperty({ example: 'password123' })

@@ -1,21 +1,28 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../data/auth_repository.dart';
 
-class VerifyEmailPage extends StatefulWidget {
+class VerifyEmailPage extends ConsumerStatefulWidget {
   const VerifyEmailPage({super.key});
 
   @override
-  State<VerifyEmailPage> createState() => _VerifyEmailPageState();
+  ConsumerState<VerifyEmailPage> createState() => _VerifyEmailPageState();
 }
 
-class _VerifyEmailPageState extends State<VerifyEmailPage> {
+class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
+  static const _birthDateDraftKey = 'profile_birth_date_draft';
+  static const _cityDraftKey = 'profile_city_draft';
   static const int _codeLength = 6;
 
   final TextEditingController _codeController = TextEditingController();
@@ -23,6 +30,10 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   Timer? _timer;
   int _secondsLeft = 35;
   bool _showError = false;
+  bool _isSubmitting = false;
+  bool _isResending = false;
+  bool _useEmail = true;
+  String _identity = '';
 
   String get _code => _codeController.text;
   bool get _isButtonEnabled => _code.length == _codeLength;
@@ -36,6 +47,15 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
         _focusCodeInput();
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    _useEmail = args?['useEmail'] as bool? ?? true;
+    _identity = args?['identity'] as String? ?? '';
   }
 
   @override
@@ -73,12 +93,90 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     setState(() => _showError = false);
   }
 
-  void _onConfirm() {
-    if (_isButtonEnabled) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.profileIntro);
+  Future<void> _onConfirm() async {
+    if (!_isButtonEnabled || _isSubmitting) {
+      setState(() => _showError = true);
       return;
     }
-    setState(() => _showError = true);
+
+    setState(() {
+      _isSubmitting = true;
+      _showError = false;
+    });
+    try {
+      final result = await ref
+          .read(authRepositoryProvider)
+          .verifyRegisterOtp(
+            useEmail: _useEmail,
+            identity: _identity,
+            code: _code,
+          );
+      if (!mounted) return;
+      final nextRoute = OnboardingRouteMapper.fromStep(result.onboardingStep);
+      if (nextRoute == AppRoutes.profileIntro) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_birthDateDraftKey);
+        await prefs.remove(_cityDraftKey);
+        if (!mounted) return;
+      }
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(nextRoute, (route) => false);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      final message = (serverMessage != null && serverMessage.isNotEmpty)
+          ? serverMessage
+          : AppStrings.verifyInvalidCode;
+      setState(() => _showError = true);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _showError = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось подтвердить код. Попробуйте снова.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _onResend() async {
+    if (_secondsLeft > 0 || _isResending) return;
+    setState(() => _isResending = true);
+    try {
+      await ref
+          .read(authRepositoryProvider)
+          .resendOtp(useEmail: _useEmail, identity: _identity);
+      if (!mounted) return;
+      _startTimer();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Код отправлен повторно')));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      final message = (serverMessage != null && serverMessage.isNotEmpty)
+          ? serverMessage
+          : 'Не удалось отправить код';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
+    }
   }
 
   void _focusCodeInput() {
@@ -101,7 +199,9 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               Row(
                 children: [
                   IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pushReplacementNamed(AppRoutes.register),
                     icon: const Icon(Icons.arrow_back_ios_new),
                     iconSize: 18,
                     padding: EdgeInsets.zero,
@@ -145,7 +245,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               ),
               const SizedBox(height: 2),
               Text(
-                'dias@gmail.com',
+                _identity.isEmpty ? 'email@gmail.com' : _identity,
                 style: textTheme.titleMedium?.copyWith(
                   fontFamily: 'Gilroy',
                   fontWeight: FontWeight.w800,
@@ -251,16 +351,11 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               ],
               const Spacer(),
               GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _showError = false;
-                    _codeController.clear();
-                  });
-                  _startTimer();
-                  _focusCodeInput();
-                },
+                onTap: _secondsLeft == 0 ? _onResend : null,
                 child: Text(
-                  AppStrings.verifyChangeEmail,
+                  _secondsLeft == 0
+                      ? AppStrings.verifyResendNow
+                      : AppStrings.verifyChangeEmail,
                   style: textTheme.titleSmall?.copyWith(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w600,
@@ -275,7 +370,9 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                 disabledColor: const Color(0x4D7C3AED),
                 enabledTextColor: Colors.white,
                 disabledTextColor: const Color(0x80FFFFFF),
-                onPressed: _isButtonEnabled ? _onConfirm : null,
+                onPressed: (_isButtonEnabled && !_isSubmitting)
+                    ? _onConfirm
+                    : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,

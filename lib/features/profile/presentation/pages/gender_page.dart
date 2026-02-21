@@ -1,21 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../data/onboarding_repository.dart';
 
 enum GenderChoice { male, female }
 
-class GenderPage extends StatefulWidget {
+class GenderPage extends ConsumerStatefulWidget {
   const GenderPage({super.key});
 
   @override
-  State<GenderPage> createState() => _GenderPageState();
+  ConsumerState<GenderPage> createState() => _GenderPageState();
 }
 
-class _GenderPageState extends State<GenderPage> {
+class _GenderPageState extends ConsumerState<GenderPage> {
   GenderChoice? _selected;
+  bool _isSubmitting = false;
+
+  Future<void> _onContinue() async {
+    if (_selected == null || _isSubmitting) return;
+    final genderValue = _selected == GenderChoice.male ? 'MALE' : 'FEMALE';
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await ref
+          .read(onboardingRepositoryProvider)
+          .submitGender(genderValue);
+      if (!mounted) return;
+      final route = OnboardingRouteMapper.fromStep(result.nextStep);
+      Navigator.of(context).pushReplacementNamed(route);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      final message = (serverMessage != null && serverMessage.isNotEmpty)
+          ? serverMessage
+          : 'Не удалось сохранить пол';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +69,9 @@ class _GenderPageState extends State<GenderPage> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed(AppRoutes.profileIntro),
                       icon: const Icon(Icons.arrow_back_ios_new),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
@@ -93,11 +129,7 @@ class _GenderPageState extends State<GenderPage> {
               const Spacer(),
               AppPrimaryButton(
                 label: AppStrings.profileContinue,
-                onPressed: isValid
-                    ? () => Navigator.of(
-                        context,
-                      ).pushReplacementNamed(AppRoutes.location)
-                    : null,
+                onPressed: (isValid && !_isSubmitting) ? _onContinue : null,
                 enabledColor: const Color(0xFF7C3AED),
                 disabledColor: const Color(0x4D7C3AED),
                 enabledTextColor: Colors.white,

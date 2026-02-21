@@ -25,6 +25,29 @@ export class AuthService {
   private readonly OTP_COOLDOWN_SECONDS = 30;
   private readonly MAX_OTP_ATTEMPTS = 5;
 
+  private isProduction(): boolean {
+    return this.configService.get<string>('NODE_ENV') === 'production';
+  }
+
+  private parseDurationToMs(duration: string): number {
+    const match = /^(\d+)([mhd])$/.exec(duration.trim());
+    if (!match) {
+      return 7 * 24 * 60 * 60 * 1000;
+    }
+    const value = Number(match[1]);
+    const unit = match[2];
+    switch (unit) {
+      case 'm':
+        return value * 60 * 1000;
+      case 'h':
+        return value * 60 * 60 * 1000;
+      case 'd':
+        return value * 24 * 60 * 60 * 1000;
+      default:
+        return 7 * 24 * 60 * 60 * 1000;
+    }
+  }
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -151,15 +174,26 @@ export class AuthService {
       },
     });
 
-    const code = await this.upsertOtp(OTPChannel.EMAIL, OTPPurpose.REGISTER, registerEmailDto.email);
+    const code = await this.upsertOtp(
+      OTPChannel.EMAIL,
+      OTPPurpose.REGISTER,
+      registerEmailDto.email,
+    );
 
-    console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
+    if (!this.isProduction()) {
+      console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
+    }
 
     return { next: 'VERIFY_EMAIL' };
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
-    await this.validateOtp(OTPChannel.EMAIL, OTPPurpose.REGISTER, verifyEmailDto.email, verifyEmailDto.code);
+    await this.validateOtp(
+      OTPChannel.EMAIL,
+      OTPPurpose.REGISTER,
+      verifyEmailDto.email,
+      verifyEmailDto.code,
+    );
 
     const user = await this.prisma.user.findUnique({
       where: { email: verifyEmailDto.email },
@@ -190,7 +224,11 @@ export class AuthService {
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email || undefined, user.phone || undefined);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email || undefined,
+      user.phone || undefined,
+    );
 
     return {
       accessToken: tokens.accessToken,
@@ -224,15 +262,26 @@ export class AuthService {
       },
     });
 
-    const code = await this.upsertOtp(OTPChannel.PHONE, OTPPurpose.REGISTER, registerPhoneDto.phone);
+    const code = await this.upsertOtp(
+      OTPChannel.PHONE,
+      OTPPurpose.REGISTER,
+      registerPhoneDto.phone,
+    );
 
-    console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
+    if (!this.isProduction()) {
+      console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
+    }
 
     return { next: 'VERIFY_PHONE' };
   }
 
   async verifyPhone(verifyPhoneDto: VerifyPhoneDto) {
-    await this.validateOtp(OTPChannel.PHONE, OTPPurpose.REGISTER, verifyPhoneDto.phone, verifyPhoneDto.code);
+    await this.validateOtp(
+      OTPChannel.PHONE,
+      OTPPurpose.REGISTER,
+      verifyPhoneDto.phone,
+      verifyPhoneDto.code,
+    );
 
     const user = await this.prisma.user.findUnique({
       where: { phone: verifyPhoneDto.phone },
@@ -263,7 +312,11 @@ export class AuthService {
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email || undefined, user.phone || undefined);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email || undefined,
+      user.phone || undefined,
+    );
 
     return {
       accessToken: tokens.accessToken,
@@ -285,7 +338,8 @@ export class AuthService {
 
     if (otpRecord) {
       const now = new Date();
-      const timeSinceLastSent = (now.getTime() - otpRecord.lastSentAt.getTime()) / 1000;
+      const timeSinceLastSent =
+        (now.getTime() - otpRecord.lastSentAt.getTime()) / 1000;
 
       if (timeSinceLastSent < this.OTP_COOLDOWN_SECONDS) {
         throw new HttpException(
@@ -295,13 +349,21 @@ export class AuthService {
       }
     }
 
-    const code = await this.upsertOtp(resendOtpDto.channel, resendOtpDto.purpose, resendOtpDto.target);
+    const code = await this.upsertOtp(
+      resendOtpDto.channel,
+      resendOtpDto.purpose,
+      resendOtpDto.target,
+    );
 
     if (resendOtpDto.channel === OTPChannel.EMAIL) {
-      console.log(`[OTP EMAIL] ${resendOtpDto.target}: ${code}`);
+      if (!this.isProduction()) {
+        console.log(`[OTP EMAIL] ${resendOtpDto.target}: ${code}`);
+      }
       return { next: 'VERIFY_EMAIL' };
     } else {
-      console.log(`[OTP SMS] ${resendOtpDto.target}: ${code}`);
+      if (!this.isProduction()) {
+        console.log(`[OTP SMS] ${resendOtpDto.target}: ${code}`);
+      }
       return { next: 'VERIFY_PHONE' };
     }
   }
@@ -312,7 +374,9 @@ export class AuthService {
     }
 
     if (loginDto.email && loginDto.phone) {
-      throw new BadRequestException('Only one of email or phone should be provided');
+      throw new BadRequestException(
+        'Only one of email or phone should be provided',
+      );
     }
 
     const user = loginDto.email
@@ -327,7 +391,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -341,7 +408,11 @@ export class AuthService {
       throw new UnauthorizedException('Phone not verified');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email || undefined, user.phone || undefined);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email || undefined,
+      user.phone || undefined,
+    );
 
     return {
       user: {
@@ -387,7 +458,9 @@ export class AuthService {
     }
 
     if (tokenRecord.expiresAt < new Date()) {
-      await this.prisma.refreshToken.delete({ where: { token: refreshDto.refreshToken } }).catch(() => {});
+      await this.prisma.refreshToken
+        .delete({ where: { token: refreshDto.refreshToken } })
+        .catch(() => {});
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
@@ -448,14 +521,15 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string, email?: string, phone?: string) {
-    const identifier = email || phone || '';
     const payload = { sub: userId, email: email || null, phone: phone || null };
 
     const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET')!;
     const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET')!;
 
-    const accessTtl = this.configService.get<string>('ACCESS_TOKEN_TTL') ?? '15m';
-    const refreshTtl = this.configService.get<string>('REFRESH_TOKEN_TTL') ?? '7d';
+    const accessTtl =
+      this.configService.get<string>('ACCESS_TOKEN_TTL') ?? '15m';
+    const refreshTtl =
+      this.configService.get<string>('REFRESH_TOKEN_TTL') ?? '7d';
 
     const accessToken = this.jwtService.sign(payload as any, {
       secret: accessSecret,
@@ -472,8 +546,7 @@ export class AuthService {
       where: { userId },
     });
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const expiresAt = new Date(Date.now() + this.parseDurationToMs(refreshTtl));
 
     await this.prisma.refreshToken.create({
       data: {

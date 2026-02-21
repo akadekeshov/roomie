@@ -97,7 +97,7 @@ class AppStrings {
   static const String profileRuNameHint =
       '\u041a\u0430\u043b\u0434\u043e\u0435\u0432 \u0414\u0438\u0430\u0441';
   static const String profileRuAgeLabel =
-      '\u0412\u0430\u0448 \u0432\u043e\u0437\u0440\u0430\u0441\u0442';
+      '\u0414\u0430\u0442\u0430 \u0440\u043e\u0436\u0434\u0435\u043d\u0438\u044f';
   static const String profileRuAgeHint =
       '\u0434\u0434.\u043c\u043c.\u0433\u0433\u0433\u0433';
   static const String profileRuFillAll =

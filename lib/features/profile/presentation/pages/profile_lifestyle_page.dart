@@ -1,22 +1,115 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../data/onboarding_repository.dart';
 import '../widgets/profile_flow_header.dart';
 import '../widgets/profile_step_progress.dart';
 
-class ProfileLifestylePage extends StatefulWidget {
+class ProfileLifestylePage extends ConsumerStatefulWidget {
   const ProfileLifestylePage({super.key});
 
   @override
-  State<ProfileLifestylePage> createState() => _ProfileLifestylePageState();
+  ConsumerState<ProfileLifestylePage> createState() =>
+      _ProfileLifestylePageState();
 }
 
-class _ProfileLifestylePageState extends State<ProfileLifestylePage> {
+class _ProfileLifestylePageState extends ConsumerState<ProfileLifestylePage> {
   final Map<int, int> _selectedByGroup = <int, int>{};
+  bool _isSubmitting = false;
 
   bool get _isValid => _selectedByGroup.length == 5;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefillFromStatus();
+  }
+
+  Future<void> _prefillFromStatus() async {
+    try {
+      final status = await ref.read(onboardingRepositoryProvider).getStatus();
+      final lifestyle =
+          (status.profile['lifestyle'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      if (!mounted) return;
+      setState(() {
+        if (lifestyle['chronotype'] == 'OWL') {
+          _selectedByGroup[0] = 0;
+        }
+        if (lifestyle['chronotype'] == 'LARK') {
+          _selectedByGroup[0] = 1;
+        }
+        if (lifestyle['noisePreference'] == 'QUIET') _selectedByGroup[1] = 0;
+        if (lifestyle['noisePreference'] == 'SOCIAL') {
+          _selectedByGroup[1] = 1;
+        }
+        if (lifestyle['personalityType'] == 'INTROVERT') {
+          _selectedByGroup[2] = 0;
+        }
+        if (lifestyle['personalityType'] == 'EXTROVERT') {
+          _selectedByGroup[2] = 1;
+        }
+        if (lifestyle['smokingPreference'] == 'SMOKER') {
+          _selectedByGroup[3] = 0;
+        }
+        if (lifestyle['smokingPreference'] == 'NON_SMOKER') {
+          _selectedByGroup[3] = 1;
+        }
+        if (lifestyle['petsPreference'] == 'WITH_PETS') {
+          _selectedByGroup[4] = 0;
+        }
+        if (lifestyle['petsPreference'] == 'NO_PETS') {
+          _selectedByGroup[4] = 1;
+        }
+      });
+    } catch (_) {
+      // Keep page usable even if prefill fails.
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_isValid || _isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final nextStep = await ref
+          .read(onboardingRepositoryProvider)
+          .submitLifestyleStep(
+            LifestyleStepPayload(
+              chronotype: _selectedByGroup[0] == 0 ? 'OWL' : 'LARK',
+              noisePreference: _selectedByGroup[1] == 0 ? 'QUIET' : 'SOCIAL',
+              personalityType: _selectedByGroup[2] == 0
+                  ? 'INTROVERT'
+                  : 'EXTROVERT',
+              smokingPreference: _selectedByGroup[3] == 0
+                  ? 'SMOKER'
+                  : 'NON_SMOKER',
+              petsPreference: _selectedByGroup[4] == 0
+                  ? 'WITH_PETS'
+                  : 'NO_PETS',
+            ),
+          );
+      if (!mounted) return;
+      final route = OnboardingRouteMapper.fromStep(nextStep);
+      Navigator.of(context).pushNamed(route);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(serverMessage ?? 'Не удалось сохранить шаг')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +122,11 @@ class _ProfileLifestylePageState extends State<ProfileLifestylePage> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
             children: [
-              const ProfileFlowHeader(
-                progress: ProfileStepProgress(activeStep: 2),
+              ProfileFlowHeader(
+                progress: const ProfileStepProgress(activeStep: 2),
+                onBack: () => Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppRoutes.profileAbout),
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -151,11 +247,7 @@ class _ProfileLifestylePageState extends State<ProfileLifestylePage> {
               AppPrimaryButton(
                 label:
                     '\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c',
-                onPressed: _isValid
-                    ? () => Navigator.of(
-                        context,
-                      ).pushNamed(AppRoutes.profileSearch)
-                    : null,
+                onPressed: (_isValid && !_isSubmitting) ? _submit : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,

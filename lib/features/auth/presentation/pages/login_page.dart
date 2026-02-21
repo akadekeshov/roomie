@@ -1,19 +1,75 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
+import '../../data/auth_repository.dart';
 import '../state/login_state.dart';
 
-class LoginPage extends ConsumerWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends ConsumerState<LoginPage> {
+  bool _isSubmitting = false;
+
+  Future<void> _submit() async {
+    final state = ref.read(loginProvider);
+    final controller = ref.read(loginProvider.notifier);
+
+    if (!state.isValid) {
+      controller.showValidationErrors();
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await ref
+          .read(authRepositoryProvider)
+          .login(
+            useEmail: state.useEmail,
+            identity: state.identity,
+            password: state.password,
+          );
+      if (!mounted) return;
+      final route = result.onboardingCompleted
+          ? AppRoutes.home
+          : OnboardingRouteMapper.fromStep(result.onboardingStep);
+      Navigator.of(context).pushNamedAndRemoveUntil(route, (route) => false);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      final message = (serverMessage != null && serverMessage.isNotEmpty)
+          ? serverMessage
+          : 'Ошибка входа. Проверьте данные.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось войти. Попробуйте снова.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(loginProvider);
     final controller = ref.read(loginProvider.notifier);
@@ -63,6 +119,7 @@ class LoginPage extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               AppInputField(
+                key: ValueKey<String>('login-identity-${state.useEmail}'),
                 hint: state.useEmail
                     ? AppStrings.registerEmailHint
                     : '+7 777 123 45 67',
@@ -118,15 +175,8 @@ class LoginPage extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
-                label: AppStrings.loginButton,
-                onPressed: state.isValid
-                    ? () => Navigator.of(context).pushNamedAndRemoveUntil(
-                        AppRoutes.home,
-                        (route) => false,
-                      )
-                    : () {
-                        controller.showValidationErrors();
-                      },
+                label: _isSubmitting ? 'Вход...' : AppStrings.loginButton,
+                onPressed: _isSubmitting ? null : _submit,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,

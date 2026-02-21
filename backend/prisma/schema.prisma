@@ -41,7 +41,55 @@ enum OnboardingStep {
   NAME_AGE
   GENDER
   CITY
+  ABOUT
+  LIFESTYLE
+  SEARCH
+  FINALIZE
   DONE
+}
+
+enum OccupationStatus {
+  STUDY
+  WORK
+  STUDY_WORK
+}
+
+enum Chronotype {
+  OWL
+  LARK
+}
+
+enum NoisePreference {
+  QUIET
+  SOCIAL
+}
+
+enum PersonalityType {
+  INTROVERT
+  EXTROVERT
+}
+
+enum SmokingPreference {
+  SMOKER
+  NON_SMOKER
+}
+
+enum PetsPreference {
+  WITH_PETS
+  NO_PETS
+}
+
+enum RoommateGenderPreference {
+  MALE
+  FEMALE
+  ANY
+}
+
+enum VerificationStatus {
+  NONE
+  PENDING
+  VERIFIED
+  REJECTED
 }
 
 model User {
@@ -59,6 +107,21 @@ model User {
   bio                String?
   onboardingCompleted Boolean        @default(false)
   onboardingStep    OnboardingStep  @default(NAME_AGE)
+  occupationStatus   OccupationStatus?
+  university         String?
+  chronotype         Chronotype?
+  noisePreference    NoisePreference?
+  personalityType    PersonalityType?
+  smokingPreference  SmokingPreference?
+  petsPreference     PetsPreference?
+  searchBudgetMin    Int?
+  searchBudgetMax    Int?
+  searchDistrict     String?
+  roommateGenderPreference RoommateGenderPreference?
+  stayTerm           String?
+  photos             String[]
+  verificationStatus VerificationStatus @default(NONE)
+  verificationDocumentUrl String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 

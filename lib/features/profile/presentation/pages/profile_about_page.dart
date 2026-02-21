@@ -1,37 +1,156 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/birth_date_utils.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../data/profile_cities.dart';
+import '../../data/onboarding_repository.dart';
 import '../widgets/profile_flow_header.dart';
 import '../widgets/profile_step_progress.dart';
 
-class ProfileAboutPage extends StatefulWidget {
+class ProfileAboutPage extends ConsumerStatefulWidget {
   const ProfileAboutPage({super.key});
 
   @override
-  State<ProfileAboutPage> createState() => _ProfileAboutPageState();
+  ConsumerState<ProfileAboutPage> createState() => _ProfileAboutPageState();
 }
 
-class _ProfileAboutPageState extends State<ProfileAboutPage> {
+class _ProfileAboutPageState extends ConsumerState<ProfileAboutPage> {
+  static const _birthDateDraftKey = 'profile_birth_date_draft';
+  static const _cityDraftKey = 'profile_city_draft';
+
   final TextEditingController _universityController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
 
   int? _selectedStatus;
   String? _selectedCity;
+  bool _isSubmitting = false;
 
   bool get _isValid =>
       _selectedStatus != null &&
       _universityController.text.trim().isNotEmpty &&
-      _ageController.text.trim().isNotEmpty &&
+      BirthDateUtils.isCompleteDateInput(_ageController.text) &&
       _selectedCity != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreDrafts();
+    _prefillFromStatus();
+  }
 
   @override
   void dispose() {
     _universityController.dispose();
     _ageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreDrafts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final birthDate = prefs.getString(_birthDateDraftKey);
+    final city = prefs.getString(_cityDraftKey);
+    if (!mounted) return;
+    setState(() {
+      if (birthDate != null && birthDate.isNotEmpty) {
+        _ageController.text = birthDate;
+      }
+      if (city != null && city.isNotEmpty) {
+        _selectedCity = city;
+      }
+    });
+  }
+
+  Future<void> _prefillFromStatus() async {
+    try {
+      final status = await ref.read(onboardingRepositoryProvider).getStatus();
+      final profile = status.profile;
+      final occupation = profile['occupationStatus'] as String?;
+      final university = profile['university'] as String?;
+      final city = profile['city'] as String?;
+      final age = profile['age'] as int?;
+
+      if (!mounted) return;
+      setState(() {
+        if (occupation == 'STUDY') _selectedStatus = 0;
+        if (occupation == 'WORK') _selectedStatus = 1;
+        if (occupation == 'STUDY_WORK') _selectedStatus = 2;
+        if (university != null && university.isNotEmpty) {
+          _universityController.text = university;
+        }
+        if (city != null && city.isNotEmpty) {
+          _selectedCity = city;
+        }
+        if (age != null && _ageController.text.trim().isEmpty) {
+          _ageController.text = age.toString();
+        }
+      });
+    } catch (_) {
+      // Keep usable without prefill.
+    }
+  }
+
+  String _mapStatus(int status) {
+    switch (status) {
+      case 0:
+        return 'STUDY';
+      case 1:
+        return 'WORK';
+      default:
+        return 'STUDY_WORK';
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_isValid || _selectedStatus == null || _selectedCity == null) return;
+    final age = BirthDateUtils.ageFromInput(_ageController.text);
+    if (age == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Введите корректную дату рождения')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final nextStep = await ref
+          .read(onboardingRepositoryProvider)
+          .submitAboutStep(
+            AboutStepPayload(
+              occupationStatus: _mapStatus(_selectedStatus!),
+              university: _universityController.text.trim(),
+              age: age,
+              city: _selectedCity!,
+            ),
+          );
+      if (!mounted) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_birthDateDraftKey, _ageController.text.trim());
+      await prefs.setString(_cityDraftKey, _selectedCity!);
+      if (!mounted) return;
+
+      final route = OnboardingRouteMapper.fromStep(nextStep);
+      Navigator.of(context).pushNamed(route);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(serverMessage ?? 'Не удалось сохранить шаг')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   Future<void> _openCitiesSheet() async {
@@ -60,6 +179,8 @@ class _ProfileAboutPageState extends State<ProfileAboutPage> {
     );
 
     if (result != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cityDraftKey, result);
       setState(() => _selectedCity = result);
     }
   }
@@ -75,8 +196,11 @@ class _ProfileAboutPageState extends State<ProfileAboutPage> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
             children: [
-              const ProfileFlowHeader(
-                progress: ProfileStepProgress(activeStep: 1),
+              ProfileFlowHeader(
+                progress: const ProfileStepProgress(activeStep: 1),
+                onBack: () => Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppRoutes.profile),
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -85,7 +209,7 @@ class _ProfileAboutPageState extends State<ProfileAboutPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '\u0420\u0430\u0441\u0441\u043a\u0430\u0436\u0438\u0442\u0435 \u043e \u0441\u0435\u0431\u0435',
+                        'Расскажите о себе',
                         style: textTheme.headlineSmall?.copyWith(
                           color: const Color(0xFF001561),
                           fontWeight: FontWeight.w700,
@@ -93,51 +217,45 @@ class _ProfileAboutPageState extends State<ProfileAboutPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _Label(text: '\u042f'),
+                      const _Label(text: 'Я'),
                       const SizedBox(height: 8),
                       _OptionButton(
-                        label: '\u0423\u0447\u0443\u0441\u044c',
+                        label: 'Учусь',
                         selected: _selectedStatus == 0,
                         onTap: () => setState(() => _selectedStatus = 0),
                       ),
                       const SizedBox(height: 8),
                       _OptionButton(
-                        label: '\u0420\u0430\u0431\u043e\u0442\u0430\u044e',
+                        label: 'Работаю',
                         selected: _selectedStatus == 1,
                         onTap: () => setState(() => _selectedStatus = 1),
                       ),
                       const SizedBox(height: 8),
                       _OptionButton(
-                        label:
-                            '\u0423\u0447\u0443\u0441\u044c \u0438 \u0440\u0430\u0431\u043e\u0442\u0430\u044e',
+                        label: 'Учусь и работаю',
                         selected: _selectedStatus == 2,
                         onTap: () => setState(() => _selectedStatus = 2),
                       ),
                       const SizedBox(height: 20),
-                      _Label(
-                        text:
-                            '\u0423\u0447\u0435\u0431\u043d\u043e\u0435 \u0437\u0430\u0432\u0435\u0434\u0435\u043d\u0438\u0435',
-                      ),
+                      const _Label(text: 'Учебное заведение'),
                       const SizedBox(height: 8),
                       _TextInput(
                         controller: _universityController,
-                        hint:
-                            '\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u0432\u0432\u043e\u0434\u0438\u0442\u044c...',
+                        hint: 'Начните вводить...',
                         onChanged: (_) => setState(() {}),
                       ),
                       const SizedBox(height: 20),
-                      _Label(
-                        text: '\u0412\u043e\u0437\u0440\u0430\u0441\u0442',
-                      ),
+                      const _Label(text: 'День рождения'),
                       const SizedBox(height: 8),
                       _TextInput(
                         controller: _ageController,
-                        hint: '18',
+                        hint: 'дд.мм.гггг',
                         keyboardType: TextInputType.number,
+                        inputFormatters: const [BirthDateInputFormatter()],
                         onChanged: (_) => setState(() {}),
                       ),
                       const SizedBox(height: 20),
-                      _Label(text: '\u0413\u043e\u0440\u043e\u0434'),
+                      const _Label(text: 'Город'),
                       const SizedBox(height: 8),
                       _CitySelectField(
                         value: _selectedCity,
@@ -149,13 +267,8 @@ class _ProfileAboutPageState extends State<ProfileAboutPage> {
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
-                label:
-                    '\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c',
-                onPressed: _isValid
-                    ? () => Navigator.of(
-                        context,
-                      ).pushNamed(AppRoutes.profileLifestyle)
-                    : null,
+                label: _isSubmitting ? 'Сохранение...' : 'Продолжить',
+                onPressed: (_isValid && !_isSubmitting) ? _submit : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,
@@ -231,18 +344,21 @@ class _TextInput extends StatelessWidget {
     required this.hint,
     required this.onChanged,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final TextEditingController controller;
   final String hint;
   final ValueChanged<String> onChanged;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       onChanged: onChanged,
       style: const TextStyle(
         color: Color(0xFF001561),
@@ -291,8 +407,7 @@ class _CitySelectField extends StatelessWidget {
           border: Border.all(color: const Color(0xFFC6CAD6)),
         ),
         child: Text(
-          value ??
-              '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0432\u043e\u0439 \u0433\u043e\u0440\u043e\u0434...',
+          value ?? 'Выберите свой город...',
           style: TextStyle(
             color: value == null
                 ? const Color(0xFFB0B5C5)
@@ -337,7 +452,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
     final textTheme = Theme.of(context).textTheme;
     final query = _searchController.text.trim().toLowerCase();
     final filtered = widget.cities
-        .where((city) => city.toLowerCase().contains(query))
+        .where((c) => c.toLowerCase().contains(query))
         .toList();
 
     return TweenAnimationBuilder<double>(
@@ -374,7 +489,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                 controller: _searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: '\u041f\u043e\u0438\u0441\u043a',
+                  hintText: 'Поиск',
                   hintStyle: const TextStyle(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w400,
@@ -398,11 +513,10 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
               child: ListView.separated(
                 itemCount: filtered.length,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                separatorBuilder: (_, index) => const SizedBox(height: 8),
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final city = filtered[index];
                   final active = city == _selected;
-
                   return InkWell(
                     borderRadius: BorderRadius.circular(16),
                     onTap: () => setState(() => _selected = city),
@@ -443,7 +557,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 4, 24, 16),
               child: AppPrimaryButton(
-                label: '\u0412\u044b\u0431\u0440\u0430\u0442\u044c',
+                label: 'Выбрать',
                 onPressed: _selected == null
                     ? null
                     : () => Navigator.of(context).pop(_selected),

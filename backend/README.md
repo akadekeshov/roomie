@@ -90,11 +90,27 @@ npm run start:dev
 ## API Endpoints
 
 ### Authentication (`/api/auth`)
-- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/register/email` - Register with email
+- `POST /api/auth/register/phone` - Register with phone
+- `POST /api/auth/verify/email` - Verify email OTP
+- `POST /api/auth/verify/phone` - Verify phone OTP
+- `POST /api/auth/otp/resend` - Resend OTP
 - `POST /api/auth/login` - Login user
 - `POST /api/auth/refresh` - Refresh access token
 - `POST /api/auth/logout` - Logout user
 - `GET /api/auth/me` - Get current user (protected)
+
+### Onboarding (`/api/onboarding`)
+- `PATCH /api/onboarding/name-age`
+- `PATCH /api/onboarding/gender`
+- `PATCH /api/onboarding/city`
+- `PATCH /api/onboarding/about`
+- `PATCH /api/onboarding/lifestyle`
+- `PATCH /api/onboarding/search`
+- `PATCH /api/onboarding/finalize`
+- `PATCH /api/onboarding/verification/document`
+- `PATCH /api/onboarding/verification/submit`
+- `GET /api/onboarding/status`
 
 ### Users (`/api/users`)
 - `GET /api/users/:id` - Get user by ID (protected)

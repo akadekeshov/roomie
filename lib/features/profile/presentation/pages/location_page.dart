@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../data/onboarding_repository.dart';
 
-class LocationPage extends StatefulWidget {
+class LocationPage extends ConsumerStatefulWidget {
   const LocationPage({super.key});
 
   @override
-  State<LocationPage> createState() => _LocationPageState();
+  ConsumerState<LocationPage> createState() => _LocationPageState();
 }
 
-class _LocationPageState extends State<LocationPage> {
+class _LocationPageState extends ConsumerState<LocationPage> {
+  static const _cityDraftKey = 'profile_city_draft';
   String? _selectedCity;
+  bool _isSubmitting = false;
 
   static const List<String> _cities = [
     '\u0410\u0441\u0442\u0430\u043d\u0430',
@@ -60,6 +67,39 @@ class _LocationPageState extends State<LocationPage> {
 
     if (result != null) {
       setState(() => _selectedCity = result);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cityDraftKey, result);
+    }
+  }
+
+  Future<void> _onContinue() async {
+    final city = _selectedCity;
+    if (city == null || _isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await ref
+          .read(onboardingRepositoryProvider)
+          .submitCity(city);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cityDraftKey, city);
+      if (!mounted) return;
+      final route = OnboardingRouteMapper.fromStep(result.nextStep);
+      Navigator.of(context).pushNamedAndRemoveUntil(route, (route) => false);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      final message = (serverMessage != null && serverMessage.isNotEmpty)
+          ? serverMessage
+          : 'Не удалось сохранить город';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -80,7 +120,9 @@ class _LocationPageState extends State<LocationPage> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed(AppRoutes.gender),
                       icon: const Icon(Icons.arrow_back_ios_new),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
@@ -136,9 +178,9 @@ class _LocationPageState extends State<LocationPage> {
               const SizedBox(height: 18),
               AppPrimaryButton(
                 label: AppStrings.profileContinue,
-                onPressed: () => Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false),
+                onPressed: (_selectedCity != null && !_isSubmitting)
+                    ? _onContinue
+                    : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,
