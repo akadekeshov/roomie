@@ -496,6 +496,7 @@ export class AuthService {
       where: { id: userId },
       select: {
         id: true,
+        role: true,
         email: true,
         phone: true,
         firstName: true,
