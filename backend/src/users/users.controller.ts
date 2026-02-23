@@ -36,7 +36,7 @@ export class UsersController {
   }
 
   @Get('discover')
-  @ApiOperation({ summary: 'Discover verified users for home page' })
+  @ApiOperation({ summary: 'Discover users with filters' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({
     name: 'limit',
@@ -44,6 +44,34 @@ export class UsersController {
     type: Number,
     example: 10,
     description: 'Items per page (max 50)',
+  })
+  @ApiQuery({
+    name: 'budgetMax',
+    required: false,
+    type: Number,
+    example: 150000,
+    description: 'Max budget per month (до X)',
+  })
+  @ApiQuery({
+    name: 'district',
+    required: false,
+    type: String,
+    example: 'Алмалинский р-н',
+    description: 'District; use "Все районы" or empty to ignore',
+  })
+  @ApiQuery({
+    name: 'gender',
+    required: false,
+    enum: ['MALE', 'FEMALE', 'OTHER'],
+    example: 'FEMALE',
+    description: 'Preferred roommate gender',
+  })
+  @ApiQuery({
+    name: 'ageRange',
+    required: false,
+    enum: ['18-25', '25+'],
+    example: '18-25',
+    description: 'Age range filter',
   })
   @ApiResponse({
     status: 200,
@@ -53,9 +81,7 @@ export class UsersController {
     @CurrentUser() user: any,
     @Query() query: DiscoverUsersQueryDto,
   ) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    return this.usersService.discoverUsers(user.id, page, limit);
+    return this.usersService.discoverUsers(user.id, query);
   }
 
   @Get(':id')

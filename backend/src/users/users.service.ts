@@ -8,11 +8,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, UserRole, VerificationStatus } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { DiscoverUsersQueryDto } from './dto/discover-users-query.dto';
 
 type UserPreview = Prisma.UserGetPayload<{
   select: {
     id: true;
     firstName: true;
+    lastName: true;
     age: true;
     city: true;
     bio: true;
@@ -25,9 +27,16 @@ type UserPreview = Prisma.UserGetPayload<{
     personalityType: true;
     smokingPreference: true;
     petsPreference: true;
+    searchDistrict: true;
+    verificationStatus: true;
     createdAt: true;
   };
 }>;
+
+type DiscoverUser = UserPreview & {
+  compatibility: number | null;
+  compatibilityReasons: string[];
+};
 
 @Injectable()
 export class UsersService {
@@ -86,22 +95,66 @@ export class UsersService {
 
   async discoverUsers(
     currentUserId: string,
-    page: number,
-    limit: number,
+    query: DiscoverUsersQueryDto,
   ): Promise<{
-    data: UserPreview[];
+    data: DiscoverUser[];
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
+    const {
+      page = 1,
+      limit = 10,
+      budgetMax,
+      district,
+      gender,
+      ageRange,
+    } = query;
+
     const safePage = page < 1 ? 1 : page;
     const safeLimit = Math.min(Math.max(limit, 1), 50);
     const skip = (safePage - 1) * safeLimit;
 
-    const where = {
+    const where: Prisma.UserWhereInput = {
       role: UserRole.USER,
       verificationStatus: VerificationStatus.VERIFIED,
       onboardingCompleted: true,
       id: { not: currentUserId },
     };
+
+    const andConditions: Prisma.UserWhereInput[] = [];
+
+    const normalizedDistrict =
+      typeof district === 'string' ? district.trim() : district ?? null;
+
+    if (normalizedDistrict && normalizedDistrict !== 'Все районы') {
+      andConditions.push({ searchDistrict: normalizedDistrict });
+    }
+
+    if (gender) {
+      andConditions.push({ gender });
+    }
+
+    if (ageRange === '18-25') {
+      andConditions.push({
+        age: { gte: 18, lte: 25 },
+      });
+    } else if (ageRange === '25+') {
+      andConditions.push({
+        age: { gte: 25 },
+      });
+    }
+
+    if (budgetMax !== undefined && budgetMax !== null) {
+      andConditions.push({
+        OR: [
+          { searchBudgetMin: { lte: budgetMax } },
+          { searchBudgetMin: null },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -111,6 +164,7 @@ export class UsersService {
         select: {
           id: true,
           firstName: true,
+          lastName: true,
           age: true,
           city: true,
           bio: true,
@@ -123,6 +177,8 @@ export class UsersService {
           personalityType: true,
           smokingPreference: true,
           petsPreference: true,
+          searchDistrict: true,
+          verificationStatus: true,
           createdAt: true,
         },
       }),
@@ -135,10 +191,16 @@ export class UsersService {
       [users[i], users[j]] = [users[j], users[i]];
     }
 
+    const data: DiscoverUser[] = users.map((user) => ({
+      ...user,
+      compatibility: null,
+      compatibilityReasons: [],
+    }));
+
     const totalPages = total === 0 ? 0 : Math.ceil(total / safeLimit);
 
     return {
-      data: users,
+      data,
       meta: {
         page: safePage,
         limit: safeLimit,

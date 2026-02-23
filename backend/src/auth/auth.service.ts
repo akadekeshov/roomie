@@ -155,12 +155,26 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('Email already registered');
+      if (existingUser.emailVerified) {
+        throw new ConflictException('Email already registered');
+      }
+
+      const code = await this.upsertOtp(
+        OTPChannel.EMAIL,
+        OTPPurpose.REGISTER,
+        registerEmailDto.email,
+      );
+
+      if (!this.isProduction()) {
+        console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
+      }
+
+      return { next: 'VERIFY_EMAIL', alreadyExists: true };
     }
 
     const hashedPassword = await bcrypt.hash(registerEmailDto.password, 10);
 
-    const user = await this.prisma.user.create({
+    await this.prisma.user.create({
       data: {
         email: registerEmailDto.email,
         phone: null,
@@ -184,7 +198,7 @@ export class AuthService {
       console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
     }
 
-    return { next: 'VERIFY_EMAIL' };
+    return { next: 'VERIFY_EMAIL', alreadyExists: false };
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
@@ -243,12 +257,26 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('Phone already registered');
+      if (existingUser.phoneVerified) {
+        throw new ConflictException('Phone already registered');
+      }
+
+      const code = await this.upsertOtp(
+        OTPChannel.PHONE,
+        OTPPurpose.REGISTER,
+        registerPhoneDto.phone,
+      );
+
+      if (!this.isProduction()) {
+        console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
+      }
+
+      return { next: 'VERIFY_PHONE', alreadyExists: true };
     }
 
     const hashedPassword = await bcrypt.hash(registerPhoneDto.password, 10);
 
-    const user = await this.prisma.user.create({
+    await this.prisma.user.create({
       data: {
         email: null,
         phone: registerPhoneDto.phone,
@@ -272,7 +300,7 @@ export class AuthService {
       console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
     }
 
-    return { next: 'VERIFY_PHONE' };
+    return { next: 'VERIFY_PHONE', alreadyExists: false };
   }
 
   async verifyPhone(verifyPhoneDto: VerifyPhoneDto) {
