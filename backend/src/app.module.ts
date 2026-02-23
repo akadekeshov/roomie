@@ -13,6 +13,7 @@ import { SavedModule } from './saved/saved.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { VerificationModule } from './verification/verification.module';
 import { AdminVerificationsModule } from './admin-verifications/admin-verifications.module';
+import { FavoritesUsersModule } from './favorites-users/favorites-users.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AdminVerificationsModule } from './admin-verifications/admin-verificati
     OnboardingModule,
     VerificationModule,
     AdminVerificationsModule,
+    FavoritesUsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

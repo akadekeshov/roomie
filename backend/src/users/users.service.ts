@@ -33,6 +33,57 @@ type UserPreview = Prisma.UserGetPayload<{
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  async getPublicProfile(currentUserId: string, targetUserId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: targetUserId,
+        role: UserRole.USER,
+        onboardingCompleted: true,
+        verificationStatus: VerificationStatus.VERIFIED,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        age: true,
+        city: true,
+        bio: true,
+        photos: true,
+        occupationStatus: true,
+        university: true,
+        chronotype: true,
+        noisePreference: true,
+        personalityType: true,
+        smokingPreference: true,
+        petsPreference: true,
+        searchBudgetMin: true,
+        searchBudgetMax: true,
+        searchDistrict: true,
+        roommateGenderPreference: true,
+        stayTerm: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const favorite = await this.prisma.favoriteUser.findUnique({
+      where: {
+        ownerId_targetUserId: {
+          ownerId: currentUserId,
+          targetUserId,
+        },
+      },
+    });
+
+    return {
+      ...user,
+      isSaved: !!favorite,
+    };
+  }
+
   async discoverUsers(
     currentUserId: string,
     page: number,
