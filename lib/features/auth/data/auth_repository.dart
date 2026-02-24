@@ -20,6 +20,20 @@ class AuthFlowResult {
   final String? next;
 }
 
+class CurrentUser {
+  const CurrentUser({
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    required this.phone,
+  });
+
+  final String? firstName;
+  final String? lastName;
+  final String? email;
+  final String? phone;
+}
+
 class AuthRepository {
   const AuthRepository(this._dio, this._tokenStorage);
 
@@ -149,6 +163,17 @@ class AuthRepository {
     return LoginResult(
       onboardingStep: user?['onboardingStep'] as String?,
       onboardingCompleted: user?['onboardingCompleted'] as bool? ?? false,
+    );
+  }
+
+  Future<CurrentUser> getMe() async {
+    final response = await _dio.get<Map<String, dynamic>>('/auth/me');
+    final data = response.data ?? <String, dynamic>{};
+    return CurrentUser(
+      firstName: data['firstName'] as String?,
+      lastName: data['lastName'] as String?,
+      email: data['email'] as String?,
+      phone: data['phone'] as String?,
     );
   }
 }

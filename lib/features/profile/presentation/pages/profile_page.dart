@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/auth_repository.dart';
 import '../../data/onboarding_repository.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -14,11 +15,35 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _completed = false;
+  String _displayName = 'Пользователь';
+  String _displayContact = '';
 
   @override
   void initState() {
     super.initState();
-    _loadStatus();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    await Future.wait([_loadStatus(), _loadHeader()]);
+  }
+
+  Future<void> _loadHeader() async {
+    try {
+      final me = await ref.read(authRepositoryProvider).getMe();
+      final firstName = (me.firstName ?? '').trim();
+      final lastName = (me.lastName ?? '').trim();
+      final fullName = '$firstName $lastName'.trim();
+      final contact = (me.email ?? '').trim().isNotEmpty
+          ? me.email!.trim()
+          : (me.phone ?? '').trim();
+
+      if (!mounted) return;
+      setState(() {
+        _displayName = fullName.isEmpty ? 'Пользователь' : fullName;
+        _displayContact = contact.isEmpty ? '—' : contact;
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadStatus() async {
@@ -102,7 +127,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 padding: const EdgeInsets.fromLTRB(24, 14, 24, 98),
                 child: Column(
                   children: [
-                    const _ProfileHeader(),
+                    _ProfileHeader(
+                      name: _displayName,
+                      contact: _displayContact,
+                    ),
                     const SizedBox(height: 16),
                     if (_completed) ...[
                       const _ProfileDoneCard(),
@@ -255,7 +283,10 @@ class _ProfileDoneCard extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
+  const _ProfileHeader({required this.name, required this.contact});
+
+  final String name;
+  final String contact;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +308,7 @@ class _ProfileHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '\u0414\u0438\u0430\u0441 \u0418\u0441\u0435\u0435\u0432',
+              name,
               style: textTheme.headlineSmall?.copyWith(
                 color: const Color(0xFF001561),
                 fontWeight: FontWeight.w700,
@@ -286,7 +317,7 @@ class _ProfileHeader extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              'dias@gmail.com',
+              contact,
               style: textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF8A93B1),
                 fontWeight: FontWeight.w500,
