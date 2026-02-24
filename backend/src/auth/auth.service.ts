@@ -196,6 +196,7 @@ export class AuthService {
 
     if (!this.isProduction()) {
       console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
+      return { next: 'VERIFY_EMAIL', debugOtp: code };
     }
 
     return { next: 'VERIFY_EMAIL', alreadyExists: false };
@@ -298,6 +299,7 @@ export class AuthService {
 
     if (!this.isProduction()) {
       console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
+      return { next: 'VERIFY_PHONE', debugOtp: code };
     }
 
     return { next: 'VERIFY_PHONE', alreadyExists: false };
@@ -386,11 +388,13 @@ export class AuthService {
     if (resendOtpDto.channel === OTPChannel.EMAIL) {
       if (!this.isProduction()) {
         console.log(`[OTP EMAIL] ${resendOtpDto.target}: ${code}`);
+        return { next: 'VERIFY_EMAIL', debugOtp: code };
       }
       return { next: 'VERIFY_EMAIL' };
     } else {
       if (!this.isProduction()) {
         console.log(`[OTP SMS] ${resendOtpDto.target}: ${code}`);
+        return { next: 'VERIFY_PHONE', debugOtp: code };
       }
       return { next: 'VERIFY_PHONE' };
     }
