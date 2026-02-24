@@ -85,6 +85,12 @@ enum RoommateGenderPreference {
   ANY
 }
 
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
 enum VerificationStatus {
   NONE
   PENDING
@@ -97,6 +103,7 @@ model User {
   email              String?         @unique
   phone              String?         @unique
   password           String
+  role               UserRole        @default(USER)
   emailVerified      Boolean         @default(false)
   phoneVerified      Boolean         @default(false)
   firstName          String?
@@ -122,12 +129,19 @@ model User {
   photos             String[]
   verificationStatus VerificationStatus @default(NONE)
   verificationDocumentUrl String?
+  verificationSelfieUrl String?
+  verificationRejectReason String?
+  verificationReviewedAt DateTime?
+  verificationReviewedBy String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   refreshTokens RefreshToken[]
   listings      Listing[]
   savedListings SavedListing[]
+
+  favoriteUsers FavoriteUser[] @relation("FavoriteOwner")
+  favoritedBy   FavoriteUser[] @relation("FavoriteTarget")
 
   @@map("users")
 }
@@ -197,4 +211,17 @@ model SavedListing {
 
   @@unique([userId, listingId])
   @@map("saved_listings")
+}
+
+model FavoriteUser {
+  id           String   @id @default(uuid())
+  ownerId      String
+  targetUserId String
+  createdAt    DateTime @default(now())
+
+  owner  User @relation("FavoriteOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  target User @relation("FavoriteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, targetUserId])
+  @@map("favorite_users")
 }
