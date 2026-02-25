@@ -35,7 +35,10 @@ dependencies:
   dio: ^5.8.0+1
   shared_preferences: ^2.5.3
   image_picker: ^1.1.2
+<<<<<<< HEAD
   flutter_secure_storage: ^9.2.2
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -75,11 +78,19 @@ flutter:
         - asset: assets/fonts/gilroy_full/Gilroy-Extrabold.ttf
           weight: 800
 
+<<<<<<< HEAD
  
   assets:
     - assets/images/
    
    
+=======
+  # To add assets to your application, add an assets section, like this:
+  # assets:
+  #   - images/a_dot_burr.jpeg
+  #   - images/a_dot_ham.jpeg
+
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

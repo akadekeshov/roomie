@@ -1,12 +1,28 @@
+<<<<<<< HEAD
+=======
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 generator client {
   provider = "prisma-client-js"
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 enum Gender {
   MALE
   FEMALE

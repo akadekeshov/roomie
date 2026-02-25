@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 import {
   Injectable,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+=======
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole, VerificationStatus } from '@prisma/client';
 

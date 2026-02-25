@@ -16,6 +16,7 @@ class AppSpacing {
   static const double spaceAfterField = 24;
   static const double spaceAfterButton = 16;
 
+<<<<<<< HEAD
   static const double xs = 4;
   static const double sm = 8;
   static const double md = 12;
@@ -32,5 +33,7 @@ class AppSpacing {
   static const double rightColumnGap = 8;
   static const double timeToBadgeGap = 6;
 
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   const AppSpacing._();
 }

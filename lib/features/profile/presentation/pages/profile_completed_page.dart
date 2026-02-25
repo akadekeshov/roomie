@@ -59,7 +59,11 @@ class ProfileCompletedPage extends StatelessWidget {
                     '\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u043f\u043e\u0438\u0441\u043a\u0443',
                 onPressed: () => Navigator.of(
                   context,
+<<<<<<< HEAD
                 ).pushNamedAndRemoveUntil(AppRoutes.shell, (_) => false),
+=======
+                ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false),
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,

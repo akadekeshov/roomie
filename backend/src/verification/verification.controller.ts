@@ -28,7 +28,11 @@ import { VerificationDocumentDto } from './dto/verification-document.dto';
 import { VerificationSelfieDto } from './dto/verification-selfie.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
+<<<<<<< HEAD
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+=======
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 function ensureDirExists(dir: string) {
@@ -208,4 +212,7 @@ export class VerificationController {
     return this.verificationService.getMyVerification(user.id);
   }
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750

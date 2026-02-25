@@ -12,4 +12,7 @@ export class RejectVerificationDto {
   @MinLength(10, { message: 'Rejection reason must be at least 10 characters' })
   reason: string;
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750

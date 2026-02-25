@@ -155,12 +155,34 @@ export class AuthService {
     });
 
     if (existingUser) {
+<<<<<<< HEAD
       throw new ConflictException('Email already registered');
+=======
+      if (existingUser.emailVerified) {
+        throw new ConflictException('Email already registered');
+      }
+
+      const code = await this.upsertOtp(
+        OTPChannel.EMAIL,
+        OTPPurpose.REGISTER,
+        registerEmailDto.email,
+      );
+
+      if (!this.isProduction()) {
+        console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
+      }
+
+      return { next: 'VERIFY_EMAIL', alreadyExists: true };
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
     }
 
     const hashedPassword = await bcrypt.hash(registerEmailDto.password, 10);
 
+<<<<<<< HEAD
     const user = await this.prisma.user.create({
+=======
+    await this.prisma.user.create({
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       data: {
         email: registerEmailDto.email,
         phone: null,
@@ -180,6 +202,7 @@ export class AuthService {
       registerEmailDto.email,
     );
 
+<<<<<<< HEAD
     if (process.env.OTP_DEV_LOG === 'true') {
       // Only log OTP in explicit dev mode
       // eslint-disable-next-line no-console
@@ -187,6 +210,14 @@ export class AuthService {
     }
 
     return { next: 'VERIFY_EMAIL' };
+=======
+    if (!this.isProduction()) {
+      console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
+      return { next: 'VERIFY_EMAIL', debugOtp: code };
+    }
+
+    return { next: 'VERIFY_EMAIL', alreadyExists: false };
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
@@ -245,12 +276,34 @@ export class AuthService {
     });
 
     if (existingUser) {
+<<<<<<< HEAD
       throw new ConflictException('Phone already registered');
+=======
+      if (existingUser.phoneVerified) {
+        throw new ConflictException('Phone already registered');
+      }
+
+      const code = await this.upsertOtp(
+        OTPChannel.PHONE,
+        OTPPurpose.REGISTER,
+        registerPhoneDto.phone,
+      );
+
+      if (!this.isProduction()) {
+        console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
+      }
+
+      return { next: 'VERIFY_PHONE', alreadyExists: true };
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
     }
 
     const hashedPassword = await bcrypt.hash(registerPhoneDto.password, 10);
 
+<<<<<<< HEAD
     const user = await this.prisma.user.create({
+=======
+    await this.prisma.user.create({
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       data: {
         email: null,
         phone: registerPhoneDto.phone,
@@ -270,12 +323,21 @@ export class AuthService {
       registerPhoneDto.phone,
     );
 
+<<<<<<< HEAD
     if (process.env.OTP_DEV_LOG === 'true') {
       // eslint-disable-next-line no-console
       console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
     }
 
     return { next: 'VERIFY_PHONE' };
+=======
+    if (!this.isProduction()) {
+      console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
+      return { next: 'VERIFY_PHONE', debugOtp: code };
+    }
+
+    return { next: 'VERIFY_PHONE', alreadyExists: false };
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   }
 
   async verifyPhone(verifyPhoneDto: VerifyPhoneDto) {
@@ -359,6 +421,7 @@ export class AuthService {
     );
 
     if (resendOtpDto.channel === OTPChannel.EMAIL) {
+<<<<<<< HEAD
       if (process.env.OTP_DEV_LOG === 'true') {
         // eslint-disable-next-line no-console
         console.log(`[OTP EMAIL] ${resendOtpDto.target}: ${code}`);
@@ -368,6 +431,17 @@ export class AuthService {
       if (process.env.OTP_DEV_LOG === 'true') {
         // eslint-disable-next-line no-console
         console.log(`[OTP SMS] ${resendOtpDto.target}: ${code}`);
+=======
+      if (!this.isProduction()) {
+        console.log(`[OTP EMAIL] ${resendOtpDto.target}: ${code}`);
+        return { next: 'VERIFY_EMAIL', debugOtp: code };
+      }
+      return { next: 'VERIFY_EMAIL' };
+    } else {
+      if (!this.isProduction()) {
+        console.log(`[OTP SMS] ${resendOtpDto.target}: ${code}`);
+        return { next: 'VERIFY_PHONE', debugOtp: code };
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       }
       return { next: 'VERIFY_PHONE' };
     }
@@ -501,6 +575,10 @@ export class AuthService {
       where: { id: userId },
       select: {
         id: true,
+<<<<<<< HEAD
+=======
+        role: true,
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
         email: true,
         phone: true,
         firstName: true,
@@ -515,7 +593,10 @@ export class AuthService {
         onboardingCompleted: true,
         createdAt: true,
         updatedAt: true,
+<<<<<<< HEAD
         
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       },
     });
 

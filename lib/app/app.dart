@@ -18,6 +18,7 @@ import '../features/profile/presentation/pages/profile_completed_page.dart';
 import '../features/profile/presentation/pages/profile_verification_page.dart';
 import '../features/profile/presentation/pages/profile_verification_upload_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
+<<<<<<< HEAD
 import '../features/main/main_shell.dart';
 import '../features/onboarding/presentation/pages/welcome_page.dart';
 import 'app_routes.dart';
@@ -25,6 +26,11 @@ import 'app_theme.dart';
 import 'package:roommate_app/features/profile/presentation/pages/profile_edit_page.dart';
 import '../features/admin/presentation/pages/admin_verifications_page.dart';
 
+=======
+import '../features/onboarding/presentation/pages/welcome_page.dart';
+import 'app_routes.dart';
+import 'app_theme.dart';
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 
 class RoommateApp extends StatelessWidget {
   const RoommateApp({super.key});
@@ -36,7 +42,10 @@ class RoommateApp extends StatelessWidget {
       theme: AppTheme.light(),
       debugShowCheckedModeBanner: false,
       initialRoute: AppRoutes.register,
+<<<<<<< HEAD
       //initialRoute: AppRoutes.adminVerifications,
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       routes: {
         AppRoutes.welcome: (context) => const WelcomePage(),
         AppRoutes.auth: (context) => const BioAuthPage(),
@@ -47,7 +56,11 @@ class RoommateApp extends StatelessWidget {
         AppRoutes.profileIntro: (context) => const ProfileIntroPage(),
         AppRoutes.gender: (context) => const GenderPage(),
         AppRoutes.location: (context) => const LocationPage(),
+<<<<<<< HEAD
         AppRoutes.home: (context) => const MainShell(),
+=======
+        AppRoutes.home: (context) => const HomePage(),
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
         AppRoutes.profile: (context) => const ProfilePage(),
         AppRoutes.profileAbout: (context) => const ProfileAboutPage(),
         AppRoutes.profileLifestyle: (context) => const ProfileLifestylePage(),
@@ -58,12 +71,15 @@ class RoommateApp extends StatelessWidget {
             const ProfileVerificationPage(),
         AppRoutes.profileVerificationUpload: (context) =>
             const ProfileVerificationUploadPage(),
+<<<<<<< HEAD
           
        AppRoutes.profileEdit: (_) =>  ProfileEditPage(),
 
         AppRoutes.shell: (context) => const MainShell(),
 
         AppRoutes.adminVerifications: (context) => const AdminVerificationsPage(),
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       },
     );
   }

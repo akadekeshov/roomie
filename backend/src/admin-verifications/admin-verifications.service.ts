@@ -48,10 +48,16 @@ export class AdminVerificationsService {
 
     return users.map((user) => ({
       id: user.id,
+<<<<<<< HEAD
       name:
         user.firstName && user.lastName
           ? `${user.firstName} ${user.lastName}`
           : user.firstName || user.email || user.phone || 'Unknown',
+=======
+      name: user.firstName && user.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : user.firstName || user.email || user.phone || 'Unknown',
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       email: user.email,
       phone: user.phone,
       documentUrl: user.verificationDocumentUrl,
@@ -115,10 +121,16 @@ export class AdminVerificationsService {
 
     return {
       id: user.id,
+<<<<<<< HEAD
       name:
         user.firstName && user.lastName
           ? `${user.firstName} ${user.lastName}`
           : user.firstName || user.email || user.phone || 'Unknown',
+=======
+      name: user.firstName && user.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : user.firstName || user.email || user.phone || 'Unknown',
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       email: user.email,
       phone: user.phone,
       age: user.age,
@@ -245,4 +257,7 @@ export class AdminVerificationsService {
     return updated;
   }
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750

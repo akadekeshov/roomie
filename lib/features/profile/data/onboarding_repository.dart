@@ -165,6 +165,20 @@ class OnboardingRepository {
     return response.data?['nextStep'] as String?;
   }
 
+<<<<<<< HEAD
+=======
+  Future<void> uploadVerificationDocument(String documentUrl) async {
+    await _dio.patch<Map<String, dynamic>>(
+      '/onboarding/verification/document',
+      data: {'documentUrl': documentUrl},
+    );
+  }
+
+  Future<void> submitVerification() async {
+    await _dio.patch<Map<String, dynamic>>('/onboarding/verification/submit');
+  }
+
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   Future<OnboardingStatus> getStatus() async {
     final response = await _dio.get<Map<String, dynamic>>('/onboarding/status');
     final data = response.data ?? <String, dynamic>{};
@@ -180,4 +194,8 @@ class OnboardingRepository {
 
 final onboardingRepositoryProvider = Provider<OnboardingRepository>((ref) {
   return OnboardingRepository(ref.read(dioProvider));
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750

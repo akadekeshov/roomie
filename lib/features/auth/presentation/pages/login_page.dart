@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+import 'package:dio/dio.dart';
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +12,10 @@ import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
+<<<<<<< HEAD
 import '../../../../core/errors/app_exception.dart';
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 import '../../data/auth_repository.dart';
 import '../state/login_state.dart';
 
@@ -23,12 +30,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _isSubmitting = false;
 
   Future<void> _submit() async {
+<<<<<<< HEAD
     final controller = ref.read(loginProvider.notifier);
     var state = ref.read(loginProvider);
 
     final ok = controller.validate();
     state = ref.read(loginProvider);
     if (!ok) return;
+=======
+    final state = ref.read(loginProvider);
+    final controller = ref.read(loginProvider.notifier);
+
+    if (!state.isValid) {
+      controller.showValidationErrors();
+      return;
+    }
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 
     setState(() => _isSubmitting = true);
     try {
@@ -38,6 +55,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             useEmail: state.useEmail,
             identity: state.identity,
             password: state.password,
+<<<<<<< HEAD
             rememberMe: state.rememberMe,
           );
       if (!mounted) return;
@@ -47,6 +65,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
     } on AppException catch (e) {
       controller.applyBackendError(e);
+=======
+          );
+      if (!mounted) return;
+      final route = result.onboardingCompleted
+          ? AppRoutes.home
+          : OnboardingRouteMapper.fromStep(result.onboardingStep);
+      Navigator.of(context).pushNamedAndRemoveUntil(route, (route) => false);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverMessage = e.response?.data is Map<String, dynamic>
+          ? (e.response?.data['message']?.toString())
+          : null;
+      final message = (serverMessage != null && serverMessage.isNotEmpty)
+          ? serverMessage
+          : 'Ошибка входа. Проверьте данные.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,8 +154,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 keyboardType: state.useEmail
                     ? TextInputType.emailAddress
                     : TextInputType.phone,
+<<<<<<< HEAD
                 showError: state.identityErrorMessage != null,
                 errorText: state.identityErrorMessage ?? '',
+=======
+                showError: state.identityError,
+                errorText: AppStrings.registerEmailError,
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                 onChanged: controller.setIdentity,
                 inputTextStyle: const TextStyle(
                   fontFamily: 'Gilroy',
@@ -141,8 +183,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               AppInputField(
                 hint: AppStrings.registerPasswordHint,
                 obscureText: true,
+<<<<<<< HEAD
                 showError: state.passwordErrorMessage != null,
                 errorText: state.passwordErrorMessage ?? '',
+=======
+                showError: state.passwordError,
+                errorText: AppStrings.registerPasswordError,
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                 onChanged: controller.setPassword,
                 inputTextStyle: const TextStyle(
                   fontFamily: 'Gilroy',
@@ -164,6 +211,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 value: state.rememberMe,
                 onChanged: (value) => controller.setRememberMe(value ?? false),
               ),
+<<<<<<< HEAD
               const SizedBox(height: 12),
               if (state.generalErrorMessage != null)
                 Padding(
@@ -178,6 +226,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
               const SizedBox(height: 8),
+=======
+              const SizedBox(height: 20),
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
               AppPrimaryButton(
                 label: _isSubmitting ? 'Вход...' : AppStrings.loginButton,
                 onPressed: _isSubmitting ? null : _submit,

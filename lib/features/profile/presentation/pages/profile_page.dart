@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+<<<<<<< HEAD
 import '../../data/onboarding_repository.dart';
 import '../../data/me_repository.dart'; 
+=======
+import '../../../auth/data/auth_repository.dart';
+import '../../data/onboarding_repository.dart';
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -15,11 +20,42 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _completed = false;
+<<<<<<< HEAD
+=======
+  String _displayName = 'Пользователь';
+  String _displayContact = '';
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _loadStatus();
+=======
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    await Future.wait([_loadStatus(), _loadHeader()]);
+  }
+
+  Future<void> _loadHeader() async {
+    try {
+      final me = await ref.read(authRepositoryProvider).getMe();
+      final firstName = (me.firstName ?? '').trim();
+      final lastName = (me.lastName ?? '').trim();
+      final fullName = '$firstName $lastName'.trim();
+      final contact = (me.email ?? '').trim().isNotEmpty
+          ? me.email!.trim()
+          : (me.phone ?? '').trim();
+
+      if (!mounted) return;
+      setState(() {
+        _displayName = fullName.isEmpty ? 'Пользователь' : fullName;
+        _displayContact = contact.isEmpty ? '—' : contact;
+      });
+    } catch (_) {}
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   }
 
   Future<void> _loadStatus() async {
@@ -103,10 +139,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 padding: const EdgeInsets.fromLTRB(24, 14, 24, 98),
                 child: Column(
                   children: [
+<<<<<<< HEAD
                     const _ProfileHeader(),
                     const SizedBox(height: 16),
                     if (_completed) ...[
                        _ProfileDoneCard(),
+=======
+                    _ProfileHeader(
+                      name: _displayName,
+                      contact: _displayContact,
+                    ),
+                    const SizedBox(height: 16),
+                    if (_completed) ...[
+                      const _ProfileDoneCard(),
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                       const SizedBox(height: 12),
                     ] else ...[
                       const _ProfileProgress(),
@@ -118,6 +164,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ),
                       const SizedBox(height: 12),
                     ],
+<<<<<<< HEAD
                    _VerificationCard(
                         onTap: () async {
                        await Navigator.of(context)
@@ -132,6 +179,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                      title: 'Редактировать профиль',
   onTap: () => Navigator.of(context).pushNamed(AppRoutes.profileEdit),
 ),
+=======
+                    _VerificationCard(
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushNamed(AppRoutes.profileVerification),
+                    ),
+                    const SizedBox(height: 18),
+                    const _MenuItem(
+                      icon: Icons.edit_outlined,
+                      title:
+                          '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c',
+                    ),
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                     const SizedBox(height: 8),
                     const _MenuItem(
                       icon: Icons.notifications_none,
@@ -162,6 +222,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       title:
                           '\u041e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0438',
                     ),
+<<<<<<< HEAD
                     const SizedBox(height: 8),
                   _MenuItem(
                      icon: Icons.admin_panel_settings,
@@ -169,6 +230,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                      onTap: () =>
                       Navigator.of(context).pushNamed(AppRoutes.adminVerifications),
                     ),
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                     const SizedBox(height: 22),
                     InkWell(
                       onTap: () =>
@@ -210,6 +273,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
         ),
       ),
+<<<<<<< HEAD
       
     );
   }
@@ -315,6 +379,11 @@ class _ProfileHeader extends ConsumerWidget {
             ],
           ),
         ],
+=======
+      bottomNavigationBar: _BottomNav(
+        onTapHome: () =>
+            Navigator.of(context).pushReplacementNamed(AppRoutes.home),
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       ),
     );
   }
@@ -337,18 +406,26 @@ class _ProfileDoneCard extends StatelessWidget {
       ),
       child: Row(
         children: [
+<<<<<<< HEAD
           const Icon(
             Icons.check_box_outlined,
             color: Color(0xFF2EC766),
             size: 18,
           ),
+=======
+          const Icon(Icons.check_box_outlined, color: Color(0xFF2EC766), size: 18),
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+<<<<<<< HEAD
                   'Профиль заполнен на 100%',
+=======
+                  '\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d \u043d\u0430 100%',
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                   style: textTheme.titleMedium?.copyWith(
                     color: const Color(0xFF001561),
                     fontWeight: FontWeight.w700,
@@ -356,7 +433,11 @@ class _ProfileDoneCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
+<<<<<<< HEAD
                   'Теперь вас могут находить другие пользователи',
+=======
+                  '\u0422\u0435\u043f\u0435\u0440\u044c \u0432\u0430\u0441 \u043c\u043e\u0433\u0443\u0442 \u043d\u0430\u0445\u043e\u0434\u0438\u0442\u044c \u0434\u0440\u0443\u0433\u0438\u0435 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438',
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                   style: textTheme.bodyMedium?.copyWith(
                     color: const Color(0x99001561),
                     fontWeight: FontWeight.w500,
@@ -371,6 +452,57 @@ class _ProfileDoneCard extends StatelessWidget {
   }
 }
 
+<<<<<<< HEAD
+=======
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.name, required this.contact});
+
+  final String name;
+  final String contact;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      children: [
+        Container(
+          height: 64,
+          width: 64,
+          decoration: const BoxDecoration(
+            color: Color(0xFFD3D5DB),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.person, color: Colors.white, size: 34),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              name,
+              style: textTheme.headlineSmall?.copyWith(
+                color: const Color(0xFF001561),
+                fontWeight: FontWeight.w700,
+                fontSize: 34 / 2,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              contact,
+              style: textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF8A93B1),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 class _ProfileProgress extends StatelessWidget {
   const _ProfileProgress();
 
@@ -479,13 +611,18 @@ class _CompleteProfileCardState extends State<_CompleteProfileCard> {
   }
 }
 
+<<<<<<< HEAD
 
 class _VerificationCard extends ConsumerWidget {
+=======
+class _VerificationCard extends StatelessWidget {
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   const _VerificationCard({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
+<<<<<<< HEAD
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final meAsync = ref.watch(meProvider);
@@ -599,12 +736,71 @@ class _MenuItem extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
+<<<<<<< HEAD
+=======
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.75)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.verified_user_outlined, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c \u043b\u0438\u0447\u043d\u043e\u0441\u0442\u044c',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: const Color(0xFF001561),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '\u041f\u043e\u0432\u044b\u0448\u0430\u0435\u0442 \u0434\u043e\u0432\u0435\u0440\u0438\u0435 \u043a \u0432\u0430\u0448\u0435\u043c\u0443 \u043f\u0440\u043e\u0444\u0438\u043b\u044e',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF9AA1B9),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuItem extends StatelessWidget {
+  const _MenuItem({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return InkWell(
+      onTap: () {},
+      borderRadius: BorderRadius.circular(14),
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
       child: Padding(
         padding: const EdgeInsets.fromLTRB(11, 8, 0, 8),
         child: Row(
@@ -625,7 +821,11 @@ class _MenuItem extends StatelessWidget {
                 style: textTheme.titleLarge?.copyWith(
                   color: const Color(0xFF001561),
                   fontWeight: FontWeight.w600,
+<<<<<<< HEAD
                   fontSize: 16,
+=======
+                  fontSize: 32 / 2,
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                 ),
               ),
             ),
@@ -637,6 +837,40 @@ class _MenuItem extends StatelessWidget {
   }
 }
 
+<<<<<<< HEAD
+=======
+class _BottomNav extends StatelessWidget {
+  const _BottomNav({required this.onTapHome});
+
+  final VoidCallback onTapHome;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 78,
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 10),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0x14000000))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _NavIcon(
+            icon: Icons.home_outlined,
+            selected: false,
+            onTap: onTapHome,
+          ),
+          const _NavIcon(icon: Icons.favorite_border, selected: false),
+          const _NavIcon(icon: Icons.chat_bubble_outline, selected: false),
+          const _NavIcon(icon: Icons.person_outline, selected: true),
+        ],
+      ),
+    );
+  }
+}
+
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 class _NavIcon extends StatelessWidget {
   const _NavIcon({required this.icon, required this.selected, this.onTap});
 

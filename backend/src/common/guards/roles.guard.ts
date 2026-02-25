@@ -14,6 +14,10 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+<<<<<<< HEAD
+=======
+    // Skip role check for public endpoints
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -28,6 +32,10 @@ export class RolesGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
+<<<<<<< HEAD
+=======
+    // If no roles required, allow access (endpoint is protected by JWT but no specific role needed)
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
     if (!requiredRoles) {
       return true;
     }
@@ -49,4 +57,7 @@ export class RolesGuard implements CanActivate {
     return true;
   }
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
