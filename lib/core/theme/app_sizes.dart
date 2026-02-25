@@ -1,0 +1,44 @@
+class AppSizes {
+  static const double pad = 15.0;
+  static const double indicatorW = 120.0;
+  static const double indicatorH = 5.0;
+  static const double avatarRadius = 24.0;
+  static const double onlineDot = 14.0;
+  static const double inputHeight = 44.0;
+  static const double searchHeight = 45.0;
+  static const chatSpacing = 24.0;
+  static const double rBig = 20.0;
+  static const double rSmall = 4.0;
+  static const double unreadBadge = 20;
+  static const double navBarHeight = 78;
+  static const double infoBlockPadding = 10;
+  static const double buttonHeight = 36;
+  static const double detailPadding = 16;
+  static const double detailImageAspectRatio = 1.2;
+  static const double gridPadding = 16;
+  static const double gridSpacing = 14;
+  static const double gridAspectRatio = 0.72;
+  static const double cardRadius = 20;
+  static const double shadowBlur = 12;
+  static const double shadowOffsetY = 6;
+  static const double overlayHPad = 10;
+  static const double overlayTopPad = 10;
+  static const double overlayBottomPad = 12;
+  static const double nameFont = 14;
+  static const double locationFont = 11;
+  static const double subtitleFont = 11;
+  static const double textGap = 2;
+  static const double badgeTop = 10;
+  static const double badgeLeft = 10;
+  static const double badgeHPad = 8;
+  static const double badgeVPad = 4;
+  static const double badgeFont = 11;
+  static const double checkTop = 10;
+  static const double checkRight = 10;
+  static const double checkSize = 26;
+  static const double checkIcon = 16;
+  static const double verifiedGap = 6;
+  static const double verifiedIcon = 14;
+
+  const AppSizes._();
+}

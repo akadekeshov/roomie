@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  SHARED
+  ENTIRE_PLACE
+}
+
+enum OTPChannel {
+  EMAIL
+  PHONE
+}
+
+enum OTPPurpose {
+  REGISTER
+}
+
+enum OnboardingStep {
+  NAME_AGE
+  GENDER
+  CITY
+  ABOUT
+  LIFESTYLE
+  SEARCH
+  FINALIZE
+  DONE
+}
+
+enum OccupationStatus {
+  STUDY
+  WORK
+  STUDY_WORK
+}
+
+enum Chronotype {
+  OWL
+  LARK
+}
+
+enum NoisePreference {
+  QUIET
+  SOCIAL
+}
+
+enum PersonalityType {
+  INTROVERT
+  EXTROVERT
+}
+
+enum SmokingPreference {
+  SMOKER
+  NON_SMOKER
+}
+
+enum PetsPreference {
+  WITH_PETS
+  NO_PETS
+}
+
+enum RoommateGenderPreference {
+  MALE
+  FEMALE
+  ANY
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum VerificationStatus {
+  NONE
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id                 String          @id @default(uuid())
+  email              String?         @unique
+  phone              String?         @unique
+  password           String
+  role               UserRole        @default(USER)
+  emailVerified      Boolean         @default(false)
+  phoneVerified      Boolean         @default(false)
+  firstName          String?
+  lastName           String?
+  gender             Gender?
+  age                Int?
+  city               String?
+  bio                String?
+  onboardingCompleted Boolean        @default(false)
+  onboardingStep    OnboardingStep  @default(NAME_AGE)
+  occupationStatus   OccupationStatus?
+  university         String?
+  chronotype         Chronotype?
+  noisePreference    NoisePreference?
+  personalityType    PersonalityType?
+  smokingPreference  SmokingPreference?
+  petsPreference     PetsPreference?
+  searchBudgetMin    Int?
+  searchBudgetMax    Int?
+  searchDistrict     String?
+  roommateGenderPreference RoommateGenderPreference?
+  stayTerm           String?
+  photos             String[]
+  verificationStatus VerificationStatus @default(NONE)
+  verificationDocumentUrl String?
+  verificationSelfieUrl String?
+  verificationRejectReason String?
+  verificationReviewedAt DateTime?
+  verificationReviewedBy String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  refreshTokens RefreshToken[]
+  listings      Listing[]
+  savedListings SavedListing[]
+
+  favoriteUsers FavoriteUser[] @relation("FavoriteOwner")
+  favoritedBy   FavoriteUser[] @relation("FavoriteTarget")
+
+  @@map("users")
+}
+
+model OtpCode {
+  id         String     @id @default(uuid())
+  channel    OTPChannel
+  purpose    OTPPurpose
+  target     String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int        @default(0)
+  lastSentAt DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@unique([channel, purpose, target])
+  @@index([channel, purpose, target])
+  @@map("otp_codes")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Listing {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  address     String
+  city        String
+  state       String?
+  zipCode     String?
+  country     String
+  price       Float
+  roomType    RoomType
+  availableFrom DateTime?
+  availableTo   DateTime?
+  amenities   String[]
+  images      String[]
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  savedBy SavedListing[]
+
+  @@map("listings")
+}
+
+model SavedListing {
+  id        String   @id @default(uuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("saved_listings")
+}
+
+model FavoriteUser {
+  id           String   @id @default(uuid())
+  ownerId      String
+  targetUserId String
+  createdAt    DateTime @default(now())
+
+  owner  User @relation("FavoriteOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  target User @relation("FavoriteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, targetUserId])
+  @@map("favorite_users")
+}
