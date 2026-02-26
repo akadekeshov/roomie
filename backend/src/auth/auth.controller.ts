@@ -3,7 +3,6 @@ import {
   Post,
   Get,
   Body,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -35,7 +34,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Register with email' })
   @ApiResponse({
     status: 201,
-    description: 'OTP sent to email. Next step: VERIFY_EMAIL',
+    description:
+      'OTP sent to email. Next step: VERIFY_EMAIL (new user or existing unverified)',
   })
   @ApiResponse({ status: 409, description: 'Email already registered' })
   async registerEmail(@Body() registerEmailDto: RegisterEmailDto) {
@@ -48,7 +48,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Register with phone' })
   @ApiResponse({
     status: 201,
-    description: 'OTP sent to phone. Next step: VERIFY_PHONE',
+    description:
+      'OTP sent to phone. Next step: VERIFY_PHONE (new user or existing unverified)',
   })
   @ApiResponse({ status: 409, description: 'Phone already registered' })
   async registerPhone(@Body() registerPhoneDto: RegisterPhoneDto) {

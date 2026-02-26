@@ -42,12 +42,9 @@ class LoginState {
       rememberMe: rememberMe ?? this.rememberMe,
       identity: identity ?? this.identity,
       password: password ?? this.password,
-      identityErrorMessage:
-          identityErrorMessage ?? this.identityErrorMessage,
-      passwordErrorMessage:
-          passwordErrorMessage ?? this.passwordErrorMessage,
-      generalErrorMessage:
-          generalErrorMessage ?? this.generalErrorMessage,
+      identityErrorMessage: identityErrorMessage ?? this.identityErrorMessage,
+      passwordErrorMessage: passwordErrorMessage ?? this.passwordErrorMessage,
+      generalErrorMessage: generalErrorMessage ?? this.generalErrorMessage,
     );
   }
 
@@ -73,13 +70,11 @@ class LoginController extends StateNotifier<LoginState> {
   }
 
   void setIdentity(String value) {
-    state =
-        state.copyWith(identity: value, identityErrorMessage: null);
+    state = state.copyWith(identity: value, identityErrorMessage: null);
   }
 
   void setPassword(String value) {
-    state =
-        state.copyWith(password: value, passwordErrorMessage: null);
+    state = state.copyWith(password: value, passwordErrorMessage: null);
   }
 
   bool validate() {
@@ -91,8 +86,7 @@ class LoginController extends StateNotifier<LoginState> {
 
     if (id.isEmpty) {
       idError = state.useEmail ? 'Введите email' : 'Введите номер телефона';
-    } else if (state.useEmail &&
-        !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(id)) {
+    } else if (state.useEmail && !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(id)) {
       idError = 'Неверный формат email';
     }
 
@@ -119,23 +113,20 @@ class LoginController extends StateNotifier<LoginState> {
           generalErrorMessage: null,
         );
         break;
+
       case AppErrorCode.emailAlreadyExists:
       case AppErrorCode.phoneAlreadyExists:
-        state = state.copyWith(
-          identityErrorMessage: exception.message,
-        );
+        state = state.copyWith(identityErrorMessage: exception.message);
         break;
+
       case AppErrorCode.network:
-        state = state.copyWith(
-          generalErrorMessage: exception.message,
-        );
+        state = state.copyWith(generalErrorMessage: exception.message);
         break;
+
       case AppErrorCode.invalidOrExpiredToken:
       case AppErrorCode.validation:
       case AppErrorCode.unknown:
-        state = state.copyWith(
-          generalErrorMessage: exception.message,
-        );
+        state = state.copyWith(generalErrorMessage: exception.message);
         break;
     }
   }
@@ -144,4 +135,3 @@ class LoginController extends StateNotifier<LoginState> {
 final loginProvider = StateNotifierProvider<LoginController, LoginState>(
   (ref) => LoginController(),
 );
-

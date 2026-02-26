@@ -19,9 +19,11 @@ export class VerificationService {
       select: { id: true, verificationStatus: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationDocumentUrl: dto.documentUrl,
@@ -36,6 +38,8 @@ export class VerificationService {
         verificationStatus: true,
       },
     });
+
+    return updated;
   }
 
   async uploadDocumentFile(userId: string, file: Express.Multer.File) {
@@ -44,11 +48,13 @@ export class VerificationService {
       select: { id: true, verificationStatus: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
     const documentUrl = `/uploads/kyc/documents/${file.filename}`;
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationDocumentUrl: documentUrl,
@@ -63,6 +69,8 @@ export class VerificationService {
         verificationStatus: true,
       },
     });
+
+    return updated;
   }
 
   async uploadSelfie(userId: string, dto: VerificationSelfieDto) {
@@ -71,9 +79,11 @@ export class VerificationService {
       select: { id: true, verificationStatus: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationSelfieUrl: dto.selfieUrl,
@@ -88,6 +98,8 @@ export class VerificationService {
         verificationStatus: true,
       },
     });
+
+    return updated;
   }
 
   async uploadSelfieFile(userId: string, file: Express.Multer.File) {
@@ -96,11 +108,13 @@ export class VerificationService {
       select: { id: true, verificationStatus: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
     const selfieUrl = `/uploads/kyc/selfies/${file.filename}`;
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationSelfieUrl: selfieUrl,
@@ -115,6 +129,8 @@ export class VerificationService {
         verificationStatus: true,
       },
     });
+
+    return updated;
   }
 
   async submitVerification(userId: string) {
@@ -128,7 +144,9 @@ export class VerificationService {
       },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
     if (user.verificationStatus === VerificationStatus.VERIFIED) {
       throw new ConflictException(
@@ -144,7 +162,7 @@ export class VerificationService {
       throw new BadRequestException('Verification selfie is required');
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationStatus: VerificationStatus.PENDING,
@@ -159,6 +177,8 @@ export class VerificationService {
         verificationSelfieUrl: true,
       },
     });
+
+    return updated;
   }
 
   async getMyVerification(userId: string) {
@@ -175,7 +195,9 @@ export class VerificationService {
       },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
     return {
       status: user.verificationStatus,
@@ -185,77 +207,5 @@ export class VerificationService {
       reviewedAt: user.verificationReviewedAt,
       lastUpdated: user.updatedAt,
     };
-  }
-
-  // =========================
-  // ADMIN METHODS (NEW)
-  // =========================
-
-  async adminListPending() {
-    const users = await this.prisma.user.findMany({
-      where: { verificationStatus: VerificationStatus.PENDING },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        verificationStatus: true,
-        verificationDocumentUrl: true,
-        verificationSelfieUrl: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    return { items: users };
-  }
-
-  async adminApprove(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-
-    if (!user) throw new BadRequestException('User not found');
-
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        verificationStatus: VerificationStatus.VERIFIED,
-        verificationRejectReason: null,
-        verificationReviewedAt: new Date(),
-      },
-      select: {
-        id: true,
-        verificationStatus: true,
-        verificationReviewedAt: true,
-      },
-    });
-  }
-
-  async adminReject(userId: string, reason?: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-
-    if (!user) throw new BadRequestException('User not found');
-
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        verificationStatus: VerificationStatus.REJECTED,
-        verificationRejectReason: reason ?? 'Rejected by admin',
-        verificationReviewedAt: new Date(),
-      },
-      select: {
-        id: true,
-        verificationStatus: true,
-        verificationRejectReason: true,
-        verificationReviewedAt: true,
-      },
-    });
   }
 }

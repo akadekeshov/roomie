@@ -91,4 +91,3 @@ AppException mapDioErrorToAppException(DioException error) {
     message: 'Что-то пошло не так. Попробуйте ещё раз.',
   );
 }
-

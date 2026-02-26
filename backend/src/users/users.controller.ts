@@ -16,6 +16,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -25,9 +26,11 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
 import type { Express } from 'express';
+
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { DiscoverUsersQueryDto } from './dto/discover-users-query.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
@@ -60,8 +63,7 @@ function createAvatarMulterOptions() {
         const safeExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext)
           ? ext
           : '';
-        const filename = `${timestamp}-${random}${safeExt}`;
-        cb(null, filename);
+        cb(null, `${timestamp}-${random}${safeExt}`);
       },
     }),
     fileFilter: (req: any, file: Express.Multer.File, cb: any) => {
@@ -75,13 +77,11 @@ function createAvatarMulterOptions() {
       }
       cb(null, true);
     },
-    limits: {
-      fileSize: MAX_AVATAR_SIZE,
-    },
+    limits: { fileSize: MAX_AVATAR_SIZE },
   };
 }
 
-@ApiTags('users')
+@ApiTags('users', 'user-profile')
 @Controller('users')
 @ApiBearerAuth()
 export class UsersController {
@@ -113,6 +113,65 @@ export class UsersController {
     return this.usersService.getRecommendations(user.id, pageNum, limitNum);
   }
 
+  @Get(':id/profile')
+  @ApiOperation({ summary: 'Get public user profile' })
+  @ApiParam({
+    name: 'id',
+    description: 'User ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({ status: 200, description: 'Public profile retrieved' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getProfile(@CurrentUser() currentUser: any, @Param('id') id: string) {
+    return this.usersService.getPublicProfile(currentUser.id, id);
+  }
+
+  @Get('discover')
+  @ApiOperation({ summary: 'Discover users with filters' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 20,
+    description: 'Items per page (max 50)',
+  })
+  @ApiQuery({
+    name: 'budgetMax',
+    required: false,
+    type: Number,
+    example: 150000,
+    description: 'Max budget per month (до X)',
+  })
+  @ApiQuery({
+    name: 'district',
+    required: false,
+    type: String,
+    example: 'Алмалинский р-н',
+    description: 'District; use "Все районы" or empty to ignore',
+  })
+  @ApiQuery({
+    name: 'gender',
+    required: false,
+    enum: ['MALE', 'FEMALE', 'OTHER'],
+    example: 'FEMALE',
+    description: 'Preferred roommate gender',
+  })
+  @ApiQuery({
+    name: 'ageRange',
+    required: false,
+    enum: ['18-25', '25+'],
+    example: '18-25',
+    description: 'Age range filter',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of discoverable users with pagination meta',
+  })
+  async discover(@CurrentUser() user: any, @Query() query: DiscoverUsersQueryDto) {
+    return this.usersService.discoverUsers(user.id, query);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ status: 200, description: 'User found' })
@@ -124,10 +183,7 @@ export class UsersController {
   @Patch('me')
   @ApiOperation({ summary: 'Update current user' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
-  async updateMe(
-    @CurrentUser() user: any,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
+  async updateMe(@CurrentUser() user: any, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.updateMe(user.id, updateUserDto);
   }
 
@@ -150,10 +206,7 @@ export class UsersController {
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
+        file: { type: 'string', format: 'binary' },
       },
     },
   })

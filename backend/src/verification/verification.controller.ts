@@ -23,12 +23,13 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
 import type { Express } from 'express';
+
 import { VerificationService } from './verification.service';
 import { VerificationDocumentDto } from './dto/verification-document.dto';
 import { VerificationSelfieDto } from './dto/verification-selfie.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 function ensureDirExists(dir: string) {
@@ -58,8 +59,7 @@ function createKycMulterOptions(folder: 'documents' | 'selfies') {
         const safeExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext)
           ? ext
           : '';
-        const filename = `${timestamp}-${random}${safeExt}`;
-        cb(null, filename);
+        cb(null, `${timestamp}-${random}${safeExt}`);
       },
     }),
     fileFilter: (req: any, file: Express.Multer.File, cb: any) => {
@@ -73,9 +73,7 @@ function createKycMulterOptions(folder: 'documents' | 'selfies') {
       }
       cb(null, true);
     },
-    limits: {
-      fileSize: MAX_FILE_SIZE,
-    },
+    limits: { fileSize: MAX_FILE_SIZE },
   };
 }
 
@@ -109,10 +107,7 @@ export class VerificationController {
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
+        file: { type: 'string', format: 'binary' },
       },
     },
   })
@@ -125,9 +120,7 @@ export class VerificationController {
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) {
-      throw new BadRequestException('File is required');
-    }
+    if (!file) throw new BadRequestException('File is required');
     return this.verificationService.uploadDocumentFile(user.id, file);
   }
 
@@ -155,10 +148,7 @@ export class VerificationController {
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
+        file: { type: 'string', format: 'binary' },
       },
     },
   })
@@ -171,9 +161,7 @@ export class VerificationController {
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) {
-      throw new BadRequestException('File is required');
-    }
+    if (!file) throw new BadRequestException('File is required');
     return this.verificationService.uploadSelfieFile(user.id, file);
   }
 
@@ -208,4 +196,3 @@ export class VerificationController {
     return this.verificationService.getMyVerification(user.id);
   }
 }
-

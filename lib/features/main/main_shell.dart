@@ -37,8 +37,7 @@ class _MainShellState extends State<MainShell> {
       const HomePage(),
       const SavedPage(),
       const ChatsPage(),
-      const ProfilePage(), 
-    
+      const ProfilePage(),
     ];
 
     return Scaffold(

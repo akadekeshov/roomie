@@ -8,6 +8,7 @@ export class PrismaService
 {
   constructor() {
     super(); 
+    super(); // Prisma сам берёт DATABASE_URL из env
   }
 
   async onModuleInit() {

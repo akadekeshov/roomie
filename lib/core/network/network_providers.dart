@@ -34,7 +34,9 @@ final dioProvider = Provider<Dio>((ref) {
         final statusCode = error.response?.statusCode;
         final data = error.response?.data;
         // ignore: avoid_print
-        print('[Dio] Error: ${error.requestOptions.method} ${error.requestOptions.uri}');
+        print(
+          '[Dio] Error: ${error.requestOptions.method} ${error.requestOptions.uri}',
+        );
         // ignore: avoid_print
         print('[Dio] statusCode=$statusCode data=$data');
         handler.next(error);

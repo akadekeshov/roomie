@@ -18,8 +18,36 @@ class LoginResult {
 
 class AuthFlowResult {
   const AuthFlowResult({required this.next});
-
   final String? next;
+}
+
+class CurrentUser {
+  const CurrentUser({
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    required this.phone,
+  });
+
+  final String? firstName;
+  final String? lastName;
+  final String? email;
+  final String? phone;
+
+  String get displayName {
+    final fn = (firstName ?? '').trim();
+    final ln = (lastName ?? '').trim();
+    final full = '$fn $ln'.trim();
+    return full.isEmpty ? 'Пользователь' : full;
+  }
+
+  String get contact {
+    final e = (email ?? '').trim();
+    final p = (phone ?? '').trim();
+    if (e.isNotEmpty) return e;
+    if (p.isNotEmpty) return p;
+    return '—';
+  }
 }
 
 class AuthRepository {
@@ -30,15 +58,11 @@ class AuthRepository {
 
   String _normalizePhone(String raw) {
     final digits = raw.replaceAll(RegExp(r'[^0-9+]'), '');
-    if (digits.startsWith('+')) {
-      return digits;
-    }
+    if (digits.startsWith('+')) return digits;
     return '+$digits';
   }
 
-  String _normalizeEmail(String raw) {
-    return raw.trim().toLowerCase();
-  }
+  String _normalizeEmail(String raw) => raw.trim().toLowerCase();
 
   Future<AuthFlowResult> register({
     required bool useEmail,
@@ -48,6 +72,7 @@ class AuthRepository {
     try {
       final endpoint =
           useEmail ? '/auth/register/email' : '/auth/register/phone';
+
       final body = <String, dynamic>{'password': password};
       if (useEmail) {
         body['email'] = _normalizeEmail(identity);
@@ -59,6 +84,7 @@ class AuthRepository {
         endpoint,
         data: body,
       );
+
       return AuthFlowResult(next: response.data?['next'] as String?);
     } on DioException catch (e) {
       throw mapDioErrorToAppException(e);
@@ -78,6 +104,7 @@ class AuthRepository {
   }) async {
     try {
       final endpoint = useEmail ? '/auth/verify/email' : '/auth/verify/phone';
+
       final body = <String, dynamic>{'code': code.trim()};
       if (useEmail) {
         body['email'] = _normalizeEmail(identity);
@@ -89,6 +116,7 @@ class AuthRepository {
         endpoint,
         data: body,
       );
+
       final data = response.data ?? <String, dynamic>{};
       final accessToken = data['accessToken'] as String?;
       final refreshToken = data['refreshToken'] as String?;
@@ -206,14 +234,13 @@ class AuthRepository {
         '/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
+
       final data = response.data ?? <String, dynamic>{};
       final accessToken = data['accessToken'] as String?;
       final newRefreshToken = data['refreshToken'] as String?;
       final user = (data['user'] as Map?)?.cast<String, dynamic>();
 
-      if (accessToken == null || newRefreshToken == null) {
-        return null;
-      }
+      if (accessToken == null || newRefreshToken == null) return null;
 
       await _tokenStorage.setAccessToken(accessToken);
       await _tokenStorage.saveRefreshToken(
@@ -229,9 +256,31 @@ class AuthRepository {
       final appEx = mapDioErrorToAppException(e);
       if (appEx.code == AppErrorCode.invalidOrExpiredToken) {
         await _tokenStorage.clear();
-        return null;
       }
       return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<CurrentUser> getMe() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>('/auth/me');
+      final data = response.data ?? <String, dynamic>{};
+
+      return CurrentUser(
+        firstName: data['firstName'] as String?,
+        lastName: data['lastName'] as String?,
+        email: data['email'] as String?,
+        phone: data['phone'] as String?,
+      );
+    } on DioException catch (e) {
+      throw mapDioErrorToAppException(e);
+    } catch (_) {
+      throw const AppException(
+        code: AppErrorCode.unknown,
+        message: 'Не удалось загрузить профиль. Попробуйте позже.',
+      );
     }
   }
 }
@@ -242,4 +291,3 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.read(authTokenStorageProvider),
   );
 });
-

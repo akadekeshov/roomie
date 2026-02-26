@@ -9,7 +9,10 @@ class AuthTokenStorage {
   );
 
   Future<void> setAccessToken(String accessToken) async {
-    await _secureStorage.write(key: _accessTokenKey, value: accessToken);
+    await _secureStorage.write(
+      key: _accessTokenKey,
+      value: accessToken,
+    );
   }
 
   Future<String?> getAccessToken() async {
@@ -21,7 +24,10 @@ class AuthTokenStorage {
     required bool rememberMe,
   }) async {
     if (rememberMe) {
-      await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
+      await _secureStorage.write(
+        key: _refreshTokenKey,
+        value: refreshToken,
+      );
     } else {
       await _secureStorage.delete(key: _refreshTokenKey);
     }

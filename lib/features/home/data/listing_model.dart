@@ -55,8 +55,7 @@ class Listing {
     return name.isEmpty ? (owner!.email ?? 'Пользователь') : name;
   }
 
-  String get firstImageUrl =>
-      images.isNotEmpty ? images.first : '';
+  String get firstImageUrl => images.isNotEmpty ? images.first : '';
 
   static Listing fromJson(Map<String, dynamic> json) {
     return Listing(

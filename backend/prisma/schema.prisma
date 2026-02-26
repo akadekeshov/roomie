@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -92,42 +95,42 @@ enum VerificationStatus {
 }
 
 model User {
-  id                 String          @id @default(uuid())
-  email              String?         @unique
-  phone              String?         @unique
-  password           String
-  role               UserRole        @default(USER)
-  emailVerified      Boolean         @default(false)
-  phoneVerified      Boolean         @default(false)
-  firstName          String?
-  lastName           String?
-  gender             Gender?
-  age                Int?
-  city               String?
-  bio                String?
-  onboardingCompleted Boolean        @default(false)
-  onboardingStep    OnboardingStep  @default(NAME_AGE)
-  occupationStatus   OccupationStatus?
-  university         String?
-  chronotype         Chronotype?
-  noisePreference    NoisePreference?
-  personalityType    PersonalityType?
-  smokingPreference  SmokingPreference?
-  petsPreference     PetsPreference?
-  searchBudgetMin    Int?
-  searchBudgetMax    Int?
-  searchDistrict     String?
+  id                       String                    @id @default(uuid())
+  email                    String?                   @unique
+  phone                    String?                   @unique
+  password                 String
+  role                     UserRole                  @default(USER)
+  emailVerified            Boolean                   @default(false)
+  phoneVerified            Boolean                   @default(false)
+  firstName                String?
+  lastName                 String?
+  gender                   Gender?
+  age                      Int?
+  city                     String?
+  bio                      String?
+  onboardingCompleted      Boolean                   @default(false)
+  onboardingStep           OnboardingStep            @default(NAME_AGE)
+  occupationStatus         OccupationStatus?
+  university               String?
+  chronotype               Chronotype?
+  noisePreference          NoisePreference?
+  personalityType          PersonalityType?
+  smokingPreference        SmokingPreference?
+  petsPreference           PetsPreference?
+  searchBudgetMin          Int?
+  searchBudgetMax          Int?
+  searchDistrict           String?
   roommateGenderPreference RoommateGenderPreference?
-  stayTerm           String?
-  photos             String[]
-  verificationStatus VerificationStatus @default(NONE)
-  verificationDocumentUrl String?
-  verificationSelfieUrl String?
+  stayTerm                 String?
+  photos                   String[]
+  verificationStatus       VerificationStatus        @default(NONE)
+  verificationDocumentUrl  String?
+  verificationSelfieUrl    String?
   verificationRejectReason String?
-  verificationReviewedAt DateTime?
-  verificationReviewedBy String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  verificationReviewedAt   DateTime?
+  verificationReviewedBy   String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
 
   refreshTokens RefreshToken[]
   listings      Listing[]
@@ -169,25 +172,25 @@ model RefreshToken {
 }
 
 model Listing {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  address     String
-  city        String
-  state       String?
-  zipCode     String?
-  country     String
-  price       Float
-  roomType    RoomType
+  id            String    @id @default(uuid())
+  title         String
+  description   String
+  address       String
+  city          String
+  state         String?
+  zipCode       String?
+  country       String
+  price         Float
+  roomType      RoomType
   availableFrom DateTime?
   availableTo   DateTime?
-  amenities   String[]
-  images      String[]
-  ownerId     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  amenities     String[]
+  images        String[]
+  ownerId       String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  owner User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner   User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   savedBy SavedListing[]
 
   @@map("listings")

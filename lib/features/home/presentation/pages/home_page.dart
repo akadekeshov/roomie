@@ -16,12 +16,11 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  final Set<String> _hiddenIds = HashSet();
+  final Set<String> _hiddenIds = HashSet<String>();
 
   void _msg(String text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(text)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   void _hide(String userId) {
@@ -30,25 +29,26 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _toggleSave(RecommendedUser user) async {
-  final repo = ref.read(homeRepositoryProvider);
+    final repo = ref.read(homeRepositoryProvider);
 
-  try {
-    if (user.isSaved) {
-      await repo.unsaveUser(user.id);
-      _msg('Удалено из сохранённых');
-    } else {
-      await repo.saveUser(user.id);
-      _msg('Сохранено ✅');
+    try {
+      if (user.isSaved) {
+        await repo.unsaveUser(user.id);
+        _msg('Удалено из сохранённых');
+      } else {
+        await repo.saveUser(user.id);
+        _msg('Сохранено ✅');
+      }
+
+      ref.invalidate(recommendedUsersProvider);
+      ref.invalidate(favoriteUsersProvider);
+    } catch (e) {
+      _msg('Ошибка: $e');
     }
-
-    ref.invalidate(recommendedUsersProvider);
-    ref.invalidate(favoriteUsersProvider);
-  } catch (e) {
-    _msg('Ошибка: $e');
   }
-}
+
   void _openDetails(RecommendedUser user) {
-  
+    // TODO: мұнда кейін profile details route ашасың
     _msg('Профиль: ${user.displayName}');
   }
 
@@ -88,9 +88,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(child: Text('Ошибка: $e')),
                   data: (users) {
-                    final visible = users
-                        .where((u) => !_hiddenIds.contains(u.id))
-                        .toList();
+                    final visible =
+                        users.where((u) => !_hiddenIds.contains(u.id)).toList();
 
                     if (visible.isEmpty) {
                       return const Center(child: Text('Нет подходящих анкет'));
@@ -162,52 +161,15 @@ class _RoommateCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (photo != null)
+            if (photo != null && photo.trim().isNotEmpty)
               ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
-                child: Stack(
-                  children: [
-                    AspectRatio(
-                      aspectRatio: 1.23,
-                      child: Image.network(photo, fit: BoxFit.cover),
-                    ),
-                    Positioned(
-                      right: 12,
-                      bottom: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0x801C1C1D),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              size: 14,
-                              color: Color(0xFF00C853),
-                            ),
-                            SizedBox(width: 5),
-                            Text(
-                              'Подтверждён',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                child: AspectRatio(
+                  aspectRatio: 1.23,
+                  child: Image.network(photo, fit: BoxFit.cover),
                 ),
               ),
             Padding(
@@ -223,28 +185,25 @@ class _RoommateCard extends StatelessWidget {
                       fontSize: 16,
                     ),
                   ),
-
-
- 
-const SizedBox(height: 8),
-_InfoRow(
-  icon: Icons.map_outlined,
-  label: 'Локация',
-  value: user.locationText,
-),
-const SizedBox(height: 8),
-_InfoRow(
-  icon: Icons.person_outline,
-  label: 'Статус',
-  value: user.statusText, 
-),
-const SizedBox(height: 8),
-_InfoRow(
-  icon: Icons.account_balance_wallet_outlined,
-  label: 'Бюджет',
-  value: user.budgetText, 
-),
-
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    icon: Icons.map_outlined,
+                    label: 'Локация',
+                    value: user.locationText,
+                  ),
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    icon: Icons.person_outline,
+                    label: 'Статус',
+                    value: user.statusText,
+                  ),
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: 'Бюджет',
+                    value: user.budgetText,
+                  ),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
@@ -311,13 +270,13 @@ class _InfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: textTheme.titleMedium?.copyWith(
               color: const Color(0xFF001561),
               fontWeight: FontWeight.w700,
               fontSize: 14.5,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

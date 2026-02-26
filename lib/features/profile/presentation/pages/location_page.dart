@@ -77,9 +77,8 @@ class _LocationPageState extends ConsumerState<LocationPage> {
     if (city == null || _isSubmitting) return;
     setState(() => _isSubmitting = true);
     try {
-      final result = await ref
-          .read(onboardingRepositoryProvider)
-          .submitCity(city);
+      final result =
+          await ref.read(onboardingRepositoryProvider).submitCity(city);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_cityDraftKey, city);
       if (!mounted) return;

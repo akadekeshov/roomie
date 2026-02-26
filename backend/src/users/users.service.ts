@@ -1,191 +1,287 @@
 import {
   Injectable,
-  NotFoundException,
-  UnauthorizedException,
+  BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UpdatePasswordDto } from './dto/update-password.dto';
-import { VerificationStatus, UserRole } from '@prisma/client';
+import { VerificationStatus } from '@prisma/client';
+import { VerificationDocumentDto } from './dto/verification-document.dto';
+import { VerificationSelfieDto } from './dto/verification-selfie.dto';
 import type { Express } from 'express';
 
 @Injectable()
-export class UsersService {
+export class VerificationService {
   constructor(private prisma: PrismaService) {}
 
-  async findOne(id: string) {
+  async uploadDocument(userId: string, dto: VerificationDocumentDto) {
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { id: userId },
+      select: { id: true, verificationStatus: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        verificationDocumentUrl: dto.documentUrl,
+        ...(user.verificationStatus === VerificationStatus.REJECTED && {
+          verificationStatus: VerificationStatus.NONE,
+          verificationRejectReason: null,
+        }),
+      },
       select: {
         id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        age: true,
-        bio: true,
-        createdAt: true,
+        verificationDocumentUrl: true,
+        verificationStatus: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async uploadDocumentFile(userId: string, file: Express.Multer.File) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, verificationStatus: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const documentUrl = `/uploads/kyc/documents/${file.filename}`;
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        verificationDocumentUrl: documentUrl,
+        ...(user.verificationStatus === VerificationStatus.REJECTED && {
+          verificationStatus: VerificationStatus.NONE,
+          verificationRejectReason: null,
+        }),
+      },
+      select: {
+        id: true,
+        verificationDocumentUrl: true,
+        verificationStatus: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async uploadSelfie(userId: string, dto: VerificationSelfieDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, verificationStatus: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        verificationSelfieUrl: dto.selfieUrl,
+        ...(user.verificationStatus === VerificationStatus.REJECTED && {
+          verificationStatus: VerificationStatus.NONE,
+          verificationRejectReason: null,
+        }),
+      },
+      select: {
+        id: true,
+        verificationSelfieUrl: true,
+        verificationStatus: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async uploadSelfieFile(userId: string, file: Express.Multer.File) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, verificationStatus: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const selfieUrl = `/uploads/kyc/selfies/${file.filename}`;
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        verificationSelfieUrl: selfieUrl,
+        ...(user.verificationStatus === VerificationStatus.REJECTED && {
+          verificationStatus: VerificationStatus.NONE,
+          verificationRejectReason: null,
+        }),
+      },
+      select: {
+        id: true,
+        verificationSelfieUrl: true,
+        verificationStatus: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async submitVerification(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        verificationStatus: true,
+        verificationDocumentUrl: true,
+        verificationSelfieUrl: true,
       },
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new BadRequestException('User not found');
     }
 
-    return user;
-  }
+    if (user.verificationStatus === VerificationStatus.VERIFIED) {
+      throw new ConflictException(
+        'Verification already approved. Cannot resubmit.',
+      );
+    }
 
-  async updateMe(userId: string, updateUserDto: UpdateUserDto) {
-    const user = await this.prisma.user.update({
+    if (!user.verificationDocumentUrl) {
+      throw new BadRequestException('Verification document is required');
+    }
+
+    if (!user.verificationSelfieUrl) {
+      throw new BadRequestException('Verification selfie is required');
+    }
+
+    const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: updateUserDto,
+      data: {
+        verificationStatus: VerificationStatus.PENDING,
+        verificationRejectReason: null,
+        verificationReviewedAt: null,
+        verificationReviewedBy: null,
+      },
       select: {
         id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        age: true,
-        bio: true,
-        createdAt: true,
+        verificationStatus: true,
+        verificationDocumentUrl: true,
+        verificationSelfieUrl: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async getMyVerification(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        verificationStatus: true,
+        verificationDocumentUrl: true,
+        verificationSelfieUrl: true,
+        verificationRejectReason: true,
+        verificationReviewedAt: true,
         updatedAt: true,
       },
     });
 
-    return user;
-  }
-
-  async updatePassword(userId: string, updatePasswordDto: UpdatePasswordDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new BadRequestException('User not found');
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      updatePasswordDto.currentPassword,
-      user.password,
-    );
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect');
-    }
-
-    const hashedPassword = await bcrypt.hash(updatePasswordDto.newPassword, 10);
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
-
-    return { message: 'Password updated successfully' };
+    return {
+      status: user.verificationStatus,
+      documentUrl: user.verificationDocumentUrl,
+      selfieUrl: user.verificationSelfieUrl,
+      rejectReason: user.verificationRejectReason,
+      reviewedAt: user.verificationReviewedAt,
+      lastUpdated: user.updatedAt,
+    };
   }
 
-  async updateAvatarFile(userId: string, file: Express.Multer.File) {
+  // =========================
+  // ADMIN METHODS
+  // =========================
+
+  async adminListPending() {
+    const users = await this.prisma.user.findMany({
+      where: { verificationStatus: VerificationStatus.PENDING },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        verificationStatus: true,
+        verificationDocumentUrl: true,
+        verificationSelfieUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return { items: users };
+  }
+
+  async adminApprove(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true },
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new BadRequestException('User not found');
     }
 
-    const avatarUrl = `/uploads/avatars/${file.filename}`;
-
-    const updated = await this.prisma.user.update({
+    return this.prisma.user.update({
       where: { id: userId },
       data: {
-        photos: [avatarUrl],
+        verificationStatus: VerificationStatus.VERIFIED,
+        verificationRejectReason: null,
+        verificationReviewedAt: new Date(),
       },
       select: {
         id: true,
-        photos: true,
+        verificationStatus: true,
+        verificationReviewedAt: true,
       },
     });
-
-    return { avatarUrl: updated.photos[0] ?? null };
   }
 
-  async getRecommendations(userId: string, page: number, limit: number) {
-    const safePage = page < 1 ? 1 : page;
-    const safeLimit = Math.min(Math.max(limit, 1), 50);
-    const skip = (safePage - 1) * safeLimit;
+  async adminReject(userId: string, reason?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
 
-    const baseWhere = {
-      role: UserRole.USER,
-      onboardingCompleted: true,
-      verificationStatus: VerificationStatus.VERIFIED,
-      NOT: { id: userId },
-    } as const;
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
-    const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where: baseWhere,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: safeLimit,
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          age: true,
-          city: true,
-          bio: true,
-          searchDistrict: true,
-          photos: true,
-          createdAt: true,
-          occupationStatus: true,
-          searchBudgetMin: true,
-          searchBudgetMax: true,
-        },
-      }),
-      this.prisma.user.count({ where: baseWhere }),
-    ]);
-
-    const ids = users.map((u) => u.id);
-
-    const favorites = ids.length
-      ? await this.prisma.favoriteUser.findMany({
-          where: {
-            ownerId: userId,
-            targetUserId: { in: ids },
-          },
-          select: { targetUserId: true },
-        })
-      : [];
-
-    const favoriteSet = new Set(favorites.map((f) => f.targetUserId));
-
-    const data = users.map((u) => ({
-      id: u.id,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      age: u.age,
-      city: u.city,
-      bio: u.bio,
-      searchDistrict: u.searchDistrict,
-      photos: u.photos,
-      createdAt: u.createdAt,
-      isSaved: favoriteSet.has(u.id),
-      occupationStatus: u.occupationStatus,
-      searchBudgetMin: u.searchBudgetMin,
-      searchBudgetMax: u.searchBudgetMax,
-    }));
-
-    const totalPages = total === 0 ? 0 : Math.ceil(total / safeLimit);
-
-    return {
-      data,
-      meta: {
-        page: safePage,
-        limit: safeLimit,
-        total,
-        totalPages,
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        verificationStatus: VerificationStatus.REJECTED,
+        verificationRejectReason: reason ?? 'Rejected by admin',
+        verificationReviewedAt: new Date(),
       },
-    };
+      select: {
+        id: true,
+        verificationStatus: true,
+        verificationRejectReason: true,
+        verificationReviewedAt: true,
+      },
+    });
   }
 }

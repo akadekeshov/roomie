@@ -24,4 +24,3 @@ final favoriteUserIdsProvider = Provider.autoDispose<Set<String>>((ref) {
     orElse: () => <String>{},
   );
 });
-

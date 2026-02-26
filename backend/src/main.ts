@@ -8,22 +8,33 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // ✅ uploads сыртқа беру
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
-    prefix: '/uploads',
+  // CORS
+  app.enableCors({
+    origin: true,
+    credentials: true,
   });
 
+  // Global prefix
   app.setGlobalPrefix('api');
 
+  // Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
+  // Serve uploads statically
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads',
+  });
+
+  // Swagger
   const config = new DocumentBuilder()
     .setTitle('Roomie API')
     .setDescription('Roommate app backend API')
@@ -36,4 +47,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
+
 bootstrap();
