@@ -7,11 +7,9 @@ plugins {
 
 android {
     namespace = "com.roommate.app.roommate_app"
-<<<<<<< HEAD
+
     compileSdk = 36
-=======
     compileSdk = flutter.compileSdkVersion
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -29,11 +27,9 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-<<<<<<< HEAD
+
         targetSdk = 36
-=======
         targetSdk = flutter.targetSdkVersion
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

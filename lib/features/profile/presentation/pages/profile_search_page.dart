@@ -41,7 +41,7 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
       final status = await ref.read(onboardingRepositoryProvider).getStatus();
       final search =
           (status.profile['search'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
+              <String, dynamic>{};
       if (!mounted) return;
       setState(() {
         final min = search['budgetMin'] as num?;
@@ -68,21 +68,20 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
     if (!_isValid || _isSubmitting) return;
     setState(() => _isSubmitting = true);
     try {
-      final nextStep = await ref
-          .read(onboardingRepositoryProvider)
-          .submitSearchStep(
-            SearchStepPayload(
-              budgetMin: _budget.start.round(),
-              budgetMax: _budget.end.round(),
-              district: _district!,
-              roommateGenderPreference: _gender == 'male'
-                  ? 'MALE'
-                  : _gender == 'female'
-                  ? 'FEMALE'
-                  : 'ANY',
-              stayTerm: _term!,
-            ),
-          );
+      final nextStep =
+          await ref.read(onboardingRepositoryProvider).submitSearchStep(
+                SearchStepPayload(
+                  budgetMin: _budget.start.round(),
+                  budgetMax: _budget.end.round(),
+                  district: _district!,
+                  roommateGenderPreference: _gender == 'male'
+                      ? 'MALE'
+                      : _gender == 'female'
+                          ? 'FEMALE'
+                          : 'ANY',
+                  stayTerm: _term!,
+                ),
+              );
       if (!mounted) return;
       final route = OnboardingRouteMapper.fromStep(nextStep);
       Navigator.of(context).pushNamed(route);
@@ -290,10 +289,10 @@ class _Label extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        color: const Color(0xFF4E556F),
-        fontWeight: FontWeight.w500,
-        fontSize: 14,
-      ),
+            color: const Color(0xFF4E556F),
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+          ),
     );
   }
 }

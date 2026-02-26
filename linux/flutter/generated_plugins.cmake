@@ -4,10 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_linux
-<<<<<<< HEAD
   flutter_secure_storage_linux
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

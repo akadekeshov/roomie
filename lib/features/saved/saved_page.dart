@@ -210,4 +210,3 @@ class _Info extends StatelessWidget {
     );
   }
 }
-

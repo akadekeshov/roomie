@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import {
   BadRequestException,
   Body,
@@ -17,6 +16,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -26,22 +26,12 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
 import type { Express } from 'express';
-=======
-import { Controller, Get, Patch, Body, Param, Query } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-  ApiParam,
-} from '@nestjs/swagger';
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
+
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { DiscoverUsersQueryDto } from './dto/discover-users-query.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-<<<<<<< HEAD
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 const ALLOWED_AVATAR_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -73,8 +63,7 @@ function createAvatarMulterOptions() {
         const safeExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext)
           ? ext
           : '';
-        const filename = `${timestamp}-${random}${safeExt}`;
-        cb(null, filename);
+        cb(null, `${timestamp}-${random}${safeExt}`);
       },
     }),
     fileFilter: (req: any, file: Express.Multer.File, cb: any) => {
@@ -88,53 +77,24 @@ function createAvatarMulterOptions() {
       }
       cb(null, true);
     },
-    limits: {
-      fileSize: MAX_AVATAR_SIZE,
-    },
+    limits: { fileSize: MAX_AVATAR_SIZE },
   };
 }
 
-@ApiTags('users')
-=======
-import { DiscoverUsersQueryDto } from './dto/discover-users-query.dto';
-
 @ApiTags('users', 'user-profile')
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 @Controller('users')
 @ApiBearerAuth()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-<<<<<<< HEAD
   @Get('recommendations')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get recommended users for current user' })
-=======
-  @Get(':id/profile')
-  @ApiOperation({ summary: 'Get public user profile' })
-  @ApiParam({
-    name: 'id',
-    description: 'User ID',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiResponse({ status: 200, description: 'Public profile retrieved' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async getProfile(
-    @CurrentUser() currentUser: any,
-    @Param('id') id: string,
-  ) {
-    return this.usersService.getPublicProfile(currentUser.id, id);
-  }
-
-  @Get('discover')
-  @ApiOperation({ summary: 'Discover users with filters' })
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
-<<<<<<< HEAD
     example: 20,
     description: 'Items per page (max 50)',
   })
@@ -151,8 +111,29 @@ export class UsersController {
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 20;
     return this.usersService.getRecommendations(user.id, pageNum, limitNum);
-=======
-    example: 10,
+  }
+
+  @Get(':id/profile')
+  @ApiOperation({ summary: 'Get public user profile' })
+  @ApiParam({
+    name: 'id',
+    description: 'User ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({ status: 200, description: 'Public profile retrieved' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getProfile(@CurrentUser() currentUser: any, @Param('id') id: string) {
+    return this.usersService.getPublicProfile(currentUser.id, id);
+  }
+
+  @Get('discover')
+  @ApiOperation({ summary: 'Discover users with filters' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 20,
     description: 'Items per page (max 50)',
   })
   @ApiQuery({
@@ -187,12 +168,8 @@ export class UsersController {
     status: 200,
     description: 'List of discoverable users with pagination meta',
   })
-  async discover(
-    @CurrentUser() user: any,
-    @Query() query: DiscoverUsersQueryDto,
-  ) {
+  async discover(@CurrentUser() user: any, @Query() query: DiscoverUsersQueryDto) {
     return this.usersService.discoverUsers(user.id, query);
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   }
 
   @Get(':id')
@@ -206,10 +183,7 @@ export class UsersController {
   @Patch('me')
   @ApiOperation({ summary: 'Update current user' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
-  async updateMe(
-    @CurrentUser() user: any,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
+  async updateMe(@CurrentUser() user: any, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.updateMe(user.id, updateUserDto);
   }
 
@@ -223,7 +197,6 @@ export class UsersController {
   ) {
     return this.usersService.updatePassword(user.id, updatePasswordDto);
   }
-<<<<<<< HEAD
 
   @Patch('me/avatar/upload')
   @HttpCode(HttpStatus.OK)
@@ -233,10 +206,7 @@ export class UsersController {
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
+        file: { type: 'string', format: 'binary' },
       },
     },
   })
@@ -255,6 +225,4 @@ export class UsersController {
     }
     return this.usersService.updateAvatarFile(user.id, file);
   }
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 }

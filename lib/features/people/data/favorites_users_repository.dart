@@ -36,4 +36,3 @@ class FavoritesUsersRepository {
     await _dio.delete<void>('/favorites/users/$targetUserId');
   }
 }
-

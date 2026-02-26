@@ -123,10 +123,10 @@ class _BenefitTile extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF001561),
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+                    color: const Color(0xFF001561),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
             ),
           ),
         ],

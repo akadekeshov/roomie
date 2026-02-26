@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 CREATE TYPE "UserRole" AS ENUM ('USER', 'MODERATOR', 'ADMIN');
 
 ALTER TABLE "users" ADD COLUMN "role" "UserRole" NOT NULL DEFAULT 'USER',
@@ -8,7 +7,6 @@ ADD COLUMN "verificationReviewedBy" TEXT,
 ADD COLUMN "verificationSelfieUrl" TEXT,
 ALTER COLUMN "photos" DROP DEFAULT;
 
-=======
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('USER', 'MODERATOR', 'ADMIN');
 
@@ -19,4 +17,3 @@ ADD COLUMN     "verificationReviewedAt" TIMESTAMP(3),
 ADD COLUMN     "verificationReviewedBy" TEXT,
 ADD COLUMN     "verificationSelfieUrl" TEXT,
 ALTER COLUMN "photos" DROP DEFAULT;
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750

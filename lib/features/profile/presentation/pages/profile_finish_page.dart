@@ -55,7 +55,7 @@ class _ProfileFinishPageState extends ConsumerState<ProfileFinishPage> {
       final bio = status.profile['bio'] as String?;
       final photos =
           (status.profile['photos'] as List?)?.whereType<String>().toList() ??
-          <String>[];
+              <String>[];
       if (!mounted) return;
       setState(() {
         if (bio != null && bio.isNotEmpty) {
@@ -84,14 +84,13 @@ class _ProfileFinishPageState extends ConsumerState<ProfileFinishPage> {
     if (!_isValid || _isSubmitting || _photoPath == null) return;
     setState(() => _isSubmitting = true);
     try {
-      final nextStep = await ref
-          .read(onboardingRepositoryProvider)
-          .submitFinalizeStep(
-            FinalizeStepPayload(
-              bio: _aboutController.text.trim(),
-              photos: <String>[_photoPath!],
-            ),
-          );
+      final nextStep =
+          await ref.read(onboardingRepositoryProvider).submitFinalizeStep(
+                FinalizeStepPayload(
+                  bio: _aboutController.text.trim(),
+                  photos: <String>[_photoPath!],
+                ),
+              );
       if (!mounted) return;
       final route = nextStep == null
           ? AppRoutes.profileCompleted
@@ -158,13 +157,13 @@ class _ProfileFinishPageState extends ConsumerState<ProfileFinishPage> {
                         focusNode: _aboutFocusNode,
                         maxLines: 5,
                         maxLength: _maxChars,
-                        buildCounter:
-                            (
-                              context, {
-                              required int currentLength,
-                              required bool isFocused,
-                              required int? maxLength,
-                            }) => const SizedBox.shrink(),
+                        buildCounter: (
+                          context, {
+                          required int currentLength,
+                          required bool isFocused,
+                          required int? maxLength,
+                        }) =>
+                            const SizedBox.shrink(),
                         style: const TextStyle(
                           color: Color(0xFF001561),
                           fontWeight: FontWeight.w500,
@@ -288,18 +287,18 @@ class _PhotoPicker extends StatelessWidget {
             Text(
               'Добавить фото',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF001561),
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              ),
+                    color: const Color(0xFF001561),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
             ),
             const SizedBox(height: 4),
             Text(
               'Минимум 1 фото',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFFB0B5C5),
-                fontWeight: FontWeight.w500,
-              ),
+                    color: const Color(0xFFB0B5C5),
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ],
         ),

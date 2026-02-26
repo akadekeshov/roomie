@@ -119,16 +119,15 @@ class _ProfileAboutPageState extends ConsumerState<ProfileAboutPage> {
 
     setState(() => _isSubmitting = true);
     try {
-      final nextStep = await ref
-          .read(onboardingRepositoryProvider)
-          .submitAboutStep(
-            AboutStepPayload(
-              occupationStatus: _mapStatus(_selectedStatus!),
-              university: _universityController.text.trim(),
-              age: age,
-              city: _selectedCity!,
-            ),
-          );
+      final nextStep =
+          await ref.read(onboardingRepositoryProvider).submitAboutStep(
+                AboutStepPayload(
+                  occupationStatus: _mapStatus(_selectedStatus!),
+                  university: _universityController.text.trim(),
+                  age: age,
+                  city: _selectedCity!,
+                ),
+              );
       if (!mounted) return;
 
       final prefs = await SharedPreferences.getInstance();
@@ -293,9 +292,9 @@ class _Label extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        color: const Color(0xFF4E556F),
-        fontWeight: FontWeight.w500,
-      ),
+            color: const Color(0xFF4E556F),
+            fontWeight: FontWeight.w500,
+          ),
     );
   }
 }
@@ -329,9 +328,9 @@ class _OptionButton extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: const Color(0xFF001561),
-            fontWeight: FontWeight.w600,
-          ),
+                color: const Color(0xFF001561),
+                fontWeight: FontWeight.w600,
+              ),
         ),
       ),
     );
@@ -451,9 +450,8 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final query = _searchController.text.trim().toLowerCase();
-    final filtered = widget.cities
-        .where((c) => c.toLowerCase().contains(query))
-        .toList();
+    final filtered =
+        widget.cities.where((c) => c.toLowerCase().contains(query)).toList();
 
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 260),

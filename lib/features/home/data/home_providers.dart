@@ -10,8 +10,7 @@ final homeRepositoryProvider = Provider<HomeRepository>((ref) {
 });
 
 /// Legacy listings feed (not used on main screen anymore, kept for compatibility).
-final listingsProvider =
-    FutureProvider.autoDispose<List<Listing>>((ref) async {
+final listingsProvider = FutureProvider.autoDispose<List<Listing>>((ref) async {
   final repo = ref.watch(homeRepositoryProvider);
   return repo.getListings();
 });

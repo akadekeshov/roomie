@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-import 'package:dio/dio.dart';
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,10 +8,7 @@ import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
-<<<<<<< HEAD
 import '../../../../core/errors/app_exception.dart';
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 import '../../data/auth_repository.dart';
 import '../state/login_state.dart';
 
@@ -30,64 +23,38 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _isSubmitting = false;
 
   Future<void> _submit() async {
-<<<<<<< HEAD
     final controller = ref.read(loginProvider.notifier);
     var state = ref.read(loginProvider);
 
     final ok = controller.validate();
     state = ref.read(loginProvider);
     if (!ok) return;
-=======
-    final state = ref.read(loginProvider);
-    final controller = ref.read(loginProvider.notifier);
-
-    if (!state.isValid) {
-      controller.showValidationErrors();
-      return;
-    }
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 
     setState(() => _isSubmitting = true);
+
     try {
-      final result = await ref
-          .read(authRepositoryProvider)
-          .login(
+      final result = await ref.read(authRepositoryProvider).login(
             useEmail: state.useEmail,
             identity: state.identity,
             password: state.password,
-<<<<<<< HEAD
             rememberMe: state.rememberMe,
           );
+
       if (!mounted) return;
+
       final route = result.onboardingCompleted
           ? AppRoutes.shell
           : OnboardingRouteMapper.fromStep(result.onboardingStep);
+
       Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
     } on AppException catch (e) {
       controller.applyBackendError(e);
-=======
-          );
-      if (!mounted) return;
-      final route = result.onboardingCompleted
-          ? AppRoutes.home
-          : OnboardingRouteMapper.fromStep(result.onboardingStep);
-      Navigator.of(context).pushNamedAndRemoveUntil(route, (route) => false);
-    } on DioException catch (e) {
-      if (!mounted) return;
-      final serverMessage = e.response?.data is Map<String, dynamic>
-          ? (e.response?.data['message']?.toString())
-          : null;
-      final message = (serverMessage != null && serverMessage.isNotEmpty)
-          ? serverMessage
-          : 'Ошибка входа. Проверьте данные.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось войти. Попробуйте снова.')),
+        const SnackBar(
+          content: Text('Не удалось войти. Попробуйте снова.'),
+        ),
       );
     } finally {
       if (mounted) {
@@ -114,11 +81,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 alignment: Alignment.center,
                 child: Text(
                   AppStrings.loginTitle,
-                  textAlign: TextAlign.center,
                   style: textTheme.titleLarge?.copyWith(
                     fontFamily: 'Gilroy',
                     fontSize: 25,
-                    height: 28 / 25,
                     fontWeight: FontWeight.w900,
                     color: const Color(0xFF001561),
                   ),
@@ -147,35 +112,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
               const SizedBox(height: 8),
               AppInputField(
-                key: ValueKey<String>('login-identity-${state.useEmail}'),
+                key: ValueKey('login-identity-${state.useEmail}'),
                 hint: state.useEmail
                     ? AppStrings.registerEmailHint
                     : '+7 777 123 45 67',
                 keyboardType: state.useEmail
                     ? TextInputType.emailAddress
                     : TextInputType.phone,
-<<<<<<< HEAD
                 showError: state.identityErrorMessage != null,
                 errorText: state.identityErrorMessage ?? '',
-=======
-                showError: state.identityError,
-                errorText: AppStrings.registerEmailError,
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                 onChanged: controller.setIdentity,
-                inputTextStyle: const TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 16,
-                  height: 20 / 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF001561),
-                ),
-                hintTextStyle: const TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 16,
-                  height: 20 / 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0x33001561),
-                ),
               ),
               const SizedBox(height: 20),
               const _FieldLabel(text: AppStrings.registerPasswordLabel),
@@ -183,39 +129,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               AppInputField(
                 hint: AppStrings.registerPasswordHint,
                 obscureText: true,
-<<<<<<< HEAD
                 showError: state.passwordErrorMessage != null,
                 errorText: state.passwordErrorMessage ?? '',
-=======
-                showError: state.passwordError,
-                errorText: AppStrings.registerPasswordError,
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
                 onChanged: controller.setPassword,
-                inputTextStyle: const TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 16,
-                  height: 20 / 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF001561),
-                ),
-                hintTextStyle: const TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 16,
-                  height: 20 / 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0x33001561),
-                ),
               ),
               const SizedBox(height: 20),
               _RememberRow(
                 value: state.rememberMe,
                 onChanged: (value) => controller.setRememberMe(value ?? false),
               ),
-<<<<<<< HEAD
-              const SizedBox(height: 12),
               if (state.generalErrorMessage != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     state.generalErrorMessage!,
                     style: const TextStyle(
@@ -225,33 +150,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                 ),
-              const SizedBox(height: 8),
-=======
               const SizedBox(height: 20),
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
               AppPrimaryButton(
                 label: _isSubmitting ? 'Вход...' : AppStrings.loginButton,
                 onPressed: _isSubmitting ? null : _submit,
-                textStyle: const TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 16,
-                  height: 1,
-                  fontWeight: FontWeight.w700,
-                ),
               ),
               const SizedBox(height: 20),
               Center(
                 child: InkWell(
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushReplacementNamed(AppRoutes.register),
+                  onTap: () => Navigator.of(context)
+                      .pushReplacementNamed(AppRoutes.register),
                   child: Text.rich(
                     TextSpan(
                       text: AppStrings.loginRegisterPrefix,
                       style: const TextStyle(
-                        fontFamily: 'Gilroy',
                         fontSize: 12,
-                        height: 20 / 12,
                         fontWeight: FontWeight.w700,
                         color: Color(0xCC001561),
                       ),
@@ -278,7 +191,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel({required this.text});
-
   final String text;
 
   @override
@@ -286,9 +198,7 @@ class _FieldLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        fontFamily: 'Gilroy',
         fontSize: 14,
-        height: 18 / 14,
         fontWeight: FontWeight.w700,
         color: Color(0xFF001561),
       ),
@@ -306,26 +216,16 @@ class _RememberRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(
-          height: 18,
-          width: 18,
-          child: Checkbox(
-            value: value,
-            onChanged: onChanged,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-            side: const BorderSide(color: Color(0x4D001561)),
-            activeColor: AppColors.primary,
-          ),
+        Checkbox(
+          value: value,
+          onChanged: onChanged,
+          activeColor: AppColors.primary,
         ),
         const SizedBox(width: 8),
         const Text(
           AppStrings.registerRemember,
           style: TextStyle(
-            fontFamily: 'Gilroy',
             fontSize: 14,
-            height: 20 / 14,
             fontWeight: FontWeight.w600,
             color: Color(0x80001561),
           ),

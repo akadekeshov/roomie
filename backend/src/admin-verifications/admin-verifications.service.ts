@@ -22,11 +22,19 @@ type Reviewer = Prisma.UserGetPayload<{
 export class AdminVerificationsService {
   constructor(private prisma: PrismaService) {}
 
+  private buildDisplayName(user: {
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    phone: string | null;
+  }) {
+    const full = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    return full || user.firstName || user.email || user.phone || 'Unknown';
+  }
+
   async getPendingVerifications() {
     const users = await this.prisma.user.findMany({
-      where: {
-        verificationStatus: VerificationStatus.PENDING,
-      },
+      where: { verificationStatus: VerificationStatus.PENDING },
       select: {
         id: true,
         email: true,
@@ -39,25 +47,14 @@ export class AdminVerificationsService {
         updatedAt: true,
         createdAt: true,
       },
-      orderBy: {
-        updatedAt: 'desc',
-      },
+      orderBy: { updatedAt: 'desc' },
     });
 
     const appUrl = process.env.APP_URL;
 
     return users.map((user) => ({
       id: user.id,
-<<<<<<< HEAD
-      name:
-        user.firstName && user.lastName
-          ? `${user.firstName} ${user.lastName}`
-          : user.firstName || user.email || user.phone || 'Unknown',
-=======
-      name: user.firstName && user.lastName
-        ? `${user.firstName} ${user.lastName}`
-        : user.firstName || user.email || user.phone || 'Unknown',
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
+      name: this.buildDisplayName(user),
       email: user.email,
       phone: user.phone,
       documentUrl: user.verificationDocumentUrl,
@@ -98,9 +95,7 @@ export class AdminVerificationsService {
       },
     });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
 
     let reviewedByUser: Reviewer | null = null;
     if (user.verificationReviewedBy) {
@@ -121,16 +116,7 @@ export class AdminVerificationsService {
 
     return {
       id: user.id,
-<<<<<<< HEAD
-      name:
-        user.firstName && user.lastName
-          ? `${user.firstName} ${user.lastName}`
-          : user.firstName || user.email || user.phone || 'Unknown',
-=======
-      name: user.firstName && user.lastName
-        ? `${user.firstName} ${user.lastName}`
-        : user.firstName || user.email || user.phone || 'Unknown',
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
+      name: this.buildDisplayName(user),
       email: user.email,
       phone: user.phone,
       age: user.age,
@@ -151,13 +137,7 @@ export class AdminVerificationsService {
       verificationReviewedBy: reviewedByUser
         ? {
             id: reviewedByUser.id,
-            name:
-              reviewedByUser.firstName && reviewedByUser.lastName
-                ? `${reviewedByUser.firstName} ${reviewedByUser.lastName}`
-                : reviewedByUser.firstName ||
-                  reviewedByUser.email ||
-                  reviewedByUser.phone ||
-                  'Unknown',
+            name: this.buildDisplayName(reviewedByUser),
             email: reviewedByUser.email,
             phone: reviewedByUser.phone,
             role: reviewedByUser.role,
@@ -179,9 +159,7 @@ export class AdminVerificationsService {
       },
     });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
 
     if (user.verificationStatus !== VerificationStatus.PENDING) {
       throw new BadRequestException(
@@ -195,7 +173,7 @@ export class AdminVerificationsService {
       );
     }
 
-    const updated = await this.prisma.user.update({
+    return this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationStatus: VerificationStatus.VERIFIED,
@@ -210,8 +188,6 @@ export class AdminVerificationsService {
         verificationReviewedBy: true,
       },
     });
-
-    return updated;
   }
 
   async rejectVerification(
@@ -221,15 +197,10 @@ export class AdminVerificationsService {
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        verificationStatus: true,
-      },
+      select: { id: true, verificationStatus: true },
     });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
 
     if (user.verificationStatus !== VerificationStatus.PENDING) {
       throw new BadRequestException(
@@ -237,7 +208,7 @@ export class AdminVerificationsService {
       );
     }
 
-    const updated = await this.prisma.user.update({
+    return this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationStatus: VerificationStatus.REJECTED,
@@ -253,11 +224,5 @@ export class AdminVerificationsService {
         verificationReviewedBy: true,
       },
     });
-
-    return updated;
   }
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750

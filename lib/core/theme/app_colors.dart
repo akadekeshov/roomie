@@ -11,7 +11,6 @@ class AppColors {
   static const Color genderMale = Color(0xFF4FC1FF);
   static const Color genderFemale = Color(0xFFFB50CE);
 
-<<<<<<< HEAD
   static const Color border = Color(0xFFE5E7EB);
   static const Color searchBg = Color(0xFFF1EDFF);
   static const Color online = Color(0xFF22C55E);
@@ -33,7 +32,5 @@ class AppColors {
   static const Color checkIcon = Colors.white;
   static const Color verified = Color(0xFF34D399);
 
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   const AppColors._();
 }

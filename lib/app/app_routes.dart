@@ -18,12 +18,9 @@ class AppRoutes {
   static const String profileVerification = '/profile-verification';
   static const String profileVerificationUpload =
       '/profile-verification-upload';
-<<<<<<< HEAD
   static const profileEdit = '/profile-edit';
   static const String shell = '/shell';
   static const adminVerifications = '/admin/verifications';
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 
   const AppRoutes._();
 }

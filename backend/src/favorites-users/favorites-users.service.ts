@@ -1,12 +1,4 @@
-<<<<<<< HEAD
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
-=======
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole, VerificationStatus } from '@prisma/client';
 
@@ -19,7 +11,7 @@ export class FavoritesUsersService {
       throw new BadRequestException('You cannot favorite yourself');
     }
 
-    const targetUser = await this.prisma.user.findUnique({
+    const targetUser = await this.prisma.user.findFirst({
       where: {
         id: targetUserId,
         role: UserRole.USER,
@@ -52,10 +44,7 @@ export class FavoritesUsersService {
 
   async removeFavorite(ownerId: string, targetUserId: string) {
     await this.prisma.favoriteUser.deleteMany({
-      where: {
-        ownerId,
-        targetUserId,
-      },
+      where: { ownerId, targetUserId },
     });
 
     return { message: 'User removed from favorites' };
@@ -131,4 +120,3 @@ export class FavoritesUsersService {
     };
   }
 }
-

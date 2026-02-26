@@ -32,8 +32,8 @@ class HomeRepository {
       queryParameters: {'page': page, 'limit': limit},
     );
 
- print('RESPONSE >>> ${response.data}');
- 
+    print('RESPONSE >>> ${response.data}');
+
     final list = response.data?['data'];
     if (list is! List) return [];
 

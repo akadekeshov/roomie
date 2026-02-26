@@ -25,11 +25,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   final input = TextEditingController();
 
   final List<_Msg> msgs = [
-    _Msg("Привет! Я видела твой профиль,\nдумаю, мы отлично подходим!", false, "10:30"),
-    _Msg("Привет! Спасибо, что написала.\nРасскажи о себе поподробнее!", true, "10:32"),
-    _Msg("Я программист, работаю из дома\nпару дней в неделю. Я\nчистоплотная и уважаю личное\nпространство.", false, "10:33"),
-    _Msg("Звучит идеально! Я тоже работаю\nиз дома. У тебя есть домашние\nживотные?", true, "10:35"),
-    _Msg("У меня есть кошка! Надеюсь, это\nне проблема. Она очень\nдружелюбная и воспитанная.", false, "10:36"),
+    _Msg("Привет! Я видела твой профиль,\nдумаю, мы отлично подходим!", false,
+        "10:30"),
+    _Msg("Привет! Спасибо, что написала.\nРасскажи о себе поподробнее!", true,
+        "10:32"),
+    _Msg(
+        "Я программист, работаю из дома\nпару дней в неделю. Я\nчистоплотная и уважаю личное\nпространство.",
+        false,
+        "10:33"),
+    _Msg(
+        "Звучит идеально! Я тоже работаю\nиз дома. У тебя есть домашние\nживотные?",
+        true,
+        "10:35"),
+    _Msg(
+        "У меня есть кошка! Надеюсь, это\nне проблема. Она очень\nдружелюбная и воспитанная.",
+        false,
+        "10:36"),
   ];
 
   @override
@@ -78,7 +89,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                           width: AppSizes.onlineDot,
                           height: AppSizes.onlineDot,
                           decoration: BoxDecoration(
-                            color: widget.online ? AppColors.online : AppColors.offline,
+                            color: widget.online
+                                ? AppColors.online
+                                : AppColors.offline,
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
@@ -93,7 +106,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       children: [
                         Text(widget.title, style: AppTextStyles.name),
                         const SizedBox(height: 2),
-                        Text(widget.online ? "В сети" : "Не в сети", style: AppTextStyles.secondary12),
+                        Text(widget.online ? "В сети" : "Не в сети",
+                            style: AppTextStyles.secondary12),
                       ],
                     ),
                   ),
@@ -114,12 +128,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   children: [
                     _Chip(
                       "Когда можно встретиться?",
-                      onTap: () => setState(() => input.text = "Когда можно встретиться?"),
+                      onTap: () => setState(
+                          () => input.text = "Когда можно встретиться?"),
                     ),
                     const SizedBox(width: 10),
                     _Chip(
                       "Расскажи подробнее",
-                      onTap: () => setState(() => input.text = "Расскажи подробнее"),
+                      onTap: () =>
+                          setState(() => input.text = "Расскажи подробнее"),
                     ),
                   ],
                 ),
@@ -136,7 +152,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.image_outlined, size: 18, color: Colors.black38),
+                          const Icon(Icons.image_outlined,
+                              size: 18, color: Colors.black38),
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
@@ -165,10 +182,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: hasText ? AppColors.primary : AppColors.border,
+                            color:
+                                hasText ? AppColors.primary : AppColors.border,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Icon(Icons.send_rounded, size: 18, color: hasText ? Colors.white : Colors.black38),
+                          child: Icon(Icons.send_rounded,
+                              size: 18,
+                              color: hasText ? Colors.white : Colors.black38),
                         ),
                       );
                     },
@@ -210,16 +230,21 @@ class _Bubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+            constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.72),
             child: Column(
-              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(color: bubbleColor, borderRadius: radius),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration:
+                      BoxDecoration(color: bubbleColor, borderRadius: radius),
                   child: Text(
                     msg.text,
                     style: TextStyle(
@@ -231,7 +256,9 @@ class _Bubble extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(msg.time, style: const TextStyle(fontSize: 11, color: Colors.black38)),
+                Text(msg.time,
+                    style:
+                        const TextStyle(fontSize: 11, color: Colors.black38)),
               ],
             ),
           ),

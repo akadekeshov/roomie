@@ -39,10 +39,9 @@ class MeUser {
         phone: json['phone'] as String?,
         city: json['city'] as String?,
         bio: json['bio'] as String?,
-        photos: (json['photos'] as List<dynamic>?)
-                ?.whereType<String>()
-                .toList() ??
-            const <String>[],
+        photos:
+            (json['photos'] as List<dynamic>?)?.whereType<String>().toList() ??
+                const <String>[],
         verificationStatus: json['verificationStatus'] as String?,
         onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
         role: json['role'] as String?,
@@ -62,13 +61,13 @@ class MeUser {
   }
 
   String? get avatarUrl {
-  final raw = photos.isNotEmpty ? photos.first.trim() : '';
-  if (raw.isEmpty) return null;
+    final raw = photos.isNotEmpty ? photos.first.trim() : '';
+    if (raw.isEmpty) return null;
 
-  if (raw.startsWith('http')) return raw;
-  final base = ApiConfig.publicBaseUrl;
-  return '${base}${raw.startsWith('/') ? '' : '/'}$raw';
-}
+    if (raw.startsWith('http')) return raw;
+    final base = ApiConfig.publicBaseUrl;
+    return '${base}${raw.startsWith('/') ? '' : '/'}$raw';
+  }
 
   bool get isVerified => verificationStatus == 'VERIFIED';
 }

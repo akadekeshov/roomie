@@ -36,10 +36,9 @@
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
-<<<<<<< HEAD
+ 
     "multer": "^2.0.2",
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
+
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
@@ -53,11 +52,10 @@
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
     "@types/bcrypt": "^6.0.0",
-<<<<<<< HEAD
-    "@types/express": "^5.0.0",
-=======
+   
+
     "@types/express": "^5.0.6",
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
+
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^22.10.7",

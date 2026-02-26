@@ -11,7 +11,4 @@ export class VerificationSelfieDto {
   @IsUrl()
   selfieUrl: string;
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750

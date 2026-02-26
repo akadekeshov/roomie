@@ -35,7 +35,7 @@ class _ProfileLifestylePageState extends ConsumerState<ProfileLifestylePage> {
       final status = await ref.read(onboardingRepositoryProvider).getStatus();
       final lifestyle =
           (status.profile['lifestyle'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
+              <String, dynamic>{};
       if (!mounted) return;
       setState(() {
         if (lifestyle['chronotype'] == 'OWL') {
@@ -82,15 +82,12 @@ class _ProfileLifestylePageState extends ConsumerState<ProfileLifestylePage> {
             LifestyleStepPayload(
               chronotype: _selectedByGroup[0] == 0 ? 'OWL' : 'LARK',
               noisePreference: _selectedByGroup[1] == 0 ? 'QUIET' : 'SOCIAL',
-              personalityType: _selectedByGroup[2] == 0
-                  ? 'INTROVERT'
-                  : 'EXTROVERT',
-              smokingPreference: _selectedByGroup[3] == 0
-                  ? 'SMOKER'
-                  : 'NON_SMOKER',
-              petsPreference: _selectedByGroup[4] == 0
-                  ? 'WITH_PETS'
-                  : 'NO_PETS',
+              personalityType:
+                  _selectedByGroup[2] == 0 ? 'INTROVERT' : 'EXTROVERT',
+              smokingPreference:
+                  _selectedByGroup[3] == 0 ? 'SMOKER' : 'NON_SMOKER',
+              petsPreference:
+                  _selectedByGroup[4] == 0 ? 'WITH_PETS' : 'NO_PETS',
             ),
           );
       if (!mounted) return;
@@ -336,9 +333,9 @@ class _LifestyleCard extends StatelessWidget {
             Text(
               option.label,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: const Color(0xFF001561),
-                fontWeight: FontWeight.w600,
-              ),
+                    color: const Color(0xFF001561),
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ],
         ),

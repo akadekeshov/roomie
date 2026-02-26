@@ -10,10 +10,7 @@ final authTokenStorageProvider = Provider<AuthTokenStorage>(
 
 final dioProvider = Provider<Dio>((ref) {
   final tokenStorage = ref.read(authTokenStorageProvider);
-<<<<<<< HEAD
 
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
   final dio = Dio(
     BaseOptions(
       baseUrl: ApiConfig.baseUrl,
@@ -33,24 +30,19 @@ final dioProvider = Provider<Dio>((ref) {
         }
         handler.next(options);
       },
-<<<<<<< HEAD
       onError: (error, handler) {
         final statusCode = error.response?.statusCode;
         final data = error.response?.data;
         // ignore: avoid_print
-        print('[Dio] Error: ${error.requestOptions.method} ${error.requestOptions.uri}');
+        print(
+          '[Dio] Error: ${error.requestOptions.method} ${error.requestOptions.uri}',
+        );
         // ignore: avoid_print
         print('[Dio] statusCode=$statusCode data=$data');
         handler.next(error);
       },
-=======
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
     ),
   );
 
   return dio;
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750

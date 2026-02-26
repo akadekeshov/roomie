@@ -11,8 +11,6 @@ class RecommendedUser {
     required this.searchDistrict,
     required this.photos,
     required this.isSaved,
-
-    
     this.occupationStatus,
     this.searchBudgetMin,
     this.searchBudgetMax,
@@ -28,7 +26,6 @@ class RecommendedUser {
   final List<String> photos;
   final bool isSaved;
 
- 
   final String? occupationStatus;
   final int? searchBudgetMin;
   final int? searchBudgetMax;
@@ -42,13 +39,10 @@ class RecommendedUser {
       city: json['city'] as String?,
       bio: json['bio'] as String?,
       searchDistrict: json['searchDistrict'] as String?,
-      photos: (json['photos'] as List<dynamic>?)
-              ?.whereType<String>()
-              .toList() ??
-          const <String>[],
+      photos:
+          (json['photos'] as List<dynamic>?)?.whereType<String>().toList() ??
+              const <String>[],
       isSaved: json['isSaved'] as bool? ?? false,
-
-
       occupationStatus: json['occupationStatus'] as String?,
       searchBudgetMin: (json['searchBudgetMin'] as num?)?.toInt(),
       searchBudgetMax: (json['searchBudgetMax'] as num?)?.toInt(),
@@ -64,25 +58,23 @@ class RecommendedUser {
     return name;
   }
 
- String? get avatarUrl {
-  final raw = photos.isNotEmpty ? photos.first.trim() : '';
-  if (raw.isEmpty) return null;
+  String? get avatarUrl {
+    final raw = photos.isNotEmpty ? photos.first.trim() : '';
+    if (raw.isEmpty) return null;
 
-  if (raw.startsWith('http')) return raw;
+    if (raw.startsWith('http')) return raw;
 
-  final base = ApiConfig.publicBaseUrl;
-  return '$base${raw.startsWith('/') ? '' : '/'}$raw';
-}
+    final base = ApiConfig.publicBaseUrl;
+    return '$base${raw.startsWith('/') ? '' : '/'}$raw';
+  }
 
-  String get locationText =>
-      (searchDistrict ?? city ?? '').trim().isNotEmpty
-          ? (searchDistrict ?? city ?? '').trim()
-          : '-';
+  String get locationText => (searchDistrict ?? city ?? '').trim().isNotEmpty
+      ? (searchDistrict ?? city ?? '').trim()
+      : '-';
 
-  String get statusText =>
-      (occupationStatus ?? '').trim().isNotEmpty
-          ? occupationStatus!.trim()
-          : '-';
+  String get statusText => (occupationStatus ?? '').trim().isNotEmpty
+      ? occupationStatus!.trim()
+      : '-';
 
   String get budgetText {
     final min = searchBudgetMin;
