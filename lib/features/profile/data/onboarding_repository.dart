@@ -182,8 +182,7 @@ class OnboardingRepository {
     return OnboardingStatus(
       onboardingStep: data['onboardingStep'] as String?,
       onboardingCompleted: data['onboardingCompleted'] as bool? ?? false,
-      profile:
-          (data['profile'] as Map?)?.cast<String, dynamic>() ??
+      profile: (data['profile'] as Map?)?.cast<String, dynamic>() ??
           <String, dynamic>{},
     );
   }

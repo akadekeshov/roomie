@@ -23,13 +23,10 @@ export class VerificationService {
       throw new BadRequestException('User not found');
     }
 
-    // If verified, allow re-uploading (user might want to update)
-    // If rejected, allow re-uploading to resubmit
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationDocumentUrl: dto.documentUrl,
-        // Reset status if it was REJECTED and user is re-uploading
         ...(user.verificationStatus === VerificationStatus.REJECTED && {
           verificationStatus: VerificationStatus.NONE,
           verificationRejectReason: null,
@@ -86,13 +83,10 @@ export class VerificationService {
       throw new BadRequestException('User not found');
     }
 
-    // If verified, allow re-uploading
-    // If rejected, allow re-uploading to resubmit
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         verificationSelfieUrl: dto.selfieUrl,
-        // Reset status if it was REJECTED and user is re-uploading
         ...(user.verificationStatus === VerificationStatus.REJECTED && {
           verificationStatus: VerificationStatus.NONE,
           verificationRejectReason: null,

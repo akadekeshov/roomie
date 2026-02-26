@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/app_exception.dart';
+import '../../../core/network/dio_error_mapper.dart';
 import '../../../core/network/network_providers.dart';
 import '../../../core/storage/auth_token_storage.dart';
 
@@ -16,7 +18,6 @@ class LoginResult {
 
 class AuthFlowResult {
   const AuthFlowResult({required this.next});
-
   final String? next;
 }
 
@@ -32,6 +33,21 @@ class CurrentUser {
   final String? lastName;
   final String? email;
   final String? phone;
+
+  String get displayName {
+    final fn = (firstName ?? '').trim();
+    final ln = (lastName ?? '').trim();
+    final full = '$fn $ln'.trim();
+    return full.isEmpty ? 'Пользователь' : full;
+  }
+
+  String get contact {
+    final e = (email ?? '').trim();
+    final p = (phone ?? '').trim();
+    if (e.isNotEmpty) return e;
+    if (p.isNotEmpty) return p;
+    return '—';
+  }
 }
 
 class AuthRepository {
@@ -42,139 +58,230 @@ class AuthRepository {
 
   String _normalizePhone(String raw) {
     final digits = raw.replaceAll(RegExp(r'[^0-9+]'), '');
-    if (digits.startsWith('+')) {
-      return digits;
-    }
+    if (digits.startsWith('+')) return digits;
     return '+$digits';
   }
 
-  String _normalizeEmail(String raw) {
-    return raw.trim().toLowerCase();
-  }
+  String _normalizeEmail(String raw) => raw.trim().toLowerCase();
 
   Future<AuthFlowResult> register({
     required bool useEmail,
     required String identity,
     required String password,
   }) async {
-    final endpoint = useEmail ? '/auth/register/email' : '/auth/register/phone';
-    final body = <String, dynamic>{'password': password};
-    if (useEmail) {
-      body['email'] = _normalizeEmail(identity);
-    } else {
-      body['phone'] = _normalizePhone(identity.trim());
-    }
+    try {
+      final endpoint =
+          useEmail ? '/auth/register/email' : '/auth/register/phone';
 
-    final response = await _dio.post<Map<String, dynamic>>(
-      endpoint,
-      data: body,
-    );
-    return AuthFlowResult(next: response.data?['next'] as String?);
+      final body = <String, dynamic>{'password': password};
+      if (useEmail) {
+        body['email'] = _normalizeEmail(identity);
+      } else {
+        body['phone'] = _normalizePhone(identity.trim());
+      }
+
+      final response = await _dio.post<Map<String, dynamic>>(
+        endpoint,
+        data: body,
+      );
+
+      return AuthFlowResult(next: response.data?['next'] as String?);
+    } on DioException catch (e) {
+      throw mapDioErrorToAppException(e);
+    } catch (_) {
+      throw const AppException(
+        code: AppErrorCode.unknown,
+        message: 'Не удалось зарегистрироваться. Попробуйте позже.',
+      );
+    }
   }
 
   Future<LoginResult> verifyRegisterOtp({
     required bool useEmail,
     required String identity,
     required String code,
+    bool rememberMe = true,
   }) async {
-    final endpoint = useEmail ? '/auth/verify/email' : '/auth/verify/phone';
-    final body = <String, dynamic>{'code': code.trim()};
-    if (useEmail) {
-      body['email'] = _normalizeEmail(identity);
-    } else {
-      body['phone'] = _normalizePhone(identity.trim());
-    }
+    try {
+      final endpoint = useEmail ? '/auth/verify/email' : '/auth/verify/phone';
 
-    final response = await _dio.post<Map<String, dynamic>>(
-      endpoint,
-      data: body,
-    );
-    final data = response.data ?? <String, dynamic>{};
-    final accessToken = data['accessToken'] as String?;
-    final refreshToken = data['refreshToken'] as String?;
-    final user = (data['user'] as Map?)?.cast<String, dynamic>();
+      final body = <String, dynamic>{'code': code.trim()};
+      if (useEmail) {
+        body['email'] = _normalizeEmail(identity);
+      } else {
+        body['phone'] = _normalizePhone(identity.trim());
+      }
 
-    if (accessToken == null || refreshToken == null) {
-      throw DioException(
-        requestOptions: response.requestOptions,
-        response: response,
-        message: 'Missing auth tokens in response',
+      final response = await _dio.post<Map<String, dynamic>>(
+        endpoint,
+        data: body,
+      );
+
+      final data = response.data ?? <String, dynamic>{};
+      final accessToken = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
+      final user = (data['user'] as Map?)?.cast<String, dynamic>();
+
+      if (accessToken == null || refreshToken == null) {
+        throw const AppException(
+          code: AppErrorCode.unknown,
+          message: 'Ответ сервера не содержит токены.',
+        );
+      }
+
+      await _tokenStorage.setAccessToken(accessToken);
+      await _tokenStorage.saveRefreshToken(
+        refreshToken: refreshToken,
+        rememberMe: rememberMe,
+      );
+
+      return LoginResult(
+        onboardingStep: user?['onboardingStep'] as String?,
+        onboardingCompleted: user?['onboardingCompleted'] as bool? ?? false,
+      );
+    } on AppException {
+      rethrow;
+    } on DioException catch (e) {
+      throw mapDioErrorToAppException(e);
+    } catch (_) {
+      throw const AppException(
+        code: AppErrorCode.unknown,
+        message: 'Не удалось подтвердить код. Попробуйте ещё раз.',
       );
     }
-
-    await _tokenStorage.saveTokens(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    );
-
-    return LoginResult(
-      onboardingStep: user?['onboardingStep'] as String?,
-      onboardingCompleted: user?['onboardingCompleted'] as bool? ?? false,
-    );
   }
 
   Future<void> resendOtp({
     required bool useEmail,
     required String identity,
   }) async {
-    await _dio.post(
-      '/auth/otp/resend',
-      data: {
-        'channel': useEmail ? 'EMAIL' : 'PHONE',
-        'purpose': 'REGISTER',
-        'target': useEmail
-            ? _normalizeEmail(identity)
-            : _normalizePhone(identity.trim()),
-      },
-    );
+    try {
+      await _dio.post(
+        '/auth/otp/resend',
+        data: {
+          'channel': useEmail ? 'EMAIL' : 'PHONE',
+          'purpose': 'REGISTER',
+          'target': useEmail
+              ? _normalizeEmail(identity)
+              : _normalizePhone(identity.trim()),
+        },
+      );
+    } on DioException catch (e) {
+      throw mapDioErrorToAppException(e);
+    } catch (_) {
+      throw const AppException(
+        code: AppErrorCode.unknown,
+        message: 'Не удалось отправить код. Попробуйте позже.',
+      );
+    }
   }
 
   Future<LoginResult> login({
     required bool useEmail,
     required String identity,
     required String password,
+    required bool rememberMe,
   }) async {
-    final body = <String, dynamic>{'password': password};
-    if (useEmail) {
-      body['email'] = _normalizeEmail(identity);
-    } else {
-      body['phone'] = _normalizePhone(identity.trim());
-    }
+    try {
+      final body = <String, dynamic>{'password': password};
+      if (useEmail) {
+        body['email'] = _normalizeEmail(identity);
+      } else {
+        body['phone'] = _normalizePhone(identity.trim());
+      }
 
-    final response = await _dio.post('/auth/login', data: body);
-    final data = response.data as Map<String, dynamic>;
-    final accessToken = data['accessToken'] as String?;
-    final refreshToken = data['refreshToken'] as String?;
-    final user = (data['user'] as Map?)?.cast<String, dynamic>();
+      final response = await _dio.post('/auth/login', data: body);
+      final data = response.data as Map<String, dynamic>;
+      final accessToken = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
+      final user = (data['user'] as Map?)?.cast<String, dynamic>();
 
-    if (accessToken == null || refreshToken == null) {
-      throw DioException(
-        requestOptions: response.requestOptions,
-        response: response,
-        message: 'Missing auth tokens in response',
+      if (accessToken == null || refreshToken == null) {
+        throw const AppException(
+          code: AppErrorCode.unknown,
+          message: 'Ответ сервера не содержит токены.',
+        );
+      }
+
+      await _tokenStorage.setAccessToken(accessToken);
+      await _tokenStorage.saveRefreshToken(
+        refreshToken: refreshToken,
+        rememberMe: rememberMe,
+      );
+
+      return LoginResult(
+        onboardingStep: user?['onboardingStep'] as String?,
+        onboardingCompleted: user?['onboardingCompleted'] as bool? ?? false,
+      );
+    } on AppException {
+      rethrow;
+    } on DioException catch (e) {
+      throw mapDioErrorToAppException(e);
+    } catch (_) {
+      throw const AppException(
+        code: AppErrorCode.unknown,
+        message: 'Не удалось войти. Попробуйте позже.',
       );
     }
+  }
 
-    await _tokenStorage.saveTokens(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    );
+  Future<LoginResult?> tryLoginWithRefreshToken() async {
+    final refreshToken = await _tokenStorage.getRefreshToken();
+    if (refreshToken == null) return null;
 
-    return LoginResult(
-      onboardingStep: user?['onboardingStep'] as String?,
-      onboardingCompleted: user?['onboardingCompleted'] as bool? ?? false,
-    );
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+
+      final data = response.data ?? <String, dynamic>{};
+      final accessToken = data['accessToken'] as String?;
+      final newRefreshToken = data['refreshToken'] as String?;
+      final user = (data['user'] as Map?)?.cast<String, dynamic>();
+
+      if (accessToken == null || newRefreshToken == null) return null;
+
+      await _tokenStorage.setAccessToken(accessToken);
+      await _tokenStorage.saveRefreshToken(
+        refreshToken: newRefreshToken,
+        rememberMe: true,
+      );
+
+      return LoginResult(
+        onboardingStep: user?['onboardingStep'] as String?,
+        onboardingCompleted: user?['onboardingCompleted'] as bool? ?? false,
+      );
+    } on DioException catch (e) {
+      final appEx = mapDioErrorToAppException(e);
+      if (appEx.code == AppErrorCode.invalidOrExpiredToken) {
+        await _tokenStorage.clear();
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<CurrentUser> getMe() async {
-    final response = await _dio.get<Map<String, dynamic>>('/auth/me');
-    final data = response.data ?? <String, dynamic>{};
-    return CurrentUser(
-      firstName: data['firstName'] as String?,
-      lastName: data['lastName'] as String?,
-      email: data['email'] as String?,
-      phone: data['phone'] as String?,
-    );
+    try {
+      final response = await _dio.get<Map<String, dynamic>>('/auth/me');
+      final data = response.data ?? <String, dynamic>{};
+
+      return CurrentUser(
+        firstName: data['firstName'] as String?,
+        lastName: data['lastName'] as String?,
+        email: data['email'] as String?,
+        phone: data['phone'] as String?,
+      );
+    } on DioException catch (e) {
+      throw mapDioErrorToAppException(e);
+    } catch (_) {
+      throw const AppException(
+        code: AppErrorCode.unknown,
+        message: 'Не удалось загрузить профиль. Попробуйте позже.',
+      );
+    }
   }
 }
 

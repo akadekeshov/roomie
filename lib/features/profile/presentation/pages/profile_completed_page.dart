@@ -34,19 +34,19 @@ class ProfileCompletedPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                '\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d \u043d\u0430 100%',
+                'Профиль заполнен на 100%',
                 textAlign: TextAlign.center,
                 style: textTheme.headlineSmall?.copyWith(
                   color: const Color(0xFF001561),
                   fontWeight: FontWeight.w700,
-                  fontSize: 34 / 2,
+                  fontSize: 17,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text('\ud83c\udf89', style: TextStyle(fontSize: 22)),
+              const Text('🎉', style: TextStyle(fontSize: 22)),
               const SizedBox(height: 20),
               Text(
-                '\u0422\u0435\u043f\u0435\u0440\u044c \u0443 \u0432\u0430\u0441 \u0431\u043e\u043b\u044c\u0448\u0435 \u0448\u0430\u043d\u0441\u043e\u0432 \u043d\u0430\u0439\u0442\u0438\n\u0438\u0434\u0435\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0441\u043e\u0436\u0438\u0442\u0435\u043b\u044f',
+                'Теперь у вас больше шансов найти\nидеального сожителя',
                 textAlign: TextAlign.center,
                 style: textTheme.bodyLarge?.copyWith(
                   color: const Color(0xFF8E93A4),
@@ -55,11 +55,9 @@ class ProfileCompletedPage extends StatelessWidget {
               ),
               const Spacer(),
               AppPrimaryButton(
-                label:
-                    '\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u043f\u043e\u0438\u0441\u043a\u0443',
-                onPressed: () => Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false),
+                label: 'Перейти к поиску',
+                onPressed: () => Navigator.of(context)
+                    .pushNamedAndRemoveUntil(AppRoutes.home, (route) => false),
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,
@@ -78,11 +76,10 @@ class ProfileCompletedPage extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pushNamed(AppRoutes.profileVerification),
+                  onPressed: () => Navigator.of(context)
+                      .pushNamed(AppRoutes.profileVerification),
                   child: const Text(
-                    '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c \u043b\u0438\u0447\u043d\u043e\u0441\u0442\u044c (\u043d\u0435\u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e)',
+                    'Подтвердить личность (необязательно)',
                     style: TextStyle(
                       fontFamily: 'Gilroy',
                       fontSize: 14,

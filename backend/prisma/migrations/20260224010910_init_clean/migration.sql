@@ -1,0 +1,2 @@
+-- Empty migration kept for compatibility with previous history.
+-- Schema is fully defined by earlier migrations.

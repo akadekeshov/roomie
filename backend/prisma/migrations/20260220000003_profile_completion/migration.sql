@@ -1,3 +1,13 @@
+
+CREATE TYPE "OccupationStatus" AS ENUM ('STUDY', 'WORK', 'STUDY_WORK');
+CREATE TYPE "Chronotype" AS ENUM ('OWL', 'LARK');
+CREATE TYPE "NoisePreference" AS ENUM ('QUIET', 'SOCIAL');
+CREATE TYPE "PersonalityType" AS ENUM ('INTROVERT', 'EXTROVERT');
+CREATE TYPE "SmokingPreference" AS ENUM ('SMOKER', 'NON_SMOKER');
+CREATE TYPE "PetsPreference" AS ENUM ('WITH_PETS', 'NO_PETS');
+CREATE TYPE "RoommateGenderPreference" AS ENUM ('MALE', 'FEMALE', 'ANY');
+CREATE TYPE "VerificationStatus" AS ENUM ('NONE', 'PENDING', 'VERIFIED', 'REJECTED');
+
 -- CreateEnum
 CREATE TYPE "OccupationStatus" AS ENUM ('STUDY', 'WORK', 'STUDY_WORK');
 
@@ -23,12 +33,13 @@ CREATE TYPE "RoommateGenderPreference" AS ENUM ('MALE', 'FEMALE', 'ANY');
 CREATE TYPE "VerificationStatus" AS ENUM ('NONE', 'PENDING', 'VERIFIED', 'REJECTED');
 
 -- Alter existing enum OnboardingStep
+
 ALTER TYPE "OnboardingStep" ADD VALUE IF NOT EXISTS 'ABOUT';
 ALTER TYPE "OnboardingStep" ADD VALUE IF NOT EXISTS 'LIFESTYLE';
 ALTER TYPE "OnboardingStep" ADD VALUE IF NOT EXISTS 'SEARCH';
 ALTER TYPE "OnboardingStep" ADD VALUE IF NOT EXISTS 'FINALIZE';
 
--- AlterTable
+
 ALTER TABLE "users"
   ADD COLUMN "occupationStatus" "OccupationStatus",
   ADD COLUMN "university" TEXT,
@@ -45,3 +56,4 @@ ALTER TABLE "users"
   ADD COLUMN "photos" TEXT[] DEFAULT ARRAY[]::TEXT[],
   ADD COLUMN "verificationStatus" "VerificationStatus" NOT NULL DEFAULT 'NONE',
   ADD COLUMN "verificationDocumentUrl" TEXT;
+

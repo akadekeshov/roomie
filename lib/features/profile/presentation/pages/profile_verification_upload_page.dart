@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/dashed_border_container.dart';
-import '../../data/onboarding_repository.dart';
+import '../../data/verification_repository.dart';
 import '../widgets/profile_flow_header.dart';
 
 class ProfileVerificationUploadPage extends ConsumerStatefulWidget {
@@ -24,9 +23,14 @@ class _ProfileVerificationUploadPageState
   final ImagePicker _imagePicker = ImagePicker();
 
   String? _documentPath;
+  String? _selfiePath;
+
   bool _isSubmitting = false;
 
-  bool get _uploaded => _documentPath != null && _documentPath!.isNotEmpty;
+  bool get _canSubmit =>
+      !_isSubmitting &&
+      (_documentPath?.trim().isNotEmpty ?? false) &&
+      (_selfiePath?.trim().isNotEmpty ?? false);
 
   Future<void> _pickDocument() async {
     final picked = await _imagePicker.pickImage(
@@ -38,28 +42,110 @@ class _ProfileVerificationUploadPageState
     setState(() => _documentPath = picked.path);
   }
 
+  Future<void> _pickSelfie() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 90,
+      maxWidth: 2048,
+    );
+    if (!mounted || picked == null) return;
+    setState(() => _selfiePath = picked.path);
+  }
+
   Future<void> _submit() async {
-    if (!_uploaded || _isSubmitting || _documentPath == null) return;
+    if (!_canSubmit) return;
 
     setState(() => _isSubmitting = true);
     try {
-      await ref
-          .read(onboardingRepositoryProvider)
-          .uploadVerificationDocument(_documentPath!);
-      await ref.read(onboardingRepositoryProvider).submitVerification();
+      final repo = ref.read(verificationRepositoryProvider);
+
+      await repo.uploadDocument(File(_documentPath!));
+      await repo.uploadSelfie(File(_selfiePath!));
+      await repo.submit();
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Документ отправлен на проверку')),
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8F5E9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.green,
+                      size: 42,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Документы отправлены!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Мы проверим данные в течение 24 часов.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C3AED),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Готово',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       );
-      Navigator.of(context).pop();
-    } on DioException catch (e) {
+
       if (!mounted) return;
-      final serverMessage = e.response?.data is Map<String, dynamic>
-          ? (e.response?.data['message']?.toString())
-          : null;
+      Navigator.of(context).pop(); // back to profile
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(serverMessage ?? 'Не удалось отправить документ'),
+          content: Text(
+            'Не удалось отправить документы. Попробуйте снова.\n$e',
+          ),
         ),
       );
     } finally {
@@ -102,8 +188,32 @@ class _ProfileVerificationUploadPageState
                         ),
                       ),
                       const SizedBox(height: 14),
-                      _UploadBox(path: _documentPath, onTap: _pickDocument),
+
+                      // DOCUMENT
+                      _UploadBox(
+                        path: _documentPath,
+                        onTap: _pickDocument,
+                        label: 'Загрузить фото документа',
+                      ),
+                      const SizedBox(height: 18),
+
+                      // SELFIE
+                      Text(
+                        'Сделайте селфи',
+                        style: textTheme.headlineSmall?.copyWith(
+                          color: const Color(0xFF001561),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                      ),
                       const SizedBox(height: 14),
+                      _UploadBox(
+                        path: _selfiePath,
+                        onTap: _pickSelfie,
+                        label: 'Сделать селфи',
+                      ),
+                      const SizedBox(height: 14),
+
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
@@ -136,8 +246,8 @@ class _ProfileVerificationUploadPageState
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
-                label: 'Отправить на проверку',
-                onPressed: (_uploaded && !_isSubmitting) ? _submit : null,
+                label: _isSubmitting ? 'Отправка...' : 'Отправить на проверку',
+                onPressed: _canSubmit ? _submit : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,
@@ -153,14 +263,19 @@ class _ProfileVerificationUploadPageState
 }
 
 class _UploadBox extends StatelessWidget {
-  const _UploadBox({required this.path, required this.onTap});
+  const _UploadBox({
+    required this.path,
+    required this.onTap,
+    required this.label,
+  });
 
   final String? path;
   final VoidCallback onTap;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final uploaded = path != null && path!.isNotEmpty;
+    final uploaded = path != null && path!.trim().isNotEmpty;
 
     return InkWell(
       onTap: onTap,
@@ -197,11 +312,12 @@ class _UploadBox extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Загрузить фото документа',
+                    label,
+                    textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF001561),
-                      fontWeight: FontWeight.w600,
-                    ),
+                          color: const Color(0xFF001561),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ],
               ),
@@ -231,9 +347,9 @@ class _BulletLine extends StatelessWidget {
         Text(
           text,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: const Color(0xFF4E5884),
-            fontWeight: FontWeight.w500,
-          ),
+                color: const Color(0xFF4E5884),
+                fontWeight: FontWeight.w500,
+              ),
         ),
       ],
     );

@@ -7,6 +7,7 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
+    super(); 
     super(); // Prisma сам берёт DATABASE_URL из env
   }
 

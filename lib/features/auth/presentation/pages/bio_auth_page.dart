@@ -100,13 +100,11 @@ class _AuthForm extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.spaceLabel),
         TextField(
-          keyboardType: isPhone
-              ? TextInputType.phone
-              : TextInputType.emailAddress,
+          keyboardType:
+              isPhone ? TextInputType.phone : TextInputType.emailAddress,
           decoration: InputDecoration(
-            hintText: isPhone
-                ? AppStrings.authPhoneHint
-                : AppStrings.authEmailHint,
+            hintText:
+                isPhone ? AppStrings.authPhoneHint : AppStrings.authEmailHint,
             filled: true,
             fillColor: AppColors.fieldFill,
             border: OutlineInputBorder(

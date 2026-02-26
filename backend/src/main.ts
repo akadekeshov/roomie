@@ -2,17 +2,22 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // CORS
   app.enableCors({
     origin: true,
     credentials: true,
   });
 
+  // Global prefix
   app.setGlobalPrefix('api');
 
+  // Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -24,6 +29,12 @@ async function bootstrap() {
     }),
   );
 
+  // Serve uploads statically
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads',
+  });
+
+  // Swagger
   const config = new DocumentBuilder()
     .setTitle('Roomie API')
     .setDescription('Roommate app backend API')
@@ -36,4 +47,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
+
 bootstrap();

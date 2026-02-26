@@ -5,6 +5,7 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../data/onboarding_repository.dart';
+import '../../data/me_repository.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -15,8 +16,9 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _completed = false;
+
   String _displayName = 'Пользователь';
-  String _displayContact = '';
+  String _displayContact = '—';
 
   @override
   void initState() {
@@ -34,9 +36,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       final firstName = (me.firstName ?? '').trim();
       final lastName = (me.lastName ?? '').trim();
       final fullName = '$firstName $lastName'.trim();
-      final contact = (me.email ?? '').trim().isNotEmpty
-          ? me.email!.trim()
-          : (me.phone ?? '').trim();
+
+      final email = (me.email ?? '').trim();
+      final phone = (me.phone ?? '').trim();
+      final contact = email.isNotEmpty ? email : phone;
 
       if (!mounted) return;
       setState(() {
@@ -50,35 +53,31 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     try {
       final status = await ref.read(onboardingRepositoryProvider).getStatus();
       final profile = status.profile;
+
       final lifestyle =
           (profile['lifestyle'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      final search =
-          (profile['search'] as Map?)?.cast<String, dynamic>() ??
+              <String, dynamic>{};
+      final search = (profile['search'] as Map?)?.cast<String, dynamic>() ??
           <String, dynamic>{};
       final photos =
           (profile['photos'] as List?)?.whereType<String>().toList() ??
-          const <String>[];
+              const <String>[];
 
-      bool hasText(Object? value) =>
-          value is String && value.trim().isNotEmpty;
+      bool hasText(Object? value) => value is String && value.trim().isNotEmpty;
 
-      final lifestyleDone =
-          hasText(lifestyle['chronotype']) &&
+      final lifestyleDone = hasText(lifestyle['chronotype']) &&
           hasText(lifestyle['noisePreference']) &&
           hasText(lifestyle['personalityType']) &&
           hasText(lifestyle['smokingPreference']) &&
           hasText(lifestyle['petsPreference']);
 
-      final searchDone =
-          search['budgetMin'] != null &&
+      final searchDone = search['budgetMin'] != null &&
           search['budgetMax'] != null &&
           hasText(search['district']) &&
           hasText(search['roommateGenderPreference']) &&
           hasText(search['stayTerm']);
 
-      final profileDone =
-          hasText(profile['occupationStatus']) &&
+      final profileDone = hasText(profile['occupationStatus']) &&
           hasText(profile['university']) &&
           hasText(profile['bio']) &&
           lifestyleDone &&
@@ -96,6 +95,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
+      bottomNavigationBar: _BottomNav(
+        onTapHome: () =>
+            Navigator.of(context).pushReplacementNamed(AppRoutes.home),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -106,7 +109,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   const SizedBox(width: 24),
                   Expanded(
                     child: Text(
-                      '\u041f\u0440\u043e\u0444\u0438\u043b\u044c',
+                      'Профиль',
                       textAlign: TextAlign.center,
                       style: textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w700,
@@ -139,60 +142,64 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       const _ProfileProgress(),
                       const SizedBox(height: 18),
                       _CompleteProfileCard(
-                        onTap: () => Navigator.of(
-                          context,
-                        ).pushNamed(AppRoutes.profileAbout),
+                        onTap: () => Navigator.of(context)
+                            .pushNamed(AppRoutes.profileAbout),
                       ),
                       const SizedBox(height: 12),
                     ],
                     _VerificationCard(
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pushNamed(AppRoutes.profileVerification),
+                      onTap: () async {
+                        await Navigator.of(context)
+                            .pushNamed(AppRoutes.profileVerification);
+                        ref.invalidate(meProvider);
+                      },
                     ),
                     const SizedBox(height: 18),
-                    const _MenuItem(
+                    _MenuItem(
                       icon: Icons.edit_outlined,
-                      title:
-                          '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c',
+                      title: 'Редактировать профиль',
+                      onTap: () => Navigator.of(context)
+                          .pushNamed(AppRoutes.profileEdit),
                     ),
                     const SizedBox(height: 8),
                     const _MenuItem(
                       icon: Icons.notifications_none,
-                      title:
-                          '\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
+                      title: 'Уведомления',
                     ),
                     const SizedBox(height: 8),
                     const _MenuItem(
                       icon: Icons.remove_red_eye_outlined,
-                      title:
-                          '\u041a\u043e\u043d\u0444\u0438\u0434\u0435\u043d\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0441\u0442\u044c',
+                      title: 'Конфиденциальность',
                     ),
                     const SizedBox(height: 8),
                     const _MenuItem(
                       icon: Icons.lock_outline,
-                      title:
-                          '\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c',
+                      title: 'Безопасность',
                     ),
                     const SizedBox(height: 8),
                     const _MenuItem(
                       icon: Icons.support_agent,
-                      title:
-                          '\u041f\u043e\u043c\u043e\u0449\u044c \u0438 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430',
+                      title: 'Помощь и поддержка',
                     ),
                     const SizedBox(height: 8),
                     const _MenuItem(
                       icon: Icons.info_outline,
-                      title:
-                          '\u041e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0438',
+                      title: 'О приложении',
+                    ),
+                    const SizedBox(height: 8),
+                    _MenuItem(
+                      icon: Icons.admin_panel_settings,
+                      title: 'Admin Panel',
+                      onTap: () => Navigator.of(context)
+                          .pushNamed(AppRoutes.adminVerifications),
                     ),
                     const SizedBox(height: 22),
                     InkWell(
                       onTap: () =>
                           Navigator.of(context).pushNamedAndRemoveUntil(
-                            AppRoutes.login,
-                            (route) => false,
-                          ),
+                        AppRoutes.login,
+                        (route) => false,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       child: Row(
                         children: [
@@ -211,7 +218,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            '\u0412\u044b\u0445\u043e\u0434',
+                            'Выход',
                             style: textTheme.titleMedium?.copyWith(
                               color: const Color(0xFFFF3B30),
                               fontWeight: FontWeight.w500,
@@ -226,57 +233,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: _BottomNav(
-        onTapHome: () =>
-            Navigator.of(context).pushReplacementNamed(AppRoutes.home),
-      ),
-    );
-  }
-}
-
-class _ProfileDoneCard extends StatelessWidget {
-  const _ProfileDoneCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: const Color(0x1A2EC766),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0x802EC766)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.check_box_outlined, color: Color(0xFF2EC766), size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d \u043d\u0430 100%',
-                  style: textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFF001561),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '\u0422\u0435\u043f\u0435\u0440\u044c \u0432\u0430\u0441 \u043c\u043e\u0433\u0443\u0442 \u043d\u0430\u0445\u043e\u0434\u0438\u0442\u044c \u0434\u0440\u0443\u0433\u0438\u0435 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: const Color(0x99001561),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -330,6 +286,54 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
+class _ProfileDoneCard extends StatelessWidget {
+  const _ProfileDoneCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: const Color(0x1A2EC766),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x802EC766)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_box_outlined,
+              color: Color(0xFF2EC766), size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Профиль заполнен на 100%',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFF001561),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Теперь вас могут находить другие пользователи',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: const Color(0x99001561),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProfileProgress extends StatelessWidget {
   const _ProfileProgress();
 
@@ -342,7 +346,7 @@ class _ProfileProgress extends StatelessWidget {
         Row(
           children: [
             Text(
-              '\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d \u043d\u0430 40%',
+              'Профиль заполнен на 40%',
               style: textTheme.titleMedium?.copyWith(
                 color: const Color(0xFF4E5884),
                 fontWeight: FontWeight.w600,
@@ -416,7 +420,7 @@ class _CompleteProfileCardState extends State<_CompleteProfileCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u0444\u0438\u043b\u044f',
+              'Продолжить заполнение профиля',
               style: textTheme.titleLarge?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -425,7 +429,7 @@ class _CompleteProfileCardState extends State<_CompleteProfileCard> {
             ),
             const SizedBox(height: 6),
             Text(
-              '\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u043f\u0440\u043e\u0444\u0438\u043b\u044c, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439',
+              'Заполните профиль, чтобы получать больше совпадений',
               style: textTheme.bodyMedium?.copyWith(
                 color: const Color(0xDFFFFFFF),
                 height: 1.35,
@@ -438,10 +442,120 @@ class _CompleteProfileCardState extends State<_CompleteProfileCard> {
   }
 }
 
-class _VerificationCard extends StatelessWidget {
+class _VerificationCard extends ConsumerWidget {
   const _VerificationCard({required this.onTap});
 
   final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    final meAsync = ref.watch(meProvider);
+
+    return meAsync.when(
+      loading: () => const SizedBox(),
+      error: (_, __) => const SizedBox(),
+      data: (me) {
+        if (me.isVerified) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFFAF2),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFBFE7C9)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.verified_user_rounded,
+                    color: Color(0xFF2ECC71), size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Личность подтверждена',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: const Color(0xFF001561),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Повышает доверие к вашему профилю',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF8AA59A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F2FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.75),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.shield_outlined, color: AppColors.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Подтвердить личность',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Повышает доверие к вашему профилю',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF9AA1B9),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MenuItem extends StatelessWidget {
+  const _MenuItem({
+    required this.icon,
+    required this.title,
+    this.onTap,
+    super.key,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -449,60 +563,6 @@ class _VerificationCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.75)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.verified_user_outlined, color: AppColors.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c \u043b\u0438\u0447\u043d\u043e\u0441\u0442\u044c',
-                    style: textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF001561),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '\u041f\u043e\u0432\u044b\u0448\u0430\u0435\u0442 \u0434\u043e\u0432\u0435\u0440\u0438\u0435 \u043a \u0432\u0430\u0448\u0435\u043c\u0443 \u043f\u0440\u043e\u0444\u0438\u043b\u044e',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF9AA1B9),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MenuItem extends StatelessWidget {
-  const _MenuItem({required this.icon, required this.title});
-
-  final IconData icon;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return InkWell(
-      onTap: () {},
       borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(11, 8, 0, 8),
@@ -524,7 +584,7 @@ class _MenuItem extends StatelessWidget {
                 style: textTheme.titleLarge?.copyWith(
                   color: const Color(0xFF001561),
                   fontWeight: FontWeight.w600,
-                  fontSize: 32 / 2,
+                  fontSize: 16,
                 ),
               ),
             ),

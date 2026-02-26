@@ -31,8 +31,9 @@ class AppPrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith<Color>(
-            (states) =>
-                states.contains(WidgetState.disabled) ? disabledColor : enabledColor,
+            (states) => states.contains(WidgetState.disabled)
+                ? disabledColor
+                : enabledColor,
           ),
           foregroundColor: WidgetStateProperty.resolveWith<Color>(
             (states) => states.contains(WidgetState.disabled)
