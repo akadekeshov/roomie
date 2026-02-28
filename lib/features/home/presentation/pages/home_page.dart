@@ -7,6 +7,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/home_providers.dart';
 import '../../data/recommended_user_model.dart';
 import 'package:roommate_app/features/people/data/favorites_users_providers.dart';
+import 'package:roommate_app/features/people/data/hidden_users_provider.dart';
+import 'package:roommate_app/features/people/ui/recommended_user_profile_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -16,7 +18,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  final Set<String> _hiddenIds = HashSet();
 
   void _msg(String text) {
     if (!mounted) return;
@@ -24,10 +25,24 @@ class _HomePageState extends ConsumerState<HomePage> {
         .showSnackBar(SnackBar(content: Text(text)));
   }
 
-  void _hide(String userId) {
-    setState(() => _hiddenIds.add(userId));
+  Future<void> _hideUser(RecommendedUser user) async {
+  final repo = ref.read(homeRepositoryProvider);
+
+  try {
+    if (user.isSaved) {
+      await repo.unsaveUser(user.id);
+    }
+
+    ref.read(hiddenUserIdsProvider.notifier).hide(user.id);
+
+    ref.invalidate(recommendedUsersProvider);
+    ref.invalidate(favoriteUsersProvider);
+
     _msg('Скрыто ✅');
+  } catch (e) {
+    _msg('Ошибка: $e');
   }
+}
 
   Future<void> _toggleSave(RecommendedUser user) async {
   final repo = ref.read(homeRepositoryProvider);
@@ -48,9 +63,13 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
   void _openDetails(RecommendedUser user) {
-  
-    _msg('Профиль: ${user.displayName}');
-  }
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => RecommendedUserProfilePage(user: user),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -88,9 +107,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(child: Text('Ошибка: $e')),
                   data: (users) {
-                    final visible = users
-                        .where((u) => !_hiddenIds.contains(u.id))
-                        .toList();
+                    final hiddenIds = ref.watch(hiddenUserIdsProvider);
+                      final visible = users
+                      .where((u) => !hiddenIds.contains(u.id))
+                      .toList();
 
                     if (visible.isEmpty) {
                       return const Center(child: Text('Нет подходящих анкет'));
@@ -108,7 +128,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           final user = visible[index];
                           return _RoommateCard(
                             user: user,
-                            onHide: () => _hide(user.id),
+                            onHide: () => _hideUser(user),
                             onSave: () => _toggleSave(user),
                             onOpen: () => _openDetails(user),
                           );

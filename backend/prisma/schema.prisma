@@ -120,7 +120,7 @@ model User {
   roommateGenderPreference RoommateGenderPreference?
   stayTerm           String?
   photos             String[]
-  verificationStatus VerificationStatus @default(NONE)
+  verificationStatus VerificationStatus @default(PENDING)
   verificationDocumentUrl String?
   verificationSelfieUrl String?
   verificationRejectReason String?

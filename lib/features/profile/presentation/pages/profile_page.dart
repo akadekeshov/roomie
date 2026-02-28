@@ -19,6 +19,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    Future.microtask(() => ref.invalidate(meProvider));
     _loadStatus();
   }
 
@@ -64,6 +65,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       if (!mounted) return;
       setState(() => _completed = profileDone);
     } catch (_) {}
+  }
+
+ String verificationLabel(String status) {
+    switch (status) {
+      case "PENDING":
+        return "На проверке";
+      case "VERIFIED":
+        return "Подтвержден";
+      case "REJECTED":
+        return "Отклонено";
+      default:
+        return "Не отправлено";
+    }
+  }
+
+  Color verificationColor(String status) {
+    switch (status) {
+      case "PENDING":
+        return Colors.purple;
+      case "VERIFIED":
+        return Colors.green;
+      case "REJECTED":
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -494,7 +521,7 @@ class _VerificationCard extends ConsumerWidget {
       loading: () => const SizedBox(),
       error: (_, __) => const SizedBox(),
       data: (me) {
-        if (me.isVerified) {
+        if (me.verificationStatus == "VERIFIED") {
         
           return Container(
             width: double.infinity,
@@ -536,7 +563,48 @@ class _VerificationCard extends ConsumerWidget {
           );
         }
 
-       
+if (me.verificationStatus == "PENDING") {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F2FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.75),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.hourglass_top_rounded, color: AppColors.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+       'На проверке',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Ожидайте подтверждения от администратора',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF9AA1B9),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
         return InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
