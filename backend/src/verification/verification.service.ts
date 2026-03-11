@@ -1,7 +1,6 @@
 import {
   Injectable,
   BadRequestException,
-  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { VerificationStatus } from '@prisma/client';
@@ -146,12 +145,6 @@ export class VerificationService {
 
     if (!user) {
       throw new BadRequestException('User not found');
-    }
-
-    if (user.verificationStatus === VerificationStatus.VERIFIED) {
-      throw new ConflictException(
-        'Verification already approved. Cannot resubmit.',
-      );
     }
 
     if (!user.verificationDocumentUrl) {

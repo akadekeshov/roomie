@@ -24,13 +24,18 @@ class AdminVerificationItem {
   factory AdminVerificationItem.fromJson(Map<String, dynamic> json) {
     final firstName = (json['firstName'] ?? '').toString();
     final lastName = (json['lastName'] ?? '').toString();
+    final fallbackName = ('$firstName $lastName').trim();
 
     return AdminVerificationItem(
       id: json['id'].toString(),
-      name: ('$firstName $lastName').trim(),
-      status: (json['verificationStatus'] ?? '').toString(),
-      documentUrl: json['verificationDocumentUrl'] as String?,
-      selfieUrl: json['verificationSelfieUrl'] as String?,
+      name: (json['name'] as String?)?.trim().isNotEmpty == true
+          ? (json['name'] as String).trim()
+          : fallbackName,
+      status: (json['status'] ?? json['verificationStatus'] ?? '').toString(),
+      documentUrl:
+          (json['documentUrl'] ?? json['verificationDocumentUrl']) as String?,
+      selfieUrl:
+          (json['selfieUrl'] ?? json['verificationSelfieUrl']) as String?,
       email: json['email'] as String?,
       phone: json['phone'] as String?,
     );
@@ -42,14 +47,23 @@ class AdminVerificationRepository {
   final Dio _dio;
 
   Future<List<AdminVerificationItem>> pending() async {
-    final res = await _dio.get<Map<String, dynamic>>(
-      '/admin/verifications/pending',
-    );
+    final res = await _dio.get('/admin/verifications/pending');
+    final data = res.data;
 
-    final items = (res.data?['items'] as List? ?? const []);
+    final List items;
+    if (data is List) {
+      items = data;
+    } else if (data is Map<String, dynamic>) {
+      items = (data['items'] as List?) ?? const [];
+    } else {
+      items = const [];
+    }
+
     return items
-        .whereType<Map<String, dynamic>>()
-        .map(AdminVerificationItem.fromJson)
+        .whereType<Map>()
+        .map((e) => AdminVerificationItem.fromJson(
+              e.cast<String, dynamic>(),
+            ))
         .toList();
   }
 

@@ -311,6 +311,7 @@ export class OnboardingService {
       photos: dto.photos,
       onboardingCompleted: true,
       onboardingStep: OnboardingStep.DONE,
+      verificationStatus: VerificationStatus.PENDING,
     };
 
     const updated = await this.prisma.user.update({

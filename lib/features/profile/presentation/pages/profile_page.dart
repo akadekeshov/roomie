@@ -95,10 +95,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
-      bottomNavigationBar: _BottomNav(
-        onTapHome: () =>
-            Navigator.of(context).pushReplacementNamed(AppRoutes.home),
-      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -596,62 +592,3 @@ class _MenuItem extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({required this.onTapHome});
-
-  final VoidCallback onTapHome;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 78,
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0x14000000))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _NavIcon(
-            icon: Icons.home_outlined,
-            selected: false,
-            onTap: onTapHome,
-          ),
-          const _NavIcon(icon: Icons.favorite_border, selected: false),
-          const _NavIcon(icon: Icons.chat_bubble_outline, selected: false),
-          const _NavIcon(icon: Icons.person_outline, selected: true),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavIcon extends StatelessWidget {
-  const _NavIcon({required this.icon, required this.selected, this.onTap});
-
-  final IconData icon;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(28),
-      onTap: onTap,
-      child: Container(
-        height: 44,
-        width: 44,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: selected ? Colors.white : const Color(0xFF7A7A7A),
-          size: 24,
-        ),
-      ),
-    );
-  }
-}

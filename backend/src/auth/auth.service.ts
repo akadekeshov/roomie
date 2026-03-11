@@ -17,7 +17,7 @@ import { RegisterPhoneDto } from './dto/register-phone.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
-import { OTPChannel, OTPPurpose } from '@prisma/client';
+import { OTPChannel, OTPPurpose, UserRole } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -167,6 +167,7 @@ export class AuthService {
 
     await this.prisma.user.create({
       data: {
+        role: UserRole.ADMIN,
         email: registerEmailDto.email,
         phone: null,
         password: hashedPassword,
@@ -276,6 +277,7 @@ export class AuthService {
 
     await this.prisma.user.create({
       data: {
+        role: UserRole.ADMIN,
         email: null,
         phone: registerPhoneDto.phone,
         password: hashedPassword,

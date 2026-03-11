@@ -34,7 +34,11 @@ export class AdminVerificationsService {
 
   async getPendingVerifications() {
     const users = await this.prisma.user.findMany({
-      where: { verificationStatus: VerificationStatus.PENDING },
+      where: {
+        verificationStatus: {
+          in: [VerificationStatus.PENDING, VerificationStatus.NONE],
+        },
+      },
       select: {
         id: true,
         email: true,
@@ -161,16 +165,8 @@ export class AdminVerificationsService {
 
     if (!user) throw new NotFoundException('User not found');
 
-    if (user.verificationStatus !== VerificationStatus.PENDING) {
-      throw new BadRequestException(
-        `Cannot approve verification with status: ${user.verificationStatus}`,
-      );
-    }
-
-    if (!user.verificationDocumentUrl || !user.verificationSelfieUrl) {
-      throw new BadRequestException(
-        'User has not uploaded both required documents',
-      );
+    if (user.verificationStatus === VerificationStatus.VERIFIED) {
+      throw new BadRequestException('User is already verified');
     }
 
     return this.prisma.user.update({
