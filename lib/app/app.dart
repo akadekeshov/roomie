@@ -22,7 +22,6 @@ import '../features/profile/presentation/pages/profile_edit_page.dart';
 
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/main/main_shell.dart';
-import '../features/admin/presentation/pages/admin_verifications_page.dart';
 import '../features/onboarding/presentation/pages/welcome_page.dart';
 
 import 'app_routes.dart';
@@ -70,9 +69,6 @@ class RoommateApp extends StatelessWidget {
         AppRoutes.profileVerificationUpload: (context) =>
             const ProfileVerificationUploadPage(),
 
-        // Admin
-        AppRoutes.adminVerifications: (context) =>
-            const AdminVerificationsPage(),
       },
     );
   }

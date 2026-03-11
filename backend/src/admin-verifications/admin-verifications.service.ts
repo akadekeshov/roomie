@@ -4,8 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, VerificationStatus } from '@prisma/client';
+import { Prisma, UserRole, VerificationStatus } from '@prisma/client';
 import { RejectVerificationDto } from './dto/reject-verification.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { SetUserBanDto } from './dto/set-user-ban.dto';
 
 type Reviewer = Prisma.UserGetPayload<{
   select: {
@@ -75,6 +77,106 @@ export class AdminVerificationsService {
       submittedAt: user.updatedAt,
       createdAt: user.createdAt,
     }));
+  }
+
+  async getUsers(search?: string) {
+    const q = (search ?? '').trim();
+    const where: Prisma.UserWhereInput =
+      q.length === 0
+        ? {}
+        : {
+            OR: [
+              { email: { contains: q, mode: 'insensitive' } },
+              { phone: { contains: q, mode: 'insensitive' } },
+              { firstName: { contains: q, mode: 'insensitive' } },
+              { lastName: { contains: q, mode: 'insensitive' } },
+            ],
+          };
+
+    return this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isBanned: true,
+        verificationStatus: true,
+        onboardingCompleted: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 300,
+    });
+  }
+
+  async updateUserRole(
+    userId: string,
+    dto: UpdateUserRoleDto,
+    adminId: string,
+  ) {
+    if (userId === adminId) {
+      throw new BadRequestException('You cannot change your own role');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role: dto.role as UserRole },
+      select: {
+        id: true,
+        role: true,
+        email: true,
+        phone: true,
+        isBanned: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async setUserBanStatus(
+    userId: string,
+    dto: SetUserBanDto,
+    adminId: string,
+  ) {
+    if (userId === adminId && dto.isBanned) {
+      throw new BadRequestException('You cannot ban your own account');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isBanned: dto.isBanned },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        role: true,
+        isBanned: true,
+        updatedAt: true,
+      },
+    });
+
+    if (dto.isBanned) {
+      await this.prisma.refreshToken.deleteMany({ where: { userId } });
+    }
+
+    return updated;
   }
 
   async getVerificationDetails(userId: string) {

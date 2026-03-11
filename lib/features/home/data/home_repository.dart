@@ -26,13 +26,27 @@ class HomeRepository {
   Future<List<RecommendedUser>> getRecommendedUsers({
     int page = 1,
     int limit = 20,
+    int? budgetMax,
+    String? district,
+    String? gender,
+    String? ageRange,
   }) async {
+    final query = <String, dynamic>{'page': page, 'limit': limit};
+    if (budgetMax != null) query['budgetMax'] = budgetMax;
+    if (district != null && district.trim().isNotEmpty) {
+      query['district'] = district.trim();
+    }
+    if (gender != null && gender.trim().isNotEmpty) {
+      query['gender'] = gender.trim();
+    }
+    if (ageRange != null && ageRange.trim().isNotEmpty) {
+      query['ageRange'] = ageRange.trim();
+    }
+
     final response = await _dio.get<Map<String, dynamic>>(
       '/users/recommendations',
-      queryParameters: {'page': page, 'limit': limit},
+      queryParameters: query,
     );
-
-    print('RESPONSE >>> ${response.data}');
 
     final list = response.data?['data'];
     if (list is! List) return [];

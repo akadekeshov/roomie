@@ -29,6 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         email: true,
         phone: true,
         role: true,
+        isBanned: true,
         firstName: true,
         lastName: true,
         gender: true,
@@ -44,6 +45,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+    if (user.isBanned) {
+      throw new UnauthorizedException('Account is banned');
     }
 
     return user;

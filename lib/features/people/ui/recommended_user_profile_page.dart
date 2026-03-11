@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -15,9 +15,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
 
   final RecommendedUser user;
 
-  static const String _defaultChatAvatar = 'assets/images/ava1.png';
-
-  // Backend толық profileComplete бермей тұр -> уақытша heuristic
+  // Backend С‚РѕР»С‹Т› profileComplete Р±РµСЂРјРµР№ С‚Т±СЂ -> СѓР°Т›С‹С‚С€Р° heuristic
   bool get _isProbablyComplete {
     final hasBio = (user.bio ?? '').trim().isNotEmpty;
     final hasStatus = (user.occupationStatus ?? '').trim().isNotEmpty;
@@ -82,7 +80,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                 width: double.infinity,
                 height: 44,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context), // ✅ OK -> жабылады
+                  onPressed: () => Navigator.pop(context), // вњ… OK -> Р¶Р°Р±С‹Р»Р°РґС‹
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
@@ -114,10 +112,11 @@ class RecommendedUserProfilePage extends ConsumerWidget {
       context,
       MaterialPageRoute(
         builder: (_) => ChatDetailPage(
+          peerUserId: user.id,
           title: user.displayName,
-          online: true, // уақытша
+          imageUrl: user.avatarUrl,
+          online: true, // СѓР°Т›С‹С‚С€Р°
           letter: user.displayName.isNotEmpty ? user.displayName.trim()[0] : '?',
-          imagePath: _defaultChatAvatar,
         ),
       ),
     );
@@ -139,7 +138,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
         _snack(context, 'Сохранено ✅');
       }
 
-      // ✅ Екі жақты жаңарту
+      // вњ… Р•РєС– Р¶Р°Т›С‚С‹ Р¶Р°ТЈР°СЂС‚Сѓ
       ref.invalidate(recommendedUsersProvider);
       ref.invalidate(favoriteUsersProvider);
     } catch (e) {
@@ -149,16 +148,16 @@ class RecommendedUserProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ✅ Saved status нақты болу үшін provider-дан аламыз
+    // вњ… Saved status РЅР°Т›С‚С‹ Р±РѕР»Сѓ ТЇС€С–РЅ provider-РґР°РЅ Р°Р»Р°РјС‹Р·
     final favoriteIds = ref.watch(favoriteUserIdsProvider);
     final isSaved = favoriteIds.contains(user.id);
 
     final photo = user.avatarUrl;
 
-    // Егер Home recommendation-да келсе — пайдалана береміз
+    // Р•РіРµСЂ Home recommendation-РґР° РєРµР»СЃРµ вЂ” РїР°Р№РґР°Р»Р°РЅР° Р±РµСЂРµРјС–Р·
     final match = user.matchPercent.clamp(0, 100);
 
-    // Скриндегідей: budget/lifestyle/location проценттері бек жоқта — placeholder
+    // РЎРєСЂРёРЅРґРµРіС–РґРµР№: budget/lifestyle/location РїСЂРѕС†РµРЅС‚С‚РµСЂС– Р±РµРє Р¶РѕТ›С‚Р° вЂ” placeholder
     const budgetPct = 90;
     const lifestylePct = 85;
     const locationPct = 86;
@@ -172,7 +171,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // ✅ Image header
+                    // вњ… Image header
                     Stack(
                       children: [
                         AspectRatio(
@@ -195,7 +194,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                           ),
                         ),
 
-                        // ✅ Verified статус (backend бермесе — “Профиль заполнен/не заполнен” көрсетеміз)
+                        // вњ… Verified СЃС‚Р°С‚СѓСЃ (backend Р±РµСЂРјРµСЃРµ вЂ” вЂњРџСЂРѕС„РёР»СЊ Р·Р°РїРѕР»РЅРµРЅ/РЅРµ Р·Р°РїРѕР»РЅРµРЅвЂќ РєУ©СЂСЃРµС‚РµРјС–Р·)
                         Positioned(
                           right: 12,
                           bottom: 12,
@@ -235,7 +234,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                           if (!_isProbablyComplete) const _WarningBox(),
                           if (!_isProbablyComplete) const SizedBox(height: 12),
 
-                          // ✅ Compatibility card (скринге ұқсас)
+                          // вњ… Compatibility card (СЃРєСЂРёРЅРіРµ Т±Т›СЃР°СЃ)
                           _Card(
                             child: Column(
                               children: [
@@ -256,7 +255,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
 
                           const SizedBox(height: 12),
 
-                          // ✅ Info (Локация/Статус/Бюджет)
+                          // вњ… Info (Р›РѕРєР°С†РёСЏ/РЎС‚Р°С‚СѓСЃ/Р‘СЋРґР¶РµС‚)
                           _Card(
                             child: Column(
                               children: [
@@ -288,7 +287,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
               ),
             ),
 
-            // ✅ Bottom buttons
+            // вњ… Bottom buttons
             Container(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               decoration: const BoxDecoration(
@@ -569,3 +568,5 @@ class _ProgressRow extends StatelessWidget {
     );
   }
 }
+
+

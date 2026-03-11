@@ -29,6 +29,8 @@ type UserPreview = Prisma.UserGetPayload<{
     personalityType: true;
     smokingPreference: true;
     petsPreference: true;
+    searchBudgetMin: true;
+    searchBudgetMax: true;
     searchDistrict: true;
     verificationStatus: true;
     createdAt: true;
@@ -183,6 +185,8 @@ export class UsersService {
           personalityType: true,
           smokingPreference: true,
           petsPreference: true,
+          searchBudgetMin: true,
+          searchBudgetMax: true,
           searchDistrict: true,
           verificationStatus: true,
           createdAt: true,

@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 
 import '../errors/app_exception.dart';
 
@@ -68,26 +68,27 @@ AppException mapDioErrorToAppException(DioException error) {
           normalized.contains('revoked'))) {
     return const AppException(
       code: AppErrorCode.invalidOrExpiredToken,
-      message: 'Сессия истекла. Войдите заново.',
+      message: 'Сессия истекла. Войдите снова.',
     );
   }
 
   if (status == 400) {
     return const AppException(
       code: AppErrorCode.validation,
-      message: 'Проверьте правильность введённых данных.',
+      message: 'Проверьте корректность введенных данных.',
     );
   }
 
   if (status != null && status >= 500) {
     return const AppException(
       code: AppErrorCode.network,
-      message: 'Сервер недоступен. Попробуйте позже.',
+      message: 'Ошибка сервера. Попробуйте позже.',
     );
   }
 
   return const AppException(
     code: AppErrorCode.unknown,
-    message: 'Что-то пошло не так. Попробуйте ещё раз.',
+    message: 'Что-то пошло не так. Попробуйте еще раз.',
   );
 }
+

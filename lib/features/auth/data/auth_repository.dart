@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/app_exception.dart';
@@ -146,7 +146,7 @@ class AuthRepository {
     } catch (_) {
       throw const AppException(
         code: AppErrorCode.unknown,
-        message: 'Не удалось подтвердить код. Попробуйте ещё раз.',
+        message: 'Не удалось подтвердить код. Попробуйте еще раз.',
       );
     }
   }
@@ -291,3 +291,4 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.read(authTokenStorageProvider),
   );
 });
+

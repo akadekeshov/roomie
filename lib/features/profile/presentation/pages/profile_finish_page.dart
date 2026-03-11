@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../core/network/api_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/dashed_border_container.dart';
+import '../../data/me_repository.dart';
 import '../../data/onboarding_repository.dart';
 import '../widgets/profile_flow_header.dart';
 import '../widgets/profile_step_progress.dart';
@@ -28,11 +30,24 @@ class _ProfileFinishPageState extends ConsumerState<ProfileFinishPage> {
 
   String? _photoPath;
   bool _isSubmitting = false;
+  bool _fromEdit = false;
+  bool _argsParsed = false;
 
   static const int _maxChars = 300;
 
   bool get _hasPhoto => _photoPath != null && _photoPath!.isNotEmpty;
   bool get _isValid => _hasPhoto && _aboutController.text.trim().isNotEmpty;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsParsed) return;
+    _argsParsed = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args['fromEdit'] == true) {
+      _fromEdit = true;
+    }
+  }
 
   @override
   void initState() {
@@ -84,18 +99,37 @@ class _ProfileFinishPageState extends ConsumerState<ProfileFinishPage> {
     if (!_isValid || _isSubmitting || _photoPath == null) return;
     setState(() => _isSubmitting = true);
     try {
+      var photoForProfile = _photoPath!.trim();
+      final isRemotePhoto =
+          photoForProfile.startsWith('http://') ||
+          photoForProfile.startsWith('https://') ||
+          photoForProfile.startsWith('/uploads/');
+
+      if (!isRemotePhoto) {
+        final uploaded =
+            await ref.read(meRepositoryProvider).uploadAvatar(photoForProfile);
+        if (uploaded == null || uploaded.trim().isEmpty) {
+          throw Exception('Не удалось загрузить фото на сервер');
+        }
+        photoForProfile = uploaded.trim();
+      }
+
       final nextStep =
           await ref.read(onboardingRepositoryProvider).submitFinalizeStep(
                 FinalizeStepPayload(
                   bio: _aboutController.text.trim(),
-                  photos: <String>[_photoPath!],
+                  photos: <String>[photoForProfile],
                 ),
               );
       if (!mounted) return;
-      final route = nextStep == null
-          ? AppRoutes.profileCompleted
-          : OnboardingRouteMapper.fromStep(nextStep);
-      Navigator.of(context).pushNamed(route);
+      if (_fromEdit) {
+        Navigator.of(context).pop(true);
+      } else {
+        final route = nextStep == null
+            ? AppRoutes.profileCompleted
+            : OnboardingRouteMapper.fromStep(nextStep);
+        Navigator.of(context).pushNamed(route);
+      }
     } on DioException catch (e) {
       if (!mounted) return;
       final serverMessage = e.response?.data is Map<String, dynamic>
@@ -122,9 +156,11 @@ class _ProfileFinishPageState extends ConsumerState<ProfileFinishPage> {
             children: [
               ProfileFlowHeader(
                 progress: const ProfileStepProgress(activeStep: 4),
-                onBack: () => Navigator.of(
-                  context,
-                ).pushReplacementNamed(AppRoutes.profileSearch),
+                onBack: () => _fromEdit
+                    ? Navigator.of(context).pop()
+                    : Navigator.of(
+                        context,
+                      ).pushReplacementNamed(AppRoutes.profileSearch),
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -236,19 +272,37 @@ class _PhotoPicker extends StatelessWidget {
     final hasPhoto = photoPath != null && photoPath!.isNotEmpty;
 
     if (hasPhoto) {
-      final file = File(photoPath!);
+      final raw = photoPath!.trim();
+      final isRemote =
+          raw.startsWith('http://') ||
+          raw.startsWith('https://') ||
+          raw.startsWith('/uploads/');
+      final remoteUrl = isRemote
+          ? (raw.startsWith('/')
+              ? '${ApiConfig.publicBaseUrl}$raw'
+              : raw)
+          : null;
+      final file = File(raw);
+
       return InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: file.existsSync()
-              ? Image.file(
-                  file,
+          child: (isRemote && remoteUrl != null)
+              ? Image.network(
+                  remoteUrl,
                   height: 174,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 )
+              : file.existsSync()
+                  ? Image.file(
+                      file,
+                      height: 174,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
               : Container(
                   height: 174,
                   width: double.infinity,
@@ -306,3 +360,5 @@ class _PhotoPicker extends StatelessWidget {
     );
   }
 }
+
+

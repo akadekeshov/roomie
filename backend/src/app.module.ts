@@ -14,6 +14,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { VerificationModule } from './verification/verification.module';
 import { AdminVerificationsModule } from './admin-verifications/admin-verifications.module';
 import { FavoritesUsersModule } from './favorites-users/favorites-users.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { FavoritesUsersModule } from './favorites-users/favorites-users.module';
     VerificationModule,
     AdminVerificationsModule,
     FavoritesUsersModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

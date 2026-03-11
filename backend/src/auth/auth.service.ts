@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -167,7 +168,7 @@ export class AuthService {
 
     await this.prisma.user.create({
       data: {
-        role: UserRole.ADMIN,
+        role: UserRole.USER,
         email: registerEmailDto.email,
         phone: null,
         password: hashedPassword,
@@ -277,7 +278,7 @@ export class AuthService {
 
     await this.prisma.user.create({
       data: {
-        role: UserRole.ADMIN,
+        role: UserRole.USER,
         email: null,
         phone: registerPhoneDto.phone,
         password: hashedPassword,
@@ -422,6 +423,7 @@ export class AuthService {
       : await this.prisma.user.findUnique({ where: { phone: loginDto.phone } });
 
     if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (user.isBanned) throw new ForbiddenException('Account is banned');
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
@@ -490,6 +492,9 @@ export class AuthService {
     if (tokenRecord.userId !== payload.sub) {
       throw new UnauthorizedException('Invalid refresh token');
     }
+    if (tokenRecord.user.isBanned) {
+      throw new ForbiddenException('Account is banned');
+    }
 
     return this.generateTokens(
       tokenRecord.userId,
@@ -518,6 +523,7 @@ export class AuthService {
       select: {
         id: true,
         role: true,
+        isBanned: true,
         email: true,
         phone: true,
         firstName: true,

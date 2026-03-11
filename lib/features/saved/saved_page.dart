@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -63,7 +63,7 @@ class SavedPage extends ConsumerWidget {
 
           return GridView.builder(
             padding: const EdgeInsets.all(AppSizes.gridPadding),
-            itemCount: visibleUsers.length, // ✅ дұрыс
+            itemCount: visibleUsers.length, // вњ… РґТ±СЂС‹СЃ
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: AppSizes.gridSpacing,
@@ -71,7 +71,7 @@ class SavedPage extends ConsumerWidget {
               childAspectRatio: AppSizes.gridAspectRatio,
             ),
             itemBuilder: (_, i) {
-              final user = visibleUsers[i]; // ✅ дұрыс
+              final user = visibleUsers[i]; // вњ… РґТ±СЂС‹СЃ
               return _SavedUserCard(user: user);
             },
           );
@@ -85,9 +85,6 @@ class _SavedUserCard extends StatelessWidget {
   const _SavedUserCard({required this.user});
 
   final RecommendedUser user;
-
-  // ✅ чатқа керек дефолт аватар (asset)
-  static const String _defaultChatAvatar = 'assets/images/ava1.png';
 
   @override
   Widget build(BuildContext context) {
@@ -203,17 +200,18 @@ class _SavedUserCard extends StatelessWidget {
 
                         _WriteButton(
                           onPressed: () {
-                            // ✅ "Написать" -> ChatDetailPage
+                            // вњ… "РќР°РїРёСЃР°С‚СЊ" -> ChatDetailPage
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => ChatDetailPage(
+                                  peerUserId: user.id,
                                   title: user.displayName,
-                                  online: true, // қазір бек жоқ, placeholder
+                                  imageUrl: user.avatarUrl,
+                                  online: true, // Т›Р°Р·С–СЂ Р±РµРє Р¶РѕТ›, placeholder
                                   letter: user.displayName.isNotEmpty
                                       ? user.displayName.trim()[0]
                                       : '?',
-                                  imagePath: _defaultChatAvatar,
                                 ),
                               ),
                             );
@@ -342,3 +340,5 @@ class _WriteButton extends StatelessWidget {
     );
   }
 }
+
+

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -20,9 +20,6 @@ class SavedUserProfilePage extends ConsumerWidget {
   const SavedUserProfilePage({super.key, required this.user});
 
   final RecommendedUser user;
-
-  // ChatDetailPage asset image expects local asset path
-  static const String _defaultChatAvatarAsset = 'assets/images/ava1.png';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -276,7 +273,7 @@ class SavedUserProfilePage extends ConsumerWidget {
 
                       const SizedBox(height: 14),
 
-                      // ===== Rules (қазір placeholder, кейін backend) =====
+                      // ===== Rules (Т›Р°Р·С–СЂ placeholder, РєРµР№С–РЅ backend) =====
                       _Card(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,10 +374,11 @@ class SavedUserProfilePage extends ConsumerWidget {
                             context,
                             MaterialPageRoute(
                               builder: (_) => ChatDetailPage(
+                                peerUserId: user.id,
                                 title: user.displayName,
-                                online: true, // backend жоқ әзірге
+                                imageUrl: user.avatarUrl,
+                                online: true, // backend Р¶РѕТ› У™Р·С–СЂРіРµ
                                 letter: _firstLetter(user.displayName),
-                                imagePath: _defaultChatAvatarAsset,
                               ),
                             ),
                           );
@@ -534,7 +532,7 @@ List<_LifestyleItem> _lifestyleToItems(Map<String, dynamic>? lifestyle) {
     );
   }
 
-  // If backend filled nothing recognized, show nothing (UI will show "не заполнена")
+  // If backend filled nothing recognized, show nothing (UI will show "РЅРµ Р·Р°РїРѕР»РЅРµРЅР°")
   return items;
 }
 
@@ -739,3 +737,5 @@ class _Chip extends StatelessWidget {
     );
   }
 }
+
+

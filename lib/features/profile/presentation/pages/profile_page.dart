@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
@@ -190,12 +190,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           '\u041e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0438',
                     ),
                     const SizedBox(height: 8),
-                  _MenuItem(
-                     icon: Icons.admin_panel_settings,
-                     title: 'Admin Panel',
-                     onTap: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.adminVerifications),
-                    ),
                     const SizedBox(height: 22),
                     InkWell(
                       onTap: () =>
@@ -310,14 +304,16 @@ class _ProfileHeader extends ConsumerWidget {
       ),
       data: (me) => Row(
         children: [
-          Container(
-            height: 64,
-            width: 64,
-            decoration: const BoxDecoration(
-              color: Color(0xFFD3D5DB),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.person, color: Colors.white, size: 34),
+          CircleAvatar(
+            radius: 32,
+            backgroundColor: const Color(0xFFD3D5DB),
+            backgroundImage:
+                (me.avatarUrl != null && me.avatarUrl!.isNotEmpty)
+                    ? NetworkImage(me.avatarUrl!)
+                    : null,
+            child: (me.avatarUrl == null || me.avatarUrl!.isEmpty)
+                ? const Icon(Icons.person, color: Colors.white, size: 34)
+                : null,
           ),
           const SizedBox(width: 12),
           Column(
@@ -733,3 +729,5 @@ class _NavIcon extends StatelessWidget {
     );
   }
 }
+
+

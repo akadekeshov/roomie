@@ -1,4 +1,4 @@
-class ProfileCities {
+﻿class ProfileCities {
   static const List<String> values = [
     'Астана',
     'Актобе',
@@ -8,10 +8,12 @@ class ProfileCities {
     'Шымкент',
     'Жезказган',
     'Орал',
-    'Семей',
+    'Кызылорда',
     'Караганда',
     'Костанай',
   ];
 
   const ProfileCities._();
 }
+
+

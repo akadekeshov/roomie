@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roomie Admin</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --card: #ffffff;
+        --text: #0f1a3c;
+        --muted: #66708f;
+        --accent: #0a5be1;
+        --danger: #c22626;
+        --ok: #177245;
+        --border: #d7dced;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Segoe UI, Arial, sans-serif;
+        color: var(--text);
+        background: linear-gradient(180deg, #eef3ff, var(--bg));
+      }
+      .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 8px 20px rgba(15, 26, 60, 0.04);
+      }
+      h1, h2 { margin: 0 0 12px; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 18px; }
+      .muted { color: var(--muted); font-size: 13px; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      input, select, button, textarea {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+      input, textarea, select { width: 100%; }
+      button {
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+      }
+      button.secondary { background: #e8eefc; color: #1a3c7a; }
+      button.danger { background: var(--danger); }
+      button.ok { background: var(--ok); }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { border-bottom: 1px solid var(--border); padding: 10px 8px; text-align: left; vertical-align: top; }
+      .hidden { display: none; }
+      .status { padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
+      .okText { color: var(--ok); }
+      .errText { color: var(--danger); }
+      @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Roomie Admin Panel</h1>
+      <p class="muted">Только для ролей ADMIN/MODERATOR</p>
+
+      <div class="card" id="loginCard">
+        <h2>Вход администратора</h2>
+        <div class="row">
+          <div style="flex:1;min-width:260px">
+            <input id="email" placeholder="Email" />
+          </div>
+          <div style="flex:1;min-width:260px">
+            <input id="password" type="password" placeholder="Password" />
+          </div>
+          <button id="loginBtn">Войти</button>
+        </div>
+        <p id="loginMsg" class="muted"></p>
+      </div>
+
+      <div id="panel" class="hidden">
+        <div class="card" style="margin-top:16px;">
+          <div class="row">
+            <button class="secondary" id="logoutBtn">Выйти</button>
+            <button class="secondary" id="refreshBtn">Обновить всё</button>
+            <span id="stateMsg" class="muted"></span>
+          </div>
+        </div>
+
+        <div class="grid" style="margin-top:16px;">
+          <div class="card">
+            <h2>Пользователи</h2>
+            <div class="row" style="margin-bottom:12px;">
+              <input id="userSearch" placeholder="Поиск: email / phone / name" />
+              <button id="searchBtn" class="secondary">Поиск</button>
+            </div>
+            <div style="max-height:520px;overflow:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Ban</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Заявки на верификацию</h2>
+            <div style="max-height:520px;overflow:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Status</th>
+                    <th>Docs</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="verBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const apiBase = '/api';
+      let accessToken = localStorage.getItem('admin_access_token') || '';
+
+      const loginCard = document.getElementById('loginCard');
+      const panel = document.getElementById('panel');
+      const loginMsg = document.getElementById('loginMsg');
+      const stateMsg = document.getElementById('stateMsg');
+      const usersBody = document.getElementById('usersBody');
+      const verBody = document.getElementById('verBody');
+
+      function setState(text, isError = false) {
+        stateMsg.textContent = text || '';
+        stateMsg.className = isError ? 'errText' : 'muted';
+      }
+
+      async function api(path, options = {}) {
+        const headers = options.headers || {};
+        headers['Content-Type'] = 'application/json';
+        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+        const res = await fetch(apiBase + path, { ...options, headers });
+        const text = await res.text();
+        let json = null;
+        try { json = text ? JSON.parse(text) : null; } catch (_) {}
+        if (!res.ok) {
+          const msg = (json && (json.message || json.error)) || text || `HTTP ${res.status}`;
+          throw new Error(Array.isArray(msg) ? msg.join(', ') : String(msg));
+        }
+        return json;
+      }
+
+      function userLabel(u) {
+        const name = [u.firstName || '', u.lastName || ''].join(' ').trim();
+        const contact = u.email || u.phone || '';
+        return `${name || 'No name'}<br><span class="muted">${contact}</span>`;
+      }
+
+      function showPanel() {
+        loginCard.classList.add('hidden');
+        panel.classList.remove('hidden');
+      }
+
+      function showLogin() {
+        panel.classList.add('hidden');
+        loginCard.classList.remove('hidden');
+      }
+
+      async function login() {
+        loginMsg.textContent = 'Вход...';
+        try {
+          const email = document.getElementById('email').value.trim();
+          const password = document.getElementById('password').value;
+          const data = await api('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+          });
+          accessToken = data.accessToken;
+          localStorage.setItem('admin_access_token', accessToken);
+          loginMsg.textContent = 'Успешно';
+          showPanel();
+          await refreshAll();
+        } catch (e) {
+          loginMsg.textContent = e.message;
+          loginMsg.className = 'errText';
+        }
+      }
+
+      async function updateRole(userId, role) {
+        await api(`/admin/verifications/users/${userId}/role`, {
+          method: 'PATCH',
+          body: JSON.stringify({ role }),
+        });
+      }
+
+      async function setBan(userId, isBanned) {
+        await api(`/admin/verifications/users/${userId}/ban`, {
+          method: 'PATCH',
+          body: JSON.stringify({ isBanned }),
+        });
+      }
+
+      async function approve(userId) {
+        await api(`/admin/verifications/${userId}/approve`, { method: 'PATCH' });
+      }
+
+      async function reject(userId) {
+        const reason = prompt('Причина отклонения (минимум 10 символов):', 'Документы не прошли проверку');
+        if (!reason) return;
+        await api(`/admin/verifications/${userId}/reject`, {
+          method: 'PATCH',
+          body: JSON.stringify({ reason }),
+        });
+      }
+
+      async function loadUsers() {
+        const q = document.getElementById('userSearch').value.trim();
+        const users = await api(`/admin/verifications/users${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+        usersBody.innerHTML = '';
+        users.forEach((u) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${userLabel(u)}</td>
+            <td>
+              <select data-role="${u.id}">
+                <option ${u.role === 'USER' ? 'selected' : ''} value="USER">USER</option>
+                <option ${u.role === 'MODERATOR' ? 'selected' : ''} value="MODERATOR">MODERATOR</option>
+                <option ${u.role === 'ADMIN' ? 'selected' : ''} value="ADMIN">ADMIN</option>
+              </select>
+            </td>
+            <td>${u.isBanned ? '<span class="status errText">BANNED</span>' : '<span class="status okText">ACTIVE</span>'}</td>
+            <td>
+              <div class="row">
+                <button class="secondary" data-save-role="${u.id}">Save Role</button>
+                <button class="${u.isBanned ? 'ok' : 'danger'}" data-ban="${u.id}" data-value="${u.isBanned ? 'false' : 'true'}">
+                  ${u.isBanned ? 'Unban' : 'Ban'}
+                </button>
+              </div>
+            </td>
+          `;
+          usersBody.appendChild(tr);
+        });
+
+        usersBody.querySelectorAll('[data-save-role]').forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute('data-save-role');
+            const role = usersBody.querySelector(`select[data-role="${id}"]`).value;
+            try {
+              setState('Сохраняю роль...');
+              await updateRole(id, role);
+              setState('Роль обновлена');
+              await loadUsers();
+            } catch (e) {
+              setState(e.message, true);
+            }
+          };
+        });
+
+        usersBody.querySelectorAll('[data-ban]').forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute('data-ban');
+            const value = btn.getAttribute('data-value') === 'true';
+            try {
+              setState('Обновляю бан...');
+              await setBan(id, value);
+              setState('Статус бана обновлён');
+              await loadUsers();
+            } catch (e) {
+              setState(e.message, true);
+            }
+          };
+        });
+      }
+
+      async function loadVerifications() {
+        const items = await api('/admin/verifications/pending');
+        verBody.innerHTML = '';
+        items.forEach((v) => {
+          const doc = v.documentFullUrl || v.documentUrl;
+          const selfie = v.selfieFullUrl || v.selfieUrl;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${v.name || 'No name'}<br><span class="muted">${v.email || v.phone || ''}</span></td>
+            <td><span class="status">${v.status}</span></td>
+            <td>
+              ${doc ? `<a href="${doc}" target="_blank">Document</a>` : '<span class="muted">No doc</span>'}<br>
+              ${selfie ? `<a href="${selfie}" target="_blank">Selfie</a>` : '<span class="muted">No selfie</span>'}
+            </td>
+            <td>
+              <div class="row">
+                <button class="ok" data-approve="${v.id}">Approve</button>
+                <button class="danger" data-reject="${v.id}">Reject</button>
+              </div>
+            </td>
+          `;
+          verBody.appendChild(tr);
+        });
+
+        verBody.querySelectorAll('[data-approve]').forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute('data-approve');
+            try {
+              setState('Подтверждаю...');
+              await approve(id);
+              setState('Подтверждено');
+              await loadVerifications();
+              await loadUsers();
+            } catch (e) {
+              setState(e.message, true);
+            }
+          };
+        });
+
+        verBody.querySelectorAll('[data-reject]').forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute('data-reject');
+            try {
+              setState('Отклоняю...');
+              await reject(id);
+              setState('Отклонено');
+              await loadVerifications();
+              await loadUsers();
+            } catch (e) {
+              setState(e.message, true);
+            }
+          };
+        });
+      }
+
+      async function refreshAll() {
+        try {
+          setState('Обновляю данные...');
+          await Promise.all([loadUsers(), loadVerifications()]);
+          setState('Готово');
+        } catch (e) {
+          setState(e.message, true);
+          if (String(e.message).toLowerCase().includes('insufficient permissions') ||
+              String(e.message).toLowerCase().includes('forbidden') ||
+              String(e.message).toLowerCase().includes('unauthorized')) {
+            localStorage.removeItem('admin_access_token');
+            accessToken = '';
+            showLogin();
+          }
+        }
+      }
+
+      document.getElementById('loginBtn').onclick = login;
+      document.getElementById('refreshBtn').onclick = refreshAll;
+      document.getElementById('searchBtn').onclick = loadUsers;
+      document.getElementById('logoutBtn').onclick = () => {
+        localStorage.removeItem('admin_access_token');
+        accessToken = '';
+        showLogin();
+      };
+
+      if (accessToken) {
+        showPanel();
+        refreshAll();
+      } else {
+        showLogin();
+      }
+    </script>
+  </body>
+  </html>

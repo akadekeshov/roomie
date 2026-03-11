@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -232,7 +232,7 @@ class _ProfileVerificationUploadPageState
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const _BulletLine(text: 'Фото чёткое'),
+                            const _BulletLine(text: 'Фото четкое'),
                             const SizedBox(height: 6),
                             const _BulletLine(text: 'Без бликов'),
                             const SizedBox(height: 6),
@@ -355,3 +355,5 @@ class _BulletLine extends StatelessWidget {
     );
   }
 }
+
+

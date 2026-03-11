@@ -89,7 +89,18 @@ class MeRepository {
       '/users/me/avatar/upload',
       data: formData,
     );
-    return response.data?['avatarUrl'] as String?;
+    final data = response.data ?? <String, dynamic>{};
+    final direct = data['avatarUrl'] as String?;
+    if (direct != null && direct.trim().isNotEmpty) return direct;
+
+    final photos =
+        (data['photos'] as List<dynamic>?)?.whereType<String>().toList() ??
+            const <String>[];
+    if (photos.isNotEmpty && photos.first.trim().isNotEmpty) {
+      return photos.first.trim();
+    }
+
+    return null;
   }
 }
 

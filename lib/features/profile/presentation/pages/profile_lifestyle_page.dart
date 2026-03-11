@@ -21,8 +21,21 @@ class ProfileLifestylePage extends ConsumerStatefulWidget {
 class _ProfileLifestylePageState extends ConsumerState<ProfileLifestylePage> {
   final Map<int, int> _selectedByGroup = <int, int>{};
   bool _isSubmitting = false;
+  bool _fromEdit = false;
+  bool _argsParsed = false;
 
   bool get _isValid => _selectedByGroup.length == 5;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsParsed) return;
+    _argsParsed = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args['fromEdit'] == true) {
+      _fromEdit = true;
+    }
+  }
 
   @override
   void initState() {
@@ -91,8 +104,12 @@ class _ProfileLifestylePageState extends ConsumerState<ProfileLifestylePage> {
             ),
           );
       if (!mounted) return;
-      final route = OnboardingRouteMapper.fromStep(nextStep);
-      Navigator.of(context).pushNamed(route);
+      if (_fromEdit) {
+        Navigator.of(context).pop(true);
+      } else {
+        final route = OnboardingRouteMapper.fromStep(nextStep);
+        Navigator.of(context).pushNamed(route);
+      }
     } on DioException catch (e) {
       if (!mounted) return;
       final serverMessage = e.response?.data is Map<String, dynamic>
@@ -121,9 +138,11 @@ class _ProfileLifestylePageState extends ConsumerState<ProfileLifestylePage> {
             children: [
               ProfileFlowHeader(
                 progress: const ProfileStepProgress(activeStep: 2),
-                onBack: () => Navigator.of(
-                  context,
-                ).pushReplacementNamed(AppRoutes.profileAbout),
+                onBack: () => _fromEdit
+                    ? Navigator.of(context).pop()
+                    : Navigator.of(
+                        context,
+                      ).pushReplacementNamed(AppRoutes.profileAbout),
               ),
               const SizedBox(height: 20),
               Expanded(

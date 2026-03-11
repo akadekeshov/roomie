@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +31,8 @@ class _ProfileAboutPageState extends ConsumerState<ProfileAboutPage> {
   int? _selectedStatus;
   String? _selectedCity;
   bool _isSubmitting = false;
+  bool _fromEdit = false;
+  bool _argsParsed = false;
 
   bool get _isValid =>
       _selectedStatus != null &&
@@ -43,6 +45,17 @@ class _ProfileAboutPageState extends ConsumerState<ProfileAboutPage> {
     super.initState();
     _restoreDrafts();
     _prefillFromStatus();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsParsed) return;
+    _argsParsed = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args['fromEdit'] == true) {
+      _fromEdit = true;
+    }
   }
 
   @override
@@ -135,8 +148,12 @@ class _ProfileAboutPageState extends ConsumerState<ProfileAboutPage> {
       await prefs.setString(_cityDraftKey, _selectedCity!);
       if (!mounted) return;
 
-      final route = OnboardingRouteMapper.fromStep(nextStep);
-      Navigator.of(context).pushNamed(route);
+      if (_fromEdit) {
+        Navigator.of(context).pop(true);
+      } else {
+        final route = OnboardingRouteMapper.fromStep(nextStep);
+        Navigator.of(context).pushNamed(route);
+      }
     } on DioException catch (e) {
       if (!mounted) return;
       final serverMessage = e.response?.data is Map<String, dynamic>
@@ -197,9 +214,11 @@ class _ProfileAboutPageState extends ConsumerState<ProfileAboutPage> {
             children: [
               ProfileFlowHeader(
                 progress: const ProfileStepProgress(activeStep: 1),
-                onBack: () => Navigator.of(
-                  context,
-                ).pushReplacementNamed(AppRoutes.profile),
+                onBack: () => _fromEdit
+                    ? Navigator.of(context).pop()
+                    : Navigator.of(
+                        context,
+                      ).pushReplacementNamed(AppRoutes.profile),
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -573,3 +592,5 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
     );
   }
 }
+
+
