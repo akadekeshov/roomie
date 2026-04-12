@@ -1,4 +1,4 @@
-import '../../../core/network/api_config.dart';
+﻿import '../../../core/network/api_config.dart';
 
 class RecommendedUser {
   const RecommendedUser({
@@ -11,16 +11,11 @@ class RecommendedUser {
     required this.searchDistrict,
     required this.photos,
     required this.isSaved,
-
-    // ✅ screenshot fields
     required this.matchPercent,
     required this.isVerified,
     required this.preferenceTag,
-
-    // ✅ NEW (for profile page logic)
     required this.isProfileComplete,
     this.lifestyle,
-
     this.occupationStatus,
     this.searchBudgetMin,
     this.searchBudgetMax,
@@ -36,12 +31,10 @@ class RecommendedUser {
   final List<String> photos;
   final bool isSaved;
 
-  // ✅ screenshot fields
-  final int matchPercent; // 0..100
-  final bool isVerified; // verified icon on top-right
-  final String? preferenceTag; // "С животными", ...
+  final int matchPercent;
+  final bool isVerified;
+  final String? preferenceTag;
 
-  // ✅ NEW fields
   final bool isProfileComplete;
   final Map<String, dynamic>? lifestyle;
 
@@ -49,36 +42,47 @@ class RecommendedUser {
   final int? searchBudgetMin;
   final int? searchBudgetMax;
 
+  bool _isCorruptedText(String value) {
+    final t = value.trim();
+    if (t.isEmpty) return true;
+    final qCount = '?'.allMatches(t).length;
+    return qCount >= (t.length / 2);
+  }
+
+  String _safeText(String? value) {
+    final t = (value ?? '').trim();
+    if (t.isEmpty || _isCorruptedText(t)) return '';
+    return t;
+  }
+
   factory RecommendedUser.fromJson(Map<String, dynamic> json) {
-    // ---- helpers (robust parsing) ----
-    int _int(dynamic v, {int fallback = 0}) {
-      if (v == null) return fallback;
-      if (v is int) return v;
-      if (v is num) return v.toInt();
-      if (v is String) return int.tryParse(v.trim()) ?? fallback;
+    int parseInt(dynamic value, {int fallback = 0}) {
+      if (value == null) return fallback;
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value.trim()) ?? fallback;
       return fallback;
     }
 
-    bool _bool(dynamic v, {bool fallback = false}) {
-      if (v == null) return fallback;
-      if (v is bool) return v;
-      if (v is num) return v != 0;
-      if (v is String) {
-        final s = v.trim().toLowerCase();
+    bool parseBool(dynamic value, {bool fallback = false}) {
+      if (value == null) return fallback;
+      if (value is bool) return value;
+      if (value is num) return value != 0;
+      if (value is String) {
+        final s = value.trim().toLowerCase();
         if (s == 'true' || s == '1' || s == 'yes') return true;
         if (s == 'false' || s == '0' || s == 'no') return false;
       }
       return fallback;
     }
 
-    String? _str(dynamic v) {
-      if (v == null) return null;
-      final s = v.toString().trim();
+    String? parseString(dynamic value) {
+      if (value == null) return null;
+      final s = value.toString().trim();
       return s.isEmpty ? null : s;
     }
 
-    // ✅ match percent: accept different backend keys
-    final match = _int(
+    final match = parseInt(
       json['matchPercent'] ??
           json['match_percentage'] ??
           json['match'] ??
@@ -87,8 +91,7 @@ class RecommendedUser {
       fallback: 0,
     ).clamp(0, 100);
 
-    // ✅ verified: accept different backend keys
-    final verified = _bool(
+    final verified = parseBool(
       json['isVerified'] ??
           json['verified'] ??
           json['profileVerified'] ??
@@ -98,8 +101,7 @@ class RecommendedUser {
       fallback: false,
     );
 
-    // ✅ tag: accept different backend keys or compute from petsAllowed
-    final rawTag = _str(
+    final rawTag = parseString(
       json['preferenceTag'] ??
           json['petPreference'] ??
           json['petsPreference'] ??
@@ -107,7 +109,7 @@ class RecommendedUser {
     );
 
     final petsAllowed = json.containsKey('petsAllowed')
-        ? _bool(json['petsAllowed'], fallback: false)
+        ? parseBool(json['petsAllowed'], fallback: false)
         : null;
 
     String? computedTag = rawTag;
@@ -115,8 +117,7 @@ class RecommendedUser {
       computedTag = petsAllowed ? 'Можно с животными' : 'Без животных';
     }
 
-    // ✅ NEW: profile complete
-    final isComplete = _bool(
+    final isComplete = parseBool(
       json['isProfileComplete'] ??
           json['profileComplete'] ??
           json['isCompleted'] ??
@@ -124,7 +125,6 @@ class RecommendedUser {
       fallback: false,
     );
 
-    // ✅ NEW: lifestyle map
     final lifestyleMap = (json['lifestyle'] as Map?)?.cast<String, dynamic>();
 
     return RecommendedUser(
@@ -138,14 +138,11 @@ class RecommendedUser {
       photos: (json['photos'] as List<dynamic>?)?.whereType<String>().toList() ??
           const <String>[],
       isSaved: json['isSaved'] as bool? ?? false,
-
       matchPercent: match,
       isVerified: verified,
       preferenceTag: computedTag,
-
       isProfileComplete: isComplete,
       lifestyle: lifestyleMap,
-
       occupationStatus: json['occupationStatus'] as String?,
       searchBudgetMin: (json['searchBudgetMin'] as num?)?.toInt(),
       searchBudgetMax: (json['searchBudgetMax'] as num?)?.toInt(),
@@ -153,8 +150,8 @@ class RecommendedUser {
   }
 
   String get displayName {
-    final fn = (firstName ?? '').trim();
-    final ln = (lastName ?? '').trim();
+    final fn = _safeText(firstName);
+    final ln = _safeText(lastName);
     final name = ('$fn $ln').trim();
     if (name.isEmpty) return 'Пользователь';
     if (age != null) return '$name, $age';
@@ -172,14 +169,26 @@ class RecommendedUser {
   }
 
   String get locationText =>
-      (searchDistrict ?? city ?? '').trim().isNotEmpty
-          ? (searchDistrict ?? city ?? '').trim()
+      _safeText(searchDistrict).isNotEmpty
+          ? _safeText(searchDistrict)
+          : _safeText(city).isNotEmpty
+          ? _safeText(city)
           : '-';
 
-  String get statusText =>
-      (occupationStatus ?? '').trim().isNotEmpty
-          ? occupationStatus!.trim()
-          : '-';
+  String get statusText {
+    final raw = (occupationStatus ?? '').trim();
+    if (raw.isEmpty) return '-';
+    switch (raw) {
+      case 'STUDY':
+        return 'Учусь';
+      case 'WORK':
+        return 'Работаю';
+      case 'STUDY_WORK':
+        return 'Учусь и работаю';
+      default:
+        return raw;
+    }
+  }
 
   String get budgetText {
     final min = searchBudgetMin;

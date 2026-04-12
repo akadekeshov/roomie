@@ -8,4 +8,3 @@ import { AdminVerificationsController } from './admin-verifications.controller';
   exports: [AdminVerificationsService],
 })
 export class AdminVerificationsModule {}
-

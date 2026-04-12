@@ -11,7 +11,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getOrCreateDirectConversation(currentUserId: string, peerUserId: string) {
+  async getOrCreateDirectConversation(
+    currentUserId: string,
+    peerUserId: string,
+  ) {
     if (currentUserId === peerUserId) {
       throw new BadRequestException('Cannot create chat with yourself');
     }
@@ -188,7 +191,8 @@ export class ChatService {
     });
 
     const data = [...messages].reverse();
-    const nextBefore = messages.length > 0 ? messages[messages.length - 1].createdAt : null;
+    const nextBefore =
+      messages.length > 0 ? messages[messages.length - 1].createdAt : null;
 
     return {
       data,
@@ -200,7 +204,11 @@ export class ChatService {
     };
   }
 
-  async sendMessage(currentUserId: string, conversationId: string, text: string) {
+  async sendMessage(
+    currentUserId: string,
+    conversationId: string,
+    text: string,
+  ) {
     await this.ensureParticipant(currentUserId, conversationId);
 
     const normalizedText = text.trim();
@@ -247,7 +255,10 @@ export class ChatService {
     return { success: true };
   }
 
-  private async ensureParticipant(currentUserId: string, conversationId: string) {
+  private async ensureParticipant(
+    currentUserId: string,
+    conversationId: string,
+  ) {
     const participant = await this.prisma.conversationParticipant.findFirst({
       where: { conversationId, userId: currentUserId },
       select: { id: true },

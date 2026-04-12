@@ -63,7 +63,7 @@ class SavedPage extends ConsumerWidget {
 
           return GridView.builder(
             padding: const EdgeInsets.all(AppSizes.gridPadding),
-            itemCount: visibleUsers.length, // вњ… РґТ±СЂС‹СЃ
+            itemCount: visibleUsers.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: AppSizes.gridSpacing,
@@ -71,7 +71,7 @@ class SavedPage extends ConsumerWidget {
               childAspectRatio: AppSizes.gridAspectRatio,
             ),
             itemBuilder: (_, i) {
-              final user = visibleUsers[i]; // вњ… РґТ±СЂС‹СЃ
+              final user = visibleUsers[i];
               return _SavedUserCard(user: user);
             },
           );
@@ -200,7 +200,7 @@ class _SavedUserCard extends StatelessWidget {
 
                         _WriteButton(
                           onPressed: () {
-                            // вњ… "РќР°РїРёСЃР°С‚СЊ" -> ChatDetailPage
+                            // Open chat with selected user.
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -208,7 +208,7 @@ class _SavedUserCard extends StatelessWidget {
                                   peerUserId: user.id,
                                   title: user.displayName,
                                   imageUrl: user.avatarUrl,
-                                  online: true, // Т›Р°Р·С–СЂ Р±РµРє Р¶РѕТ›, placeholder
+                                  online: true, // Placeholder until online status is connected.
                                   letter: user.displayName.isNotEmpty
                                       ? user.displayName.trim()[0]
                                       : '?',

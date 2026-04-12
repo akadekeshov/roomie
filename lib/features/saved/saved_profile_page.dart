@@ -273,7 +273,7 @@ class SavedUserProfilePage extends ConsumerWidget {
 
                       const SizedBox(height: 14),
 
-                      // ===== Rules (Т›Р°Р·С–СЂ placeholder, РєРµР№С–РЅ backend) =====
+                      // ===== Rules (placeholder until backend rules are available) =====
                       _Card(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,7 +377,7 @@ class SavedUserProfilePage extends ConsumerWidget {
                                 peerUserId: user.id,
                                 title: user.displayName,
                                 imageUrl: user.avatarUrl,
-                                online: true, // backend Р¶РѕТ› У™Р·С–СЂРіРµ
+                                online: true, // Placeholder until backend online status is connected.
                                 letter: _firstLetter(user.displayName),
                               ),
                             ),
@@ -497,7 +497,7 @@ List<_LifestyleItem> _lifestyleToItems(Map<String, dynamic>? lifestyle) {
     items.add(
       _LifestyleItem(
         Icons.home_work_outlined,
-        workFormat ? 'Работаю удалённо' : 'Офис/аралас',
+        workFormat ? 'Работаю удалённо' : 'Работаю в офисе',
       ),
     );
   } else if (workFormat is String && workFormat.trim().isNotEmpty) {
@@ -515,7 +515,7 @@ List<_LifestyleItem> _lifestyleToItems(Map<String, dynamic>? lifestyle) {
   if (cleanliness is num) {
     items.add(_LifestyleItem(
       Icons.cleaning_services_outlined,
-      cleanliness >= 4 ? 'Таза адам' : 'Қарапайым',
+      cleanliness >= 4 ? 'Чистоплотный' : 'Обычный',
     ));
   } else if (cleanliness is String && cleanliness.trim().isNotEmpty) {
     items.add(_LifestyleItem(Icons.cleaning_services_outlined, cleanliness));
@@ -527,12 +527,12 @@ List<_LifestyleItem> _lifestyleToItems(Map<String, dynamic>? lifestyle) {
     items.add(
       _LifestyleItem(
         Icons.restaurant_outlined,
-        cooking ? 'Люблю готовить' : 'Көп пісірмеймін',
+        cooking ? 'Люблю готовить' : 'Готовлю редко',
       ),
     );
   }
 
-  // If backend filled nothing recognized, show nothing (UI will show "РЅРµ Р·Р°РїРѕР»РЅРµРЅР°")
+  // If backend returns nothing recognized, show fallback empty-state text.
   return items;
 }
 
@@ -737,5 +737,3 @@ class _Chip extends StatelessWidget {
     );
   }
 }
-
-

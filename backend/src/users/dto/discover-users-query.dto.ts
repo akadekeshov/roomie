@@ -1,4 +1,11 @@
-import { IsOptional, IsNumber, Min, Max, IsString, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsString,
+  IsEnum,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Gender } from '@prisma/client';
@@ -19,7 +26,11 @@ export class DiscoverUsersQueryDto {
   @Max(50)
   limit?: number = 10;
 
-  @ApiPropertyOptional({ example: 150000, minimum: 0, description: 'Max budget per month (до X)' })
+  @ApiPropertyOptional({
+    example: 150000,
+    minimum: 0,
+    description: 'Max budget per month (до X)',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -35,7 +46,10 @@ export class DiscoverUsersQueryDto {
   @IsString()
   district?: string | null;
 
-  @ApiPropertyOptional({ enum: Gender, description: 'Preferred roommate gender' })
+  @ApiPropertyOptional({
+    enum: Gender,
+    description: 'Preferred roommate gender',
+  })
   @IsOptional()
   @IsEnum(Gender)
   gender?: Gender | null;
@@ -48,4 +62,3 @@ export class DiscoverUsersQueryDto {
   @IsString()
   ageRange?: '18-25' | '25+' | null;
 }
-

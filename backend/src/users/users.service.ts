@@ -131,7 +131,7 @@ export class UsersService {
     const andConditions: Prisma.UserWhereInput[] = [];
 
     const normalizedDistrict =
-      typeof district === 'string' ? district.trim() : district ?? null;
+      typeof district === 'string' ? district.trim() : (district ?? null);
 
     if (normalizedDistrict && normalizedDistrict !== 'Все районы') {
       andConditions.push({ searchDistrict: normalizedDistrict });

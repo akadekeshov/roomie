@@ -5,9 +5,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Request } from 'express';
 import { UserRole } from '@prisma/client';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { AuthenticatedUser } from '../types/authenticated-user.type';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -34,7 +36,10 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: AuthenticatedUser }>();
+    const user = request.user;
 
     if (!user || !user.role) {
       throw new ForbiddenException('User role not found');
@@ -51,4 +56,3 @@ export class RolesGuard implements CanActivate {
     return true;
   }
 }
-

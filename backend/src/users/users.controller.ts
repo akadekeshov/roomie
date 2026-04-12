@@ -168,7 +168,10 @@ export class UsersController {
     status: 200,
     description: 'List of discoverable users with pagination meta',
   })
-  async discover(@CurrentUser() user: any, @Query() query: DiscoverUsersQueryDto) {
+  async discover(
+    @CurrentUser() user: any,
+    @Query() query: DiscoverUsersQueryDto,
+  ) {
     return this.usersService.discoverUsers(user.id, query);
   }
 
@@ -183,7 +186,10 @@ export class UsersController {
   @Patch('me')
   @ApiOperation({ summary: 'Update current user' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
-  async updateMe(@CurrentUser() user: any, @Body() updateUserDto: UpdateUserDto) {
+  async updateMe(
+    @CurrentUser() user: any,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     return this.usersService.updateMe(user.id, updateUserDto);
   }
 

@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/network_providers.dart';
@@ -31,6 +31,19 @@ class MeUser {
   final bool onboardingCompleted;
   final String? role;
 
+  bool _isCorruptedText(String value) {
+    final t = value.trim();
+    if (t.isEmpty) return true;
+    final qCount = '?'.allMatches(t).length;
+    return qCount >= (t.length / 2);
+  }
+
+  String _safeText(String? value) {
+    final t = (value ?? '').trim();
+    if (t.isEmpty || _isCorruptedText(t)) return '';
+    return t;
+  }
+
   factory MeUser.fromJson(Map<String, dynamic> json) => MeUser(
         id: (json['id'] as String?) ?? '',
         firstName: json['firstName'] as String?,
@@ -48,16 +61,16 @@ class MeUser {
       );
 
   String get displayName {
-    final fn = (firstName ?? '').trim();
-    final ln = (lastName ?? '').trim();
+    final fn = _safeText(firstName);
+    final ln = _safeText(lastName);
     final name = ('$fn $ln').trim();
     return name.isEmpty ? 'Пользователь' : name;
   }
 
   String get subtitle {
-    final e = (email ?? '').trim();
+    final e = _safeText(email);
     if (e.isNotEmpty) return e;
-    return (phone ?? '').trim();
+    return _safeText(phone);
   }
 
   String? get avatarUrl {

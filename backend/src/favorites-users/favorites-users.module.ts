@@ -8,4 +8,3 @@ import { FavoritesUsersController } from './favorites-users.controller';
   exports: [FavoritesUsersService],
 })
 export class FavoritesUsersModule {}
-

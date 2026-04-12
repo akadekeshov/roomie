@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
@@ -178,6 +178,14 @@
         loginCard.classList.remove('hidden');
       }
 
+      async function ensureAdminRole() {
+        const me = await api('/auth/me');
+        const role = String(me?.role || '').toUpperCase();
+        if (role !== 'ADMIN' && role !== 'MODERATOR') {
+          throw new Error('Доступ только для ADMIN/MODERATOR');
+        }
+      }
+
       async function login() {
         loginMsg.textContent = 'Вход...';
         try {
@@ -189,6 +197,7 @@
           });
           accessToken = data.accessToken;
           localStorage.setItem('admin_access_token', accessToken);
+          await ensureAdminRole();
           loginMsg.textContent = 'Успешно';
           showPanel();
           await refreshAll();
@@ -374,3 +383,4 @@
     </script>
   </body>
   </html>
+

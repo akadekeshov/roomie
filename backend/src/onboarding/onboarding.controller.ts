@@ -15,6 +15,7 @@ import { SearchStepDto } from './dto/search-step.dto';
 import { FinalizeStepDto } from './dto/finalize-step.dto';
 import { VerificationDocumentDto } from './dto/verification-document.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../common/types/authenticated-user.type';
 
 @ApiTags('onboarding')
 @Controller('onboarding')
@@ -32,7 +33,10 @@ export class OnboardingController {
     status: 400,
     description: 'Invalid input or step validation failed',
   })
-  async setNameAge(@CurrentUser() user: any, @Body() nameAgeDto: NameAgeDto) {
+  async setNameAge(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() nameAgeDto: NameAgeDto,
+  ) {
     return this.onboardingService.setNameAge(user.id, nameAgeDto);
   }
 
@@ -43,7 +47,10 @@ export class OnboardingController {
     status: 400,
     description: 'Invalid input or step validation failed',
   })
-  async setGender(@CurrentUser() user: any, @Body() genderDto: GenderDto) {
+  async setGender(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() genderDto: GenderDto,
+  ) {
     return this.onboardingService.setGender(user.id, genderDto);
   }
 
@@ -57,14 +64,20 @@ export class OnboardingController {
     status: 400,
     description: 'Invalid input or step validation failed',
   })
-  async setCity(@CurrentUser() user: any, @Body() cityDto: CityDto) {
+  async setCity(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() cityDto: CityDto,
+  ) {
     return this.onboardingService.setCity(user.id, cityDto);
   }
 
   @Patch('about')
   @ApiOperation({ summary: 'Set about step (status, university, age, city)' })
   @ApiResponse({ status: 200, description: 'About step updated successfully' })
-  async setAbout(@CurrentUser() user: any, @Body() aboutDto: AboutStepDto) {
+  async setAbout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() aboutDto: AboutStepDto,
+  ) {
     return this.onboardingService.setAbout(user.id, aboutDto);
   }
 
@@ -75,7 +88,7 @@ export class OnboardingController {
     description: 'Lifestyle step updated successfully',
   })
   async setLifestyle(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() lifestyleDto: LifestyleStepDto,
   ) {
     return this.onboardingService.setLifestyle(user.id, lifestyleDto);
@@ -87,7 +100,10 @@ export class OnboardingController {
     status: 200,
     description: 'Search preferences updated successfully',
   })
-  async setSearch(@CurrentUser() user: any, @Body() searchDto: SearchStepDto) {
+  async setSearch(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() searchDto: SearchStepDto,
+  ) {
     return this.onboardingService.setSearch(user.id, searchDto);
   }
 
@@ -95,7 +111,7 @@ export class OnboardingController {
   @ApiOperation({ summary: 'Set finalize step (bio + photos)' })
   @ApiResponse({ status: 200, description: 'Profile finalize step completed' })
   async finalize(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() finalizeDto: FinalizeStepDto,
   ) {
     return this.onboardingService.finalize(user.id, finalizeDto);
@@ -105,7 +121,7 @@ export class OnboardingController {
   @ApiOperation({ summary: 'Upload verification document URL' })
   @ApiResponse({ status: 200, description: 'Verification document attached' })
   async uploadVerificationDocument(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: VerificationDocumentDto,
   ) {
     return this.onboardingService.uploadVerificationDocument(user.id, dto);
@@ -114,7 +130,7 @@ export class OnboardingController {
   @Patch('verification/submit')
   @ApiOperation({ summary: 'Submit identity verification request' })
   @ApiResponse({ status: 200, description: 'Verification request submitted' })
-  async submitVerification(@CurrentUser() user: any) {
+  async submitVerification(@CurrentUser() user: AuthenticatedUser) {
     return this.onboardingService.submitVerification(user.id);
   }
 
@@ -124,7 +140,7 @@ export class OnboardingController {
     status: 200,
     description: 'Onboarding status retrieved successfully',
   })
-  async getStatus(@CurrentUser() user: any) {
+  async getStatus(@CurrentUser() user: AuthenticatedUser) {
     return this.onboardingService.getStatus(user.id);
   }
 }

@@ -15,7 +15,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
 
   final RecommendedUser user;
 
-  // Backend С‚РѕР»С‹Т› profileComplete Р±РµСЂРјРµР№ С‚Т±СЂ -> СѓР°Т›С‹С‚С€Р° heuristic
+  // Temporary completeness heuristic while backend profileComplete can be partial.
   bool get _isProbablyComplete {
     final hasBio = (user.bio ?? '').trim().isNotEmpty;
     final hasStatus = (user.occupationStatus ?? '').trim().isNotEmpty;
@@ -72,7 +72,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Чат ашу үшін бұл адам профилін толық толтыруы керек. Қазір чат уақытша қолжетімсіз.',
+                'Чтобы открыть чат, пользователь должен заполнить профиль полностью.',
                 style: TextStyle(color: Colors.black54, height: 1.35),
               ),
               const SizedBox(height: 14),
@@ -80,7 +80,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                 width: double.infinity,
                 height: 44,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context), // вњ… OK -> Р¶Р°Р±С‹Р»Р°РґС‹
+                  onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
@@ -115,7 +115,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
           peerUserId: user.id,
           title: user.displayName,
           imageUrl: user.avatarUrl,
-          online: true, // СѓР°Т›С‹С‚С€Р°
+          online: true, // Placeholder until realtime online status is implemented.
           letter: user.displayName.isNotEmpty ? user.displayName.trim()[0] : '?',
         ),
       ),
@@ -138,7 +138,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
         _snack(context, 'Сохранено ✅');
       }
 
-      // вњ… Р•РєС– Р¶Р°Т›С‚С‹ Р¶Р°ТЈР°СЂС‚Сѓ
+      // Refresh both lists after save/unsave.
       ref.invalidate(recommendedUsersProvider);
       ref.invalidate(favoriteUsersProvider);
     } catch (e) {
@@ -148,16 +148,16 @@ class RecommendedUserProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // вњ… Saved status РЅР°Т›С‚С‹ Р±РѕР»Сѓ ТЇС€С–РЅ provider-РґР°РЅ Р°Р»Р°РјС‹Р·
+    // Read saved IDs from provider to keep the button state accurate.
     final favoriteIds = ref.watch(favoriteUserIdsProvider);
     final isSaved = favoriteIds.contains(user.id);
 
     final photo = user.avatarUrl;
 
-    // Р•РіРµСЂ Home recommendation-РґР° РєРµР»СЃРµ вЂ” РїР°Р№РґР°Р»Р°РЅР° Р±РµСЂРµРјС–Р·
+    // Match percent comes from recommendation payload.
     final match = user.matchPercent.clamp(0, 100);
 
-    // РЎРєСЂРёРЅРґРµРіС–РґРµР№: budget/lifestyle/location РїСЂРѕС†РµРЅС‚С‚РµСЂС– Р±РµРє Р¶РѕТ›С‚Р° вЂ” placeholder
+    // Placeholder percentages until backend provides detailed compatibility scores.
     const budgetPct = 90;
     const lifestylePct = 85;
     const locationPct = 86;
@@ -171,7 +171,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // вњ… Image header
+                    // Image header
                     Stack(
                       children: [
                         AspectRatio(
@@ -194,7 +194,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                           ),
                         ),
 
-                        // вњ… Verified СЃС‚Р°С‚СѓСЃ (backend Р±РµСЂРјРµСЃРµ вЂ” вЂњРџСЂРѕС„РёР»СЊ Р·Р°РїРѕР»РЅРµРЅ/РЅРµ Р·Р°РїРѕР»РЅРµРЅвЂќ РєУ©СЂСЃРµС‚РµРјС–Р·)
+                        // Show profile completion status.
                         Positioned(
                           right: 12,
                           bottom: 12,
@@ -234,7 +234,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                           if (!_isProbablyComplete) const _WarningBox(),
                           if (!_isProbablyComplete) const SizedBox(height: 12),
 
-                          // вњ… Compatibility card (СЃРєСЂРёРЅРіРµ Т±Т›СЃР°СЃ)
+                          // Compatibility card
                           _Card(
                             child: Column(
                               children: [
@@ -255,7 +255,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
 
                           const SizedBox(height: 12),
 
-                          // вњ… Info (Р›РѕРєР°С†РёСЏ/РЎС‚Р°С‚СѓСЃ/Р‘СЋРґР¶РµС‚)
+                          // Main info block (location/status/budget)
                           _Card(
                             child: Column(
                               children: [
@@ -287,7 +287,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
               ),
             ),
 
-            // вњ… Bottom buttons
+            // Bottom actions
             Container(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               decoration: const BoxDecoration(

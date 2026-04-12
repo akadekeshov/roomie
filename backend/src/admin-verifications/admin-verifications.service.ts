@@ -30,7 +30,10 @@ export class AdminVerificationsService {
     email: string | null;
     phone: string | null;
   }) {
-    const full = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    const full = [user.firstName, user.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
     return full || user.firstName || user.email || user.phone || 'Unknown';
   }
 
@@ -131,7 +134,7 @@ export class AdminVerificationsService {
 
     return this.prisma.user.update({
       where: { id: userId },
-      data: { role: dto.role as UserRole },
+      data: { role: dto.role },
       select: {
         id: true,
         role: true,
@@ -143,11 +146,7 @@ export class AdminVerificationsService {
     });
   }
 
-  async setUserBanStatus(
-    userId: string,
-    dto: SetUserBanDto,
-    adminId: string,
-  ) {
+  async setUserBanStatus(userId: string, dto: SetUserBanDto, adminId: string) {
     if (userId === adminId && dto.isBanned) {
       throw new BadRequestException('You cannot ban your own account');
     }

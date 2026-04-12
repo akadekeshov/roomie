@@ -18,4 +18,3 @@ export class FavoritesUsersQueryDto {
   @Max(50)
   limit?: number = 10;
 }
-

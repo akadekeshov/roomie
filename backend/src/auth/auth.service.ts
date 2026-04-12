@@ -111,7 +111,8 @@ export class AuthService {
     });
 
     if (!otpRecord) throw new BadRequestException('Invalid code');
-    if (otpRecord.consumedAt) throw new BadRequestException('Code already used');
+    if (otpRecord.consumedAt)
+      throw new BadRequestException('Code already used');
     if (otpRecord.expiresAt < new Date())
       throw new BadRequestException('Code expired');
     if (otpRecord.attempts >= this.MAX_OTP_ATTEMPTS)
@@ -156,7 +157,6 @@ export class AuthService {
       );
 
       if (process.env.OTP_DEV_LOG === 'true') {
-        // eslint-disable-next-line no-console
         console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
       }
 
@@ -188,7 +188,6 @@ export class AuthService {
     );
 
     if (process.env.OTP_DEV_LOG === 'true') {
-      // eslint-disable-next-line no-console
       console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
     }
 
@@ -266,7 +265,6 @@ export class AuthService {
       );
 
       if (process.env.OTP_DEV_LOG === 'true') {
-        // eslint-disable-next-line no-console
         console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
       }
 
@@ -298,7 +296,6 @@ export class AuthService {
     );
 
     if (process.env.OTP_DEV_LOG === 'true') {
-      // eslint-disable-next-line no-console
       console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
     }
 
@@ -388,7 +385,6 @@ export class AuthService {
     );
 
     if (process.env.OTP_DEV_LOG === 'true') {
-      // eslint-disable-next-line no-console
       if (resendOtpDto.channel === OTPChannel.EMAIL) {
         console.log(`[OTP EMAIL] ${resendOtpDto.target}: ${code}`);
       } else {
@@ -425,8 +421,12 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Invalid credentials');
     if (user.isBanned) throw new ForbiddenException('Account is banned');
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
+    if (!isPasswordValid)
+      throw new UnauthorizedException('Invalid credentials');
 
     if (loginDto.email && !user.emailVerified) {
       throw new UnauthorizedException('Email not verified');
@@ -551,8 +551,10 @@ export class AuthService {
     const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET')!;
     const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET')!;
 
-    const accessTtl = this.configService.get<string>('ACCESS_TOKEN_TTL') ?? '15m';
-    const refreshTtl = this.configService.get<string>('REFRESH_TOKEN_TTL') ?? '7d';
+    const accessTtl =
+      this.configService.get<string>('ACCESS_TOKEN_TTL') ?? '15m';
+    const refreshTtl =
+      this.configService.get<string>('REFRESH_TOKEN_TTL') ?? '7d';
 
     const accessToken = this.jwtService.sign(payload as any, {
       secret: accessSecret,

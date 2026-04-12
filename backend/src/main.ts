@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { join } from 'path';
@@ -7,11 +7,31 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Response } from 'express';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // CORS
+  const env = process.env.NODE_ENV ?? 'development';
+  const allowedOrigins = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+
+  const corsOrigin: boolean | string[] =
+    allowedOrigins.length > 0
+      ? allowedOrigins
+      : env == 'production'
+        ? false
+        : true;
+
+  if (env == 'production' && allowedOrigins.length == 0) {
+    logger.warn(
+      'CORS_ORIGINS is empty in production. Cross-origin requests are denied.',
+    );
+  }
+
   app.enableCors({
-    origin: true,
+    origin: corsOrigin,
     credentials: true,
   });
 

@@ -82,7 +82,11 @@ export class AdminVerificationsController {
     @Body() dto: SetUserBanDto,
     @CurrentUser() admin: any,
   ) {
-    return this.adminVerificationsService.setUserBanStatus(userId, dto, admin.id);
+    return this.adminVerificationsService.setUserBanStatus(
+      userId,
+      dto,
+      admin.id,
+    );
   }
 
   @Get(':userId')

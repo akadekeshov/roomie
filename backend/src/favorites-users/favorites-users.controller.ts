@@ -75,4 +75,3 @@ export class FavoritesUsersController {
     return this.favoritesUsersService.listFavorites(user.id, page, limit);
   }
 }
-
