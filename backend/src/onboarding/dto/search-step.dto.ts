@@ -1,6 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { RoommateGenderPreference } from '@prisma/client';
-import { IsEnum, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { MatchingPrioritiesDto } from '../../users/dto/matching-priorities.dto';
 
 export class SearchStepDto {
   @ApiProperty({ example: 100000, minimum: 0 })
@@ -26,4 +36,13 @@ export class SearchStepDto {
   @IsString()
   @IsNotEmpty()
   stayTerm: string;
+
+  @ApiProperty({
+    required: false,
+    example: { budget: 'required', district: 'important' },
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MatchingPrioritiesDto)
+  matchingPriorities?: MatchingPrioritiesDto;
 }

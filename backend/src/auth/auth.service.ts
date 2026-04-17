@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   HttpException,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -32,8 +33,36 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
+  private readonly authUserSelect = {
+    id: true,
+    email: true,
+    phone: true,
+    firstName: true,
+    lastName: true,
+    gender: true,
+    age: true,
+    city: true,
+    bio: true,
+    photos: true,
+    verificationStatus: true,
+    emailVerified: true,
+    phoneVerified: true,
+    onboardingStep: true,
+    onboardingCompleted: true,
+    createdAt: true,
+    updatedAt: true,
+  } as const;
+
   private isProduction(): boolean {
     return this.configService.get<string>('NODE_ENV') === 'production';
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  private normalizePhone(phone: string): string {
+    return phone.trim();
   }
 
   private parseDurationToMs(duration: string): number {
@@ -110,12 +139,13 @@ export class AuthService {
       },
     });
 
-    if (!otpRecord) throw new BadRequestException('Invalid code');
-    if (otpRecord.consumedAt) throw new BadRequestException('Code already used');
+    if (!otpRecord) throw new BadRequestException('Неверный код');
+    if (otpRecord.consumedAt)
+      throw new BadRequestException('Код уже использован');
     if (otpRecord.expiresAt < new Date())
-      throw new BadRequestException('Code expired');
+      throw new BadRequestException('Срок действия кода истёк');
     if (otpRecord.attempts >= this.MAX_OTP_ATTEMPTS)
-      throw new BadRequestException('Too many attempts');
+      throw new BadRequestException('Слишком много попыток');
 
     const isValid = await bcrypt.compare(code, otpRecord.codeHash);
 
@@ -124,7 +154,7 @@ export class AuthService {
         where: { id: otpRecord.id },
         data: { attempts: otpRecord.attempts + 1 },
       });
-      throw new UnauthorizedException('Invalid code');
+      throw new UnauthorizedException('Неверный код');
     }
 
     await this.prisma.otpCode.update({
@@ -133,18 +163,32 @@ export class AuthService {
     });
   }
 
+  private async buildAuthUser(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: this.authUserSelect,
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Пользователь не найден');
+    }
+
+    return user;
+  }
+
   // =========================
   // REGISTER (EMAIL)
   // =========================
 
   async registerEmail(registerEmailDto: RegisterEmailDto) {
+    const email = this.normalizeEmail(registerEmailDto.email);
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: registerEmailDto.email },
+      where: { email },
     });
 
     // existing and verified -> 409
     if (existingUser?.emailVerified) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException('Почта уже зарегистрирована');
     }
 
     // existing but not verified -> resend OTP, do not create new user, do not change password
@@ -152,12 +196,12 @@ export class AuthService {
       const code = await this.upsertOtp(
         OTPChannel.EMAIL,
         OTPPurpose.REGISTER,
-        registerEmailDto.email,
+        email,
       );
 
       if (process.env.OTP_DEV_LOG === 'true') {
         // eslint-disable-next-line no-console
-        console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
+        console.log(`[OTP EMAIL] ${email}: ${code}`);
       }
 
       return { next: 'VERIFY_EMAIL', alreadyExists: true };
@@ -169,7 +213,7 @@ export class AuthService {
     await this.prisma.user.create({
       data: {
         role: UserRole.USER,
-        email: registerEmailDto.email,
+        email,
         phone: null,
         password: hashedPassword,
         emailVerified: false,
@@ -184,51 +228,37 @@ export class AuthService {
     const code = await this.upsertOtp(
       OTPChannel.EMAIL,
       OTPPurpose.REGISTER,
-      registerEmailDto.email,
+      email,
     );
 
     if (process.env.OTP_DEV_LOG === 'true') {
       // eslint-disable-next-line no-console
-      console.log(`[OTP EMAIL] ${registerEmailDto.email}: ${code}`);
+      console.log(`[OTP EMAIL] ${email}: ${code}`);
     }
 
     return { next: 'VERIFY_EMAIL', alreadyExists: false };
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
+    const email = this.normalizeEmail(verifyEmailDto.email);
     await this.validateOtp(
       OTPChannel.EMAIL,
       OTPPurpose.REGISTER,
-      verifyEmailDto.email,
+      email,
       verifyEmailDto.code,
     );
 
     const user = await this.prisma.user.findUnique({
-      where: { email: verifyEmailDto.email },
+      where: { email },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) throw new BadRequestException('Пользователь не найден');
 
-    const updatedUser = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: { id: user.id },
       data: { emailVerified: true },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        age: true,
-        city: true,
-        bio: true,
-        emailVerified: true,
-        phoneVerified: true,
-        onboardingStep: true,
-        onboardingCompleted: true,
-        createdAt: true,
-      },
     });
+    const updatedUser = await this.buildAuthUser(user.id);
 
     const tokens = await this.generateTokens(
       user.id,
@@ -248,13 +278,14 @@ export class AuthService {
   // =========================
 
   async registerPhone(registerPhoneDto: RegisterPhoneDto) {
+    const phone = this.normalizePhone(registerPhoneDto.phone);
     const existingUser = await this.prisma.user.findUnique({
-      where: { phone: registerPhoneDto.phone },
+      where: { phone },
     });
 
     // existing and verified -> 409
     if (existingUser?.phoneVerified) {
-      throw new ConflictException('Phone already registered');
+      throw new ConflictException('Телефон уже зарегистрирован');
     }
 
     // existing but not verified -> resend OTP
@@ -262,12 +293,12 @@ export class AuthService {
       const code = await this.upsertOtp(
         OTPChannel.PHONE,
         OTPPurpose.REGISTER,
-        registerPhoneDto.phone,
+        phone,
       );
 
       if (process.env.OTP_DEV_LOG === 'true') {
         // eslint-disable-next-line no-console
-        console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
+        console.log(`[OTP SMS] ${phone}: ${code}`);
       }
 
       return { next: 'VERIFY_PHONE', alreadyExists: true };
@@ -280,7 +311,7 @@ export class AuthService {
       data: {
         role: UserRole.USER,
         email: null,
-        phone: registerPhoneDto.phone,
+        phone,
         password: hashedPassword,
         emailVerified: false,
         phoneVerified: false,
@@ -294,51 +325,37 @@ export class AuthService {
     const code = await this.upsertOtp(
       OTPChannel.PHONE,
       OTPPurpose.REGISTER,
-      registerPhoneDto.phone,
+      phone,
     );
 
     if (process.env.OTP_DEV_LOG === 'true') {
       // eslint-disable-next-line no-console
-      console.log(`[OTP SMS] ${registerPhoneDto.phone}: ${code}`);
+      console.log(`[OTP SMS] ${phone}: ${code}`);
     }
 
     return { next: 'VERIFY_PHONE', alreadyExists: false };
   }
 
   async verifyPhone(verifyPhoneDto: VerifyPhoneDto) {
+    const phone = this.normalizePhone(verifyPhoneDto.phone);
     await this.validateOtp(
       OTPChannel.PHONE,
       OTPPurpose.REGISTER,
-      verifyPhoneDto.phone,
+      phone,
       verifyPhoneDto.code,
     );
 
     const user = await this.prisma.user.findUnique({
-      where: { phone: verifyPhoneDto.phone },
+      where: { phone },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) throw new BadRequestException('Пользователь не найден');
 
-    const updatedUser = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: { id: user.id },
       data: { phoneVerified: true },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        age: true,
-        city: true,
-        bio: true,
-        emailVerified: true,
-        phoneVerified: true,
-        onboardingStep: true,
-        onboardingCompleted: true,
-        createdAt: true,
-      },
     });
+    const updatedUser = await this.buildAuthUser(user.id);
 
     const tokens = await this.generateTokens(
       user.id,
@@ -358,12 +375,56 @@ export class AuthService {
   // =========================
 
   async resendOtp(resendOtpDto: ResendOtpDto) {
+    const normalizedTarget =
+      resendOtpDto.channel === OTPChannel.EMAIL
+        ? this.normalizeEmail(resendOtpDto.target)
+        : this.normalizePhone(resendOtpDto.target);
+
+    if (resendOtpDto.purpose === OTPPurpose.REGISTER) {
+      const user =
+        resendOtpDto.channel === OTPChannel.EMAIL
+          ? await this.prisma.user.findUnique({
+              where: { email: normalizedTarget },
+              select: {
+                id: true,
+                emailVerified: true,
+                phoneVerified: true,
+                isBanned: true,
+              },
+            })
+          : await this.prisma.user.findUnique({
+              where: { phone: normalizedTarget },
+              select: {
+                id: true,
+                emailVerified: true,
+                phoneVerified: true,
+                isBanned: true,
+              },
+            });
+      if (!user) {
+        throw new NotFoundException(
+          'Пользователь не найден, пожалуйста, зарегистрируйтесь',
+        );
+      }
+      if (user.isBanned) {
+        throw new ForbiddenException('Аккаунт заблокирован');
+      }
+      if (
+        (resendOtpDto.channel === OTPChannel.EMAIL && user.emailVerified) ||
+        (resendOtpDto.channel === OTPChannel.PHONE && user.phoneVerified)
+      ) {
+        throw new ConflictException(
+          'Пользователь уже подтверждён, пожалуйста, войдите',
+        );
+      }
+    }
+
     const otpRecord = await this.prisma.otpCode.findUnique({
       where: {
         channel_purpose_target: {
           channel: resendOtpDto.channel,
           purpose: resendOtpDto.purpose,
-          target: resendOtpDto.target,
+          target: normalizedTarget,
         },
       },
     });
@@ -375,7 +436,7 @@ export class AuthService {
 
       if (timeSinceLastSent < this.OTP_COOLDOWN_SECONDS) {
         throw new HttpException(
-          'Please wait before requesting a new code',
+          'Пожалуйста, подождите перед повторным запросом кода',
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
@@ -384,15 +445,15 @@ export class AuthService {
     const code = await this.upsertOtp(
       resendOtpDto.channel,
       resendOtpDto.purpose,
-      resendOtpDto.target,
+      normalizedTarget,
     );
 
     if (process.env.OTP_DEV_LOG === 'true') {
       // eslint-disable-next-line no-console
       if (resendOtpDto.channel === OTPChannel.EMAIL) {
-        console.log(`[OTP EMAIL] ${resendOtpDto.target}: ${code}`);
+        console.log(`[OTP EMAIL] ${normalizedTarget}: ${code}`);
       } else {
-        console.log(`[OTP SMS] ${resendOtpDto.target}: ${code}`);
+        console.log(`[OTP SMS] ${normalizedTarget}: ${code}`);
       }
     }
 
@@ -409,30 +470,44 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     if (!loginDto.email && !loginDto.phone) {
-      throw new BadRequestException('Either email or phone must be provided');
+      throw new BadRequestException(
+        'Нужно указать почту или телефон для входа',
+      );
     }
 
     if (loginDto.email && loginDto.phone) {
       throw new BadRequestException(
-        'Only one of email or phone should be provided',
+        'Нужно указать только один способ входа: почту или телефон',
       );
     }
 
-    const user = loginDto.email
-      ? await this.prisma.user.findUnique({ where: { email: loginDto.email } })
-      : await this.prisma.user.findUnique({ where: { phone: loginDto.phone } });
+    const normalizedEmail = loginDto.email
+      ? this.normalizeEmail(loginDto.email)
+      : undefined;
+    const normalizedPhone = loginDto.phone
+      ? this.normalizePhone(loginDto.phone)
+      : undefined;
 
-    if (!user) throw new UnauthorizedException('Invalid credentials');
-    if (user.isBanned) throw new ForbiddenException('Account is banned');
+    const user = normalizedEmail
+      ? await this.prisma.user.findUnique({ where: { email: normalizedEmail } })
+      : await this.prisma.user.findUnique({ where: { phone: normalizedPhone } });
+
+    if (!user) {
+      throw new NotFoundException(
+        'Пользователь не найден, пожалуйста, зарегистрируйтесь',
+      );
+    }
+    if (user.isBanned) throw new ForbiddenException('Аккаунт заблокирован');
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
+    if (!isPasswordValid)
+      throw new UnauthorizedException('Неверные данные для входа');
 
     if (loginDto.email && !user.emailVerified) {
-      throw new UnauthorizedException('Email not verified');
+      throw new UnauthorizedException('Почта не подтверждена');
     }
     if (loginDto.phone && !user.phoneVerified) {
-      throw new UnauthorizedException('Phone not verified');
+      throw new UnauthorizedException('Телефон не подтверждён');
     }
 
     const tokens = await this.generateTokens(
@@ -442,22 +517,7 @@ export class AuthService {
     );
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        phone: user.phone,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        gender: user.gender,
-        age: user.age,
-        city: user.city,
-        bio: user.bio,
-        emailVerified: user.emailVerified,
-        phoneVerified: user.phoneVerified,
-        onboardingStep: user.onboardingStep,
-        onboardingCompleted: user.onboardingCompleted,
-        createdAt: user.createdAt,
-      },
+      user: await this.buildAuthUser(user.id),
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     };
@@ -472,7 +532,7 @@ export class AuthService {
         secret: refreshSecret,
       });
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Неверный refresh token');
     }
 
     const tokenRecord = await this.prisma.refreshToken.findUnique({
@@ -480,27 +540,35 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!tokenRecord) throw new UnauthorizedException('Invalid refresh token');
+    if (!tokenRecord)
+      throw new UnauthorizedException('Неверный refresh token');
 
     if (tokenRecord.expiresAt < new Date()) {
       await this.prisma.refreshToken
         .delete({ where: { token: refreshDto.refreshToken } })
         .catch(() => {});
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException(
+        'Refresh token недействителен или истёк',
+      );
     }
 
     if (tokenRecord.userId !== payload.sub) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Неверный refresh token');
     }
     if (tokenRecord.user.isBanned) {
-      throw new ForbiddenException('Account is banned');
+      throw new ForbiddenException('Аккаунт заблокирован');
     }
 
-    return this.generateTokens(
+    const tokens = await this.generateTokens(
       tokenRecord.userId,
       tokenRecord.user.email || undefined,
       tokenRecord.user.phone || undefined,
     );
+
+    return {
+      ...tokens,
+      user: await this.buildAuthUser(tokenRecord.userId),
+    };
   }
 
   async logout(userId: string, refreshToken?: string) {
@@ -514,36 +582,20 @@ export class AuthService {
       });
     }
 
-    return { message: 'Logged out successfully' };
+    return { message: 'Выход выполнен успешно' };
   }
 
   async getMe(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
-        id: true,
         role: true,
         isBanned: true,
-        email: true,
-        phone: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        age: true,
-        city: true,
-        bio: true,
-        photos: true,
-        verificationStatus: true,
-        emailVerified: true,
-        phoneVerified: true,
-        onboardingStep: true,
-        onboardingCompleted: true,
-        createdAt: true,
-        updatedAt: true,
+        ...this.authUserSelect,
       },
     });
 
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedException('Пользователь не найден');
     return user;
   }
 

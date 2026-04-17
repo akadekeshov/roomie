@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/auth_repository.dart';
+import '../../../home/data/filter_providers.dart';
+import '../../../home/data/home_providers.dart';
+import '../../../people/data/favorites_users_providers.dart';
+import '../../../people/data/hidden_users_provider.dart';
+import '../../data/me_repository.dart';
 import '../../data/onboarding_repository.dart';
-import '../../data/me_repository.dart'; 
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -65,6 +70,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       if (!mounted) return;
       setState(() => _completed = profileDone);
     } catch (_) {}
+  }
+
+  Future<void> _logout() async {
+    await ref.read(authRepositoryProvider).logout();
+    ref.read(hiddenUserIdsProvider.notifier).clear();
+    ref.read(filterStateProvider.notifier).clear();
+    ref.invalidate(meProvider);
+    ref.invalidate(homeAutoRecommendationsProvider);
+    ref.invalidate(recommendedUsersProvider);
+    ref.invalidate(filteredUsersProvider);
+    ref.invalidate(favoriteUsersProvider);
+
+    if (!mounted) return;
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
  String verificationLabel(String status) {
@@ -192,11 +213,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     const SizedBox(height: 8),
                     const SizedBox(height: 22),
                     InkWell(
-                      onTap: () =>
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                            AppRoutes.login,
-                            (route) => false,
-                          ),
+                      onTap: _logout,
                       borderRadius: BorderRadius.circular(12),
                       child: Row(
                         children: [
@@ -729,5 +746,3 @@ class _NavIcon extends StatelessWidget {
     );
   }
 }
-
-

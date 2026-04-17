@@ -6,6 +6,8 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../../home/data/home_providers.dart';
+import '../../data/me_repository.dart';
 import '../../data/onboarding_repository.dart';
 import '../widgets/profile_flow_header.dart';
 import '../widgets/profile_step_progress.dart';
@@ -105,6 +107,9 @@ class _ProfileLifestylePageState extends ConsumerState<ProfileLifestylePage> {
           );
       if (!mounted) return;
       if (_fromEdit) {
+        ref.invalidate(meProvider);
+        ref.invalidate(recommendedUsersProvider);
+        ref.invalidate(homeAutoRecommendationsProvider);
         Navigator.of(context).pop(true);
       } else {
         final route = OnboardingRouteMapper.fromStep(nextStep);

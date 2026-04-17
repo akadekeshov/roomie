@@ -6,6 +6,8 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../../home/data/home_providers.dart';
+import '../../data/me_repository.dart';
 import '../../data/onboarding_repository.dart';
 import '../data/profile_search_options.dart';
 import '../widgets/profile_flow_header.dart';
@@ -29,6 +31,16 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
   bool _isSubmitting = false;
   bool _fromEdit = false;
   bool _argsParsed = false;
+  final Map<String, String> _matchingPriorities = {
+    'budget': 'important',
+    'district': 'important',
+    'noisePreference': 'neutral',
+    'smokingPreference': 'important',
+    'petsPreference': 'important',
+    'chronotype': 'neutral',
+    'personalityType': 'neutral',
+    'occupationStatus': 'neutral',
+  };
 
   bool get _isValid => _district != null && _term != null && _gender != null;
 
@@ -55,6 +67,9 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
       final search =
           (status.profile['search'] as Map?)?.cast<String, dynamic>() ??
               <String, dynamic>{};
+      final priorities =
+          (status.profile['matchingPriorities'] as Map?)?.cast<String, dynamic>() ??
+              <String, dynamic>{};
       if (!mounted) return;
       setState(() {
         final min = search['budgetMin'] as num?;
@@ -71,6 +86,14 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
         if (rg == 'MALE') _gender = 'male';
         if (rg == 'FEMALE') _gender = 'female';
         if (rg == 'ANY') _gender = 'any';
+        for (final entry in priorities.entries) {
+          final key = entry.key;
+          final value = entry.value.toString().toLowerCase().trim();
+          if (_matchingPriorities.containsKey(key) &&
+              const {'required', 'important', 'neutral'}.contains(value)) {
+            _matchingPriorities[key] = value;
+          }
+        }
       });
     } catch (_) {
       // keep screen usable if status fetch fails
@@ -93,10 +116,14 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
                           ? 'FEMALE'
                           : 'ANY',
                   stayTerm: _term!,
+                  matchingPriorities: Map<String, String>.from(_matchingPriorities),
                 ),
               );
       if (!mounted) return;
       if (_fromEdit) {
+        ref.invalidate(meProvider);
+        ref.invalidate(recommendedUsersProvider);
+        ref.invalidate(homeAutoRecommendationsProvider);
         Navigator.of(context).pop(true);
       } else {
         final route = OnboardingRouteMapper.fromStep(nextStep);
@@ -243,6 +270,61 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
                         ],
                       ),
                       const SizedBox(height: 20),
+                      _Label(text: 'Приоритеты совместимости'),
+                      const SizedBox(height: 10),
+                      _PriorityTile(
+                        title: 'Бюджет',
+                        level: _matchingPriorities['budget']!,
+                        onChanged: (value) =>
+                            setState(() => _matchingPriorities['budget'] = value),
+                      ),
+                      _PriorityTile(
+                        title: 'Район',
+                        level: _matchingPriorities['district']!,
+                        onChanged: (value) =>
+                            setState(() => _matchingPriorities['district'] = value),
+                      ),
+                      _PriorityTile(
+                        title: 'Шум',
+                        level: _matchingPriorities['noisePreference']!,
+                        onChanged: (value) => setState(
+                          () => _matchingPriorities['noisePreference'] = value,
+                        ),
+                      ),
+                      _PriorityTile(
+                        title: 'Курение',
+                        level: _matchingPriorities['smokingPreference']!,
+                        onChanged: (value) => setState(
+                          () => _matchingPriorities['smokingPreference'] = value,
+                        ),
+                      ),
+                      _PriorityTile(
+                        title: 'Питомцы',
+                        level: _matchingPriorities['petsPreference']!,
+                        onChanged: (value) =>
+                            setState(() => _matchingPriorities['petsPreference'] = value),
+                      ),
+                      _PriorityTile(
+                        title: 'Режим сна',
+                        level: _matchingPriorities['chronotype']!,
+                        onChanged: (value) =>
+                            setState(() => _matchingPriorities['chronotype'] = value),
+                      ),
+                      _PriorityTile(
+                        title: 'Тип личности',
+                        level: _matchingPriorities['personalityType']!,
+                        onChanged: (value) => setState(
+                          () => _matchingPriorities['personalityType'] = value,
+                        ),
+                      ),
+                      _PriorityTile(
+                        title: 'Статус (учеба/работа)',
+                        level: _matchingPriorities['occupationStatus']!,
+                        onChanged: (value) => setState(
+                          () => _matchingPriorities['occupationStatus'] = value,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       _Label(
                         text:
                             '\u0421\u0440\u043e\u043a \u043f\u0440\u043e\u0436\u0438\u0432\u0430\u043d\u0438\u044f',
@@ -472,6 +554,104 @@ class _GenderChip extends StatelessWidget {
             fontSize: 14,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PriorityTile extends StatelessWidget {
+  const _PriorityTile({
+    required this.title,
+    required this.level,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String level;
+  final ValueChanged<String> onChanged;
+
+  static const _items = ['required', 'important', 'neutral'];
+
+  String _titleForLevel(String raw) {
+    switch (raw) {
+      case 'required':
+        return 'Обязательно';
+      case 'important':
+        return 'Важно';
+      default:
+        return 'Нейтрально';
+    }
+  }
+
+  Color _colorForLevel(String raw) {
+    switch (raw) {
+      case 'required':
+        return const Color(0xFFB91C1C);
+      case 'important':
+        return const Color(0xFF1D4ED8);
+      default:
+        return const Color(0xFF6B7280);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final levelColor = _colorForLevel(level);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Color(0xFF111827),
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          PopupMenuButton<String>(
+            onSelected: onChanged,
+            itemBuilder: (_) => _items
+                .map(
+                  (item) => PopupMenuItem<String>(
+                    value: item,
+                    child: Text(_titleForLevel(item)),
+                  ),
+                )
+                .toList(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: levelColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: levelColor.withOpacity(0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _titleForLevel(level),
+                    style: TextStyle(
+                      color: levelColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.keyboard_arrow_down, size: 16, color: levelColor),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

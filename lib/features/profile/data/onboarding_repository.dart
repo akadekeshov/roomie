@@ -53,6 +53,7 @@ class SearchStepPayload {
     required this.district,
     required this.roommateGenderPreference,
     required this.stayTerm,
+    required this.matchingPriorities,
   });
 
   final int budgetMin;
@@ -60,6 +61,7 @@ class SearchStepPayload {
   final String district;
   final String roommateGenderPreference;
   final String stayTerm;
+  final Map<String, String> matchingPriorities;
 }
 
 class FinalizeStepPayload {
@@ -152,6 +154,7 @@ class OnboardingRepository {
         'district': payload.district,
         'roommateGenderPreference': payload.roommateGenderPreference,
         'stayTerm': payload.stayTerm,
+        'matchingPriorities': payload.matchingPriorities,
       },
     );
     return response.data?['nextStep'] as String?;

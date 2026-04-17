@@ -1,5 +1,3 @@
-CREATE TYPE "OnboardingStep" AS ENUM ('NAME_AGE', 'GENDER', 'CITY', 'DONE');
-
 -- CreateEnum
 CREATE TYPE "OnboardingStep" AS ENUM ('NAME_AGE', 'GENDER', 'CITY', 'DONE');
 

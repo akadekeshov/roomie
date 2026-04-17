@@ -23,7 +23,7 @@ class ChatRepository {
     final data = (response.data as Map?)?.cast<String, dynamic>() ?? const {};
     final conversationId = data['conversationId']?.toString() ?? '';
     if (conversationId.isEmpty) {
-      throw Exception('Conversation id is empty');
+      throw Exception('Не удалось получить идентификатор чата');
     }
     return conversationId;
   }

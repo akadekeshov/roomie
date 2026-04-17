@@ -50,6 +50,16 @@ class CurrentUser {
   }
 }
 
+class AuthMeSnapshot {
+  const AuthMeSnapshot({
+    required this.onboardingStep,
+    required this.onboardingCompleted,
+  });
+
+  final String? onboardingStep;
+  final bool onboardingCompleted;
+}
+
 class AuthRepository {
   const AuthRepository(this._dio, this._tokenStorage);
 
@@ -63,6 +73,15 @@ class AuthRepository {
   }
 
   String _normalizeEmail(String raw) => raw.trim().toLowerCase();
+
+  Future<AuthMeSnapshot> _loadAuthSnapshot() async {
+    final response = await _dio.get<Map<String, dynamic>>('/auth/me');
+    final data = response.data ?? <String, dynamic>{};
+    return AuthMeSnapshot(
+      onboardingStep: data['onboardingStep'] as String?,
+      onboardingCompleted: data['onboardingCompleted'] as bool? ?? false,
+    );
+  }
 
   Future<AuthFlowResult> register({
     required bool useEmail,
@@ -248,9 +267,14 @@ class AuthRepository {
         rememberMe: true,
       );
 
+      final snapshot = user == null ? await _loadAuthSnapshot() : null;
       return LoginResult(
-        onboardingStep: user?['onboardingStep'] as String?,
-        onboardingCompleted: user?['onboardingCompleted'] as bool? ?? false,
+        onboardingStep:
+            user?['onboardingStep'] as String? ?? snapshot?.onboardingStep,
+        onboardingCompleted:
+            user?['onboardingCompleted'] as bool? ??
+            snapshot?.onboardingCompleted ??
+            false,
       );
     } on DioException catch (e) {
       final appEx = mapDioErrorToAppException(e);
@@ -260,6 +284,23 @@ class AuthRepository {
       return null;
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<void> logout() async {
+    final refreshToken = await _tokenStorage.getRefreshToken();
+
+    try {
+      await _dio.post(
+        '/auth/logout',
+        data: refreshToken == null
+            ? const <String, dynamic>{}
+            : <String, dynamic>{'refreshToken': refreshToken},
+      );
+    } on DioException {
+      // Clearing local auth state is still the safest fallback for the client.
+    } finally {
+      await _tokenStorage.clear();
     }
   }
 
@@ -291,4 +332,3 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.read(authTokenStorageProvider),
   );
 });
-

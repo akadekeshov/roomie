@@ -9,10 +9,44 @@ import { LifestyleStepDto } from './dto/lifestyle-step.dto';
 import { SearchStepDto } from './dto/search-step.dto';
 import { FinalizeStepDto } from './dto/finalize-step.dto';
 import { VerificationDocumentDto } from './dto/verification-document.dto';
+import {
+  DEFAULT_MATCHING_PRIORITIES,
+  MATCHING_CRITERIA,
+  MATCHING_PRIORITY_LEVELS,
+  MatchingCriterion,
+  MatchingPriorityLevel,
+} from '../users/matching.constants';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class OnboardingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private usersService: UsersService,
+  ) {}
+
+  private normalizeMatchingPriorities(
+    raw: unknown,
+  ): Record<MatchingCriterion, MatchingPriorityLevel> {
+    const result = { ...DEFAULT_MATCHING_PRIORITIES };
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return result;
+
+    const source = raw as Record<string, unknown>;
+    for (const criterion of MATCHING_CRITERIA) {
+      const value = source[criterion];
+      if (typeof value !== 'string') continue;
+      const normalized = value.trim().toLowerCase() as MatchingPriorityLevel;
+      if ((MATCHING_PRIORITY_LEVELS as readonly string[]).includes(normalized)) {
+        result[criterion] = normalized;
+      }
+    }
+
+    return result;
+  }
+
+  private async refreshEmbedding(userId: string): Promise<void> {
+    await this.usersService.refreshUserEmbedding(userId).catch(() => false);
+  }
 
   async setNameAge(userId: string, nameAgeDto: NameAgeDto) {
     const user = await this.prisma.user.findUnique({
@@ -21,7 +55,7 @@ export class OnboardingService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     // Can update if on NAME_AGE step or already passed it (allows re-editing)
@@ -48,6 +82,8 @@ export class OnboardingService {
       },
     });
 
+    await this.refreshEmbedding(userId);
+
     return {
       ...updatedUser,
       nextStep:
@@ -64,12 +100,12 @@ export class OnboardingService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     // Can only update if past NAME_AGE step
     if (user.onboardingStep === OnboardingStep.NAME_AGE) {
-      throw new BadRequestException('Complete previous step');
+      throw new BadRequestException('Сначала завершите предыдущий шаг');
     }
 
     const updateData: any = {
@@ -92,6 +128,8 @@ export class OnboardingService {
       },
     });
 
+    await this.refreshEmbedding(userId);
+
     return {
       ...updatedUser,
       nextStep:
@@ -108,7 +146,7 @@ export class OnboardingService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     // Can only update if past GENDER step
@@ -116,7 +154,7 @@ export class OnboardingService {
       user.onboardingStep === OnboardingStep.NAME_AGE ||
       user.onboardingStep === OnboardingStep.GENDER
     ) {
-      throw new BadRequestException('Complete previous step');
+      throw new BadRequestException('Сначала завершите предыдущий шаг');
     }
 
     const updateData: any = {
@@ -141,6 +179,8 @@ export class OnboardingService {
       },
     });
 
+    await this.refreshEmbedding(userId);
+
     return {
       ...updatedUser,
       nextStep:
@@ -163,7 +203,7 @@ export class OnboardingService {
       select: { onboardingStep: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) throw new BadRequestException('Пользователь не найден');
 
     if (
       user.onboardingStep === OnboardingStep.ABOUT ||
@@ -185,6 +225,8 @@ export class OnboardingService {
       },
     });
 
+    await this.refreshEmbedding(userId);
+
     const nextStep =
       user.onboardingStep === OnboardingStep.DONE
         ? OnboardingStep.LIFESTYLE
@@ -204,7 +246,7 @@ export class OnboardingService {
       select: { onboardingStep: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) throw new BadRequestException('Пользователь не найден');
 
     const updateData: any = {
       chronotype: dto.chronotype,
@@ -232,6 +274,8 @@ export class OnboardingService {
       },
     });
 
+    await this.refreshEmbedding(userId);
+
     const nextStep =
       user.onboardingStep === OnboardingStep.DONE
         ? OnboardingStep.SEARCH
@@ -248,7 +292,7 @@ export class OnboardingService {
   async setSearch(userId: string, dto: SearchStepDto) {
     if (dto.budgetMin > dto.budgetMax) {
       throw new BadRequestException(
-        'budgetMin cannot be greater than budgetMax',
+        'Минимальный бюджет не может быть больше максимального',
       );
     }
 
@@ -257,7 +301,7 @@ export class OnboardingService {
       select: { onboardingStep: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) throw new BadRequestException('Пользователь не найден');
 
     const updateData: any = {
       searchBudgetMin: dto.budgetMin,
@@ -266,6 +310,12 @@ export class OnboardingService {
       roommateGenderPreference: dto.roommateGenderPreference,
       stayTerm: dto.stayTerm,
     };
+
+    if (dto.matchingPriorities) {
+      updateData.matchingPriorities = this.normalizeMatchingPriorities(
+        dto.matchingPriorities,
+      );
+    }
 
     if (user.onboardingStep === OnboardingStep.SEARCH) {
       updateData.onboardingStep = OnboardingStep.FINALIZE;
@@ -284,6 +334,8 @@ export class OnboardingService {
         onboardingStep: true,
       },
     });
+
+    await this.refreshEmbedding(userId);
 
     const nextStep =
       user.onboardingStep === OnboardingStep.DONE
@@ -304,14 +356,13 @@ export class OnboardingService {
       select: { onboardingStep: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) throw new BadRequestException('Пользователь не найден');
 
     const updateData: any = {
       bio: dto.bio,
       photos: dto.photos,
       onboardingCompleted: true,
       onboardingStep: OnboardingStep.DONE,
-      verificationStatus: VerificationStatus.PENDING,
     };
 
     const updated = await this.prisma.user.update({
@@ -325,6 +376,8 @@ export class OnboardingService {
         onboardingCompleted: true,
       },
     });
+
+    await this.refreshEmbedding(userId);
 
     return { ...updated, nextStep: null };
   }
@@ -354,9 +407,9 @@ export class OnboardingService {
       select: { verificationDocumentUrl: true },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) throw new BadRequestException('Пользователь не найден');
     if (!user.verificationDocumentUrl) {
-      throw new BadRequestException('Upload document first');
+      throw new BadRequestException('Сначала загрузите документ');
     }
 
     const updated = await this.prisma.user.update({
@@ -396,11 +449,12 @@ export class OnboardingService {
         stayTerm: true,
         photos: true,
         verificationStatus: true,
+        matchingPriorities: true,
       },
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     return {
@@ -447,6 +501,9 @@ export class OnboardingService {
           roommateGenderPreference: user.roommateGenderPreference,
           stayTerm: user.stayTerm,
         },
+        matchingPriorities: this.normalizeMatchingPriorities(
+          user.matchingPriorities,
+        ),
         photos: user.photos,
         verificationStatus: user.verificationStatus,
       },

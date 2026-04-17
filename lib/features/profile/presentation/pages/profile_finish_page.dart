@@ -11,6 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/dashed_border_container.dart';
+import '../../../home/data/home_providers.dart';
 import '../../data/me_repository.dart';
 import '../../data/onboarding_repository.dart';
 import '../widgets/profile_flow_header.dart';
@@ -122,6 +123,9 @@ class _ProfileFinishPageState extends ConsumerState<ProfileFinishPage> {
                 ),
               );
       if (!mounted) return;
+      ref.invalidate(meProvider);
+      ref.invalidate(recommendedUsersProvider);
+      ref.invalidate(homeAutoRecommendationsProvider);
       if (_fromEdit) {
         Navigator.of(context).pop(true);
       } else {

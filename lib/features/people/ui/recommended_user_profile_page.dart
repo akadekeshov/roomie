@@ -1,11 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../chat/chat_detail_page.dart';
 import '../../home/data/home_providers.dart';
 import '../../home/data/recommended_user_model.dart';
-import '../../people/data/favorites_users_providers.dart';
+import '../data/favorites_users_providers.dart';
 
 class RecommendedUserProfilePage extends ConsumerWidget {
   const RecommendedUserProfilePage({
@@ -15,99 +15,11 @@ class RecommendedUserProfilePage extends ConsumerWidget {
 
   final RecommendedUser user;
 
-  // Backend С‚РѕР»С‹Т› profileComplete Р±РµСЂРјРµР№ С‚Т±СЂ -> СѓР°Т›С‹С‚С€Р° heuristic
-  bool get _isProbablyComplete {
-    final hasBio = (user.bio ?? '').trim().isNotEmpty;
-    final hasStatus = (user.occupationStatus ?? '').trim().isNotEmpty;
-    final hasLocation =
-        (user.searchDistrict ?? user.city ?? '').trim().isNotEmpty;
-    final hasBudget =
-        user.searchBudgetMin != null || user.searchBudgetMax != null;
-    final hasPhoto = user.photos.isNotEmpty;
-    return hasBio && hasStatus && hasLocation && hasBudget && hasPhoto;
-  }
-
   void _snack(BuildContext context, String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
-  void _showProfileNotReadySheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) {
-        return Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: const [
-                  Icon(Icons.warning_amber_rounded,
-                      color: Color(0xFFF59E0B)),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Профиль заполнен не полностью',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Чат ашу үшін бұл адам профилін толық толтыруы керек. Қазір чат уақытша қолжетімсіз.',
-                style: TextStyle(color: Colors.black54, height: 1.35),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context), // вњ… OK -> Р¶Р°Р±С‹Р»Р°РґС‹
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Ок',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   void _openChat(BuildContext context) {
-    if (!_isProbablyComplete) {
-      _showProfileNotReadySheet(context);
-      return;
-    }
-
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -115,7 +27,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
           peerUserId: user.id,
           title: user.displayName,
           imageUrl: user.avatarUrl,
-          online: true, // СѓР°Т›С‹С‚С€Р°
+          online: true,
           letter: user.displayName.isNotEmpty ? user.displayName.trim()[0] : '?',
         ),
       ),
@@ -132,13 +44,13 @@ class RecommendedUserProfilePage extends ConsumerWidget {
     try {
       if (isSavedNow) {
         await repo.unsaveUser(user.id);
-        _snack(context, 'Удалено из сохранённых');
+        _snack(context, 'Удалено из сохраненных');
       } else {
         await repo.saveUser(user.id);
-        _snack(context, 'Сохранено ✅');
+        _snack(context, 'Сохранено');
       }
 
-      // вњ… Р•РєС– Р¶Р°Т›С‚С‹ Р¶Р°ТЈР°СЂС‚Сѓ
+      ref.invalidate(homeAutoRecommendationsProvider);
       ref.invalidate(recommendedUsersProvider);
       ref.invalidate(favoriteUsersProvider);
     } catch (e) {
@@ -148,19 +60,15 @@ class RecommendedUserProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // вњ… Saved status РЅР°Т›С‚С‹ Р±РѕР»Сѓ ТЇС€С–РЅ provider-РґР°РЅ Р°Р»Р°РјС‹Р·
     final favoriteIds = ref.watch(favoriteUserIdsProvider);
     final isSaved = favoriteIds.contains(user.id);
-
     final photo = user.avatarUrl;
 
-    // Р•РіРµСЂ Home recommendation-РґР° РєРµР»СЃРµ вЂ” РїР°Р№РґР°Р»Р°РЅР° Р±РµСЂРµРјС–Р·
-    final match = user.matchPercent.clamp(0, 100);
-
-    // РЎРєСЂРёРЅРґРµРіС–РґРµР№: budget/lifestyle/location РїСЂРѕС†РµРЅС‚С‚РµСЂС– Р±РµРє Р¶РѕТ›С‚Р° вЂ” placeholder
-    const budgetPct = 90;
-    const lifestylePct = 85;
-    const locationPct = 86;
+    final match = user.compatibilityPercent;
+    final budgetPct = user.budgetMatchPercent;
+    final lifestylePct = user.lifestyleMatchPercent;
+    final locationPct = user.locationMatchPercent;
+    final bio = (user.bio ?? '').trim();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
@@ -171,7 +79,6 @@ class RecommendedUserProfilePage extends ConsumerWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // вњ… Image header
                     Stack(
                       children: [
                         AspectRatio(
@@ -181,8 +88,11 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                               : Container(
                                   color: const Color(0xFFE5E7EB),
                                   alignment: Alignment.center,
-                                  child: const Icon(Icons.person,
-                                      size: 70, color: Colors.black26),
+                                  child: const Icon(
+                                    Icons.person,
+                                    size: 70,
+                                    color: Colors.black26,
+                                  ),
                                 ),
                         ),
                         Positioned(
@@ -193,29 +103,19 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                             onTap: () => Navigator.pop(context),
                           ),
                         ),
-
-                        // вњ… Verified СЃС‚Р°С‚СѓСЃ (backend Р±РµСЂРјРµСЃРµ вЂ” вЂњРџСЂРѕС„РёР»СЊ Р·Р°РїРѕР»РЅРµРЅ/РЅРµ Р·Р°РїРѕР»РЅРµРЅвЂќ РєУ©СЂСЃРµС‚РµРјС–Р·)
-                        Positioned(
-                          right: 12,
-                          bottom: 12,
-                          child: _Pill(
-                            text: _isProbablyComplete
-                                ? 'Профиль заполнен'
-                                : 'Не заполнен',
-                            icon: _isProbablyComplete
-                                ? Icons.check_circle
-                                : Icons.info_outline,
-                            bg: _isProbablyComplete
-                                ? const Color(0x1A16A34A)
-                                : const Color(0x1A6B7280),
-                            fg: _isProbablyComplete
-                                ? const Color(0xFF16A34A)
-                                : const Color(0xFF6B7280),
+                        if (user.isVerified)
+                          const Positioned(
+                            right: 12,
+                            bottom: 12,
+                            child: _Pill(
+                              text: 'Подтвержден',
+                              icon: Icons.check_circle,
+                              bg: Color(0x1A16A34A),
+                              fg: Color(0xFF16A34A),
+                            ),
                           ),
-                        ),
                       ],
                     ),
-
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                       child: Column(
@@ -230,11 +130,6 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-
-                          if (!_isProbablyComplete) const _WarningBox(),
-                          if (!_isProbablyComplete) const SizedBox(height: 12),
-
-                          // вњ… Compatibility card (СЃРєСЂРёРЅРіРµ Т±Т›СЃР°СЃ)
                           _Card(
                             child: Column(
                               children: [
@@ -244,18 +139,81 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                                   bigRight: true,
                                 ),
                                 const SizedBox(height: 12),
-                                const _ProgressRow(title: 'Бюджет', value: budgetPct),
+                                _ProgressRow(
+                                  title: 'Бюджет',
+                                  value: budgetPct,
+                                ),
                                 const SizedBox(height: 12),
-                                const _ProgressRow(title: 'Образ жизни', value: lifestylePct),
+                                _ProgressRow(
+                                  title: 'Образ жизни',
+                                  value: lifestylePct,
+                                ),
                                 const SizedBox(height: 12),
-                                const _ProgressRow(title: 'Локация', value: locationPct),
+                                _ProgressRow(
+                                  title: 'Локация',
+                                  value: locationPct,
+                                ),
                               ],
                             ),
                           ),
-
                           const SizedBox(height: 12),
-
-                          // вњ… Info (Р›РѕРєР°С†РёСЏ/РЎС‚Р°С‚СѓСЃ/Р‘СЋРґР¶РµС‚)
+                          if (user.quickBadges.isNotEmpty)
+                            _Card(
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: user.quickBadges
+                                    .map((badge) => _QuickBadge(text: badge))
+                                    .toList(),
+                              ),
+                            ),
+                          if (user.quickBadges.isNotEmpty)
+                            const SizedBox(height: 12),
+                          if ((user.aiReasoning ?? '').trim().isNotEmpty)
+                            _Card(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Почему вы подходите друг другу',
+                                    style: TextStyle(
+                                      color: Color(0xFF001561),
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    user.aiReasoning!,
+                                    style: const TextStyle(
+                                      color: Color(0xFF111827),
+                                      fontSize: 13,
+                                      height: 1.35,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if ((user.aiReasoning ?? '').trim().isNotEmpty)
+                            const SizedBox(height: 12),
+                          if (user.aiStrengths.isNotEmpty)
+                            _Card(
+                              child: _BulletSection(
+                                title: 'Сильные стороны',
+                                items: user.aiStrengths,
+                              ),
+                            ),
+                          if (user.aiStrengths.isNotEmpty)
+                            const SizedBox(height: 12),
+                          if (user.aiRisks.isNotEmpty)
+                            _Card(
+                              child: _BulletSection(
+                                title: 'Риски',
+                                items: user.aiRisks,
+                              ),
+                            ),
+                          if (user.aiRisks.isNotEmpty)
+                            const SizedBox(height: 12),
                           _Card(
                             child: Column(
                               children: [
@@ -272,13 +230,39 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 10),
                                 _InfoLine(
-                                  icon: Icons.account_balance_wallet_outlined,
+                                  icon:
+                                      Icons.account_balance_wallet_outlined,
                                   label: 'Бюджет',
                                   value: user.budgetText,
                                 ),
                               ],
                             ),
                           ),
+                          if (bio.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _Card(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'О себе',
+                                    style: TextStyle(
+                                      color: Color(0xFF001561),
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    bio,
+                                    style: const TextStyle(
+                                      color: Color(0xFF111827),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -286,8 +270,6 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                 ),
               ),
             ),
-
-            // вњ… Bottom buttons
             Container(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               decoration: const BoxDecoration(
@@ -307,8 +289,10 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                       height: 44,
                       child: OutlinedButton.icon(
                         onPressed: () => _openChat(context),
-                        icon:
-                            const Icon(Icons.chat_bubble_outline, size: 18),
+                        icon: const Icon(
+                          Icons.chat_bubble_outline,
+                          size: 18,
+                        ),
                         label: const Text('Написать'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF111827),
@@ -356,8 +340,6 @@ class RecommendedUserProfilePage extends ConsumerWidget {
   }
 }
 
-/* ---------------- UI widgets ---------------- */
-
 class _CircleButton extends StatelessWidget {
   const _CircleButton({required this.icon, required this.onTap});
 
@@ -372,11 +354,11 @@ class _CircleButton extends StatelessWidget {
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onTap,
-        child: const SizedBox(
+        child: SizedBox(
           width: 40,
           height: 40,
           child: Center(
-            child: Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+            child: Icon(icon, size: 18),
           ),
         ),
       ),
@@ -413,39 +395,10 @@ class _Pill extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             text,
-            style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WarningBox extends StatelessWidget {
-  const _WarningBox();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFED7AA)),
-      ),
-      child: Row(
-        children: const [
-          Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Профиль заполнен не полностью. Чат может быть недоступен.',
-              style: TextStyle(
-                color: Color(0xFF9A3412),
-                fontWeight: FontWeight.w600,
-                height: 1.25,
-              ),
+            style: TextStyle(
+              color: fg,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
             ),
           ),
         ],
@@ -559,8 +512,9 @@ class _ProgressRow extends StatelessWidget {
               minHeight: 8,
               value: v / 100,
               backgroundColor: const Color(0xFFE5E7EB),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Color(0xFF111827)),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF111827),
+              ),
             ),
           ),
         ),
@@ -569,4 +523,73 @@ class _ProgressRow extends StatelessWidget {
   }
 }
 
+class _QuickBadge extends StatelessWidget {
+  const _QuickBadge({required this.text});
 
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDEBFF),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF4C1D95),
+        ),
+      ),
+    );
+  }
+}
+
+class _BulletSection extends StatelessWidget {
+  const _BulletSection({
+    required this.title,
+    required this.items,
+  });
+
+  final String title;
+  final List<String> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF001561),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final item in items)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '• ',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: const TextStyle(height: 1.35),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}

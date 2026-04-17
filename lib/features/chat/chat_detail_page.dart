@@ -35,7 +35,7 @@ class ChatDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
-  final input = TextEditingController();
+  final _inputController = TextEditingController();
   final _scrollController = ScrollController();
 
   List<ChatMessage> _messages = const [];
@@ -58,29 +58,30 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     });
 
     try {
-      final repo = ref.read(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       var conversationId = widget.conversationId;
 
       if ((conversationId == null || conversationId.isEmpty) &&
           widget.peerUserId != null &&
           widget.peerUserId!.isNotEmpty) {
         conversationId =
-            await repo.getOrCreateDirectConversation(widget.peerUserId!);
+            await repository.getOrCreateDirectConversation(widget.peerUserId!);
       }
 
       if (conversationId == null || conversationId.isEmpty) {
-        throw Exception('Conversation id is missing');
+        throw Exception('Не удалось открыть чат');
       }
 
       _conversationId = conversationId;
-      await _loadMessages();
+      await _loadMessages(scrollToBottom: true);
 
       _pollTimer?.cancel();
       _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-        _loadMessages(silent: true);
+        _loadMessages();
       });
-    } catch (e) {
-      setState(() => _error = '$e');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = '$error');
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -88,65 +89,50 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     }
   }
 
-  Future<void> _loadMessages({bool silent = false}) async {
+  Future<void> _loadMessages({bool scrollToBottom = false}) async {
     final conversationId = _conversationId;
     if (conversationId == null || conversationId.isEmpty) return;
 
     try {
-      final repo = ref.read(chatRepositoryProvider);
-      final list = await repo.getMessages(conversationId, limit: 100);
-      await repo.markRead(conversationId);
+      final repository = ref.read(chatRepositoryProvider);
+      final messages = await repository.getMessages(conversationId, limit: 100);
+      await repository.markRead(conversationId);
+      ref.invalidate(chatConversationsProvider);
 
       if (!mounted) return;
       setState(() {
-        _messages = list;
+        _messages = messages;
       });
 
-      if (!silent) {
+      if (scrollToBottom) {
         _scrollToBottom(animated: false);
       }
-    } catch (e) {
-      if (!silent && mounted) {
-        setState(() => _error = '$e');
-      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = '$error');
     }
   }
 
-  void _scrollToBottom({required bool animated}) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      final target = _scrollController.position.maxScrollExtent;
-      if (animated) {
-        _scrollController.animateTo(
-          target,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-        );
-      } else {
-        _scrollController.jumpTo(target);
-      }
-    });
-  }
-
   Future<void> _send() async {
-    final t = input.text.trim();
+    final text = _inputController.text.trim();
     final conversationId = _conversationId;
-    if (t.isEmpty || conversationId == null || _sending) return;
+    if (text.isEmpty || conversationId == null || _sending) return;
 
     setState(() => _sending = true);
     try {
-      final repo = ref.read(chatRepositoryProvider);
-      final sent = await repo.sendMessage(conversationId, t);
+      final repository = ref.read(chatRepositoryProvider);
+      await repository.sendMessage(conversationId, text);
+      _inputController.clear();
+      await _loadMessages(scrollToBottom: true);
+      ref.invalidate(chatConversationsProvider);
       if (!mounted) return;
-      setState(() {
-        _messages = [..._messages, sent];
-      });
-      input.clear();
       _scrollToBottom(animated: true);
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send: $e')),
+        SnackBar(
+          content: Text('Не удалось отправить сообщение: $error'),
+        ),
       );
     } finally {
       if (mounted) {
@@ -155,10 +141,26 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     }
   }
 
+  void _scrollToBottom({required bool animated}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      final position = _scrollController.position.maxScrollExtent;
+      if (animated) {
+        _scrollController.animateTo(
+          position,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        );
+      } else {
+        _scrollController.jumpTo(position);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _pollTimer?.cancel();
-    input.dispose();
+    _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -175,7 +177,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           child: Column(
             children: [
               _Header(
-                title: widget.title ?? 'Chat',
+                title: widget.title ?? 'Чат',
                 online: widget.online,
                 letter: widget.letter,
                 imageUrl: widget.imageUrl,
@@ -197,16 +199,19 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.message_outlined,
-                              size: 18, color: Colors.black38),
+                          const Icon(
+                            Icons.message_outlined,
+                            size: 18,
+                            color: Colors.black38,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
-                              controller: input,
+                              controller: _inputController,
                               minLines: 1,
                               maxLines: 4,
                               decoration: const InputDecoration(
-                                hintText: 'Write a message...',
+                                hintText: 'Напишите сообщение...',
                                 border: InputBorder.none,
                                 isCollapsed: true,
                               ),
@@ -219,9 +224,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                   ),
                   const SizedBox(width: 10),
                   ValueListenableBuilder(
-                    valueListenable: input,
+                    valueListenable: _inputController,
                     builder: (_, __, ___) {
-                      final hasText = input.text.trim().isNotEmpty && !_sending;
+                      final hasText =
+                          _inputController.text.trim().isNotEmpty && !_sending;
                       return InkWell(
                         onTap: hasText ? _send : null,
                         borderRadius: BorderRadius.circular(14),
@@ -233,9 +239,11 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                                 hasText ? AppColors.primary : AppColors.border,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Icon(Icons.send_rounded,
-                              size: 18,
-                              color: hasText ? Colors.white : Colors.black38),
+                          child: Icon(
+                            Icons.send_rounded,
+                            size: 18,
+                            color: hasText ? Colors.white : Colors.black38,
+                          ),
                         ),
                       );
                     },
@@ -268,7 +276,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
             const SizedBox(height: 12),
             FilledButton(
               onPressed: _init,
-              child: const Text('Retry'),
+              child: const Text('Повторить'),
             ),
           ],
         ),
@@ -276,32 +284,34 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     }
 
     if (_messages.isEmpty) {
-      return const Center(child: Text('No messages yet. Start chatting.'));
+      return const Center(
+        child: Text('Сообщений пока нет. Начните общение.'),
+      );
     }
 
     return RefreshIndicator(
-      onRefresh: _loadMessages,
+      onRefresh: () => _loadMessages(scrollToBottom: false),
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.only(top: 8, bottom: 8),
         itemCount: _messages.length,
-        itemBuilder: (_, i) {
-          final msg = _messages[i];
-          final isMe = currentUserId != null && msg.senderId == currentUserId;
+        itemBuilder: (_, index) {
+          final message = _messages[index];
+          final isMe = currentUserId != null && message.senderId == currentUserId;
           return _Bubble(
-            text: msg.text,
+            text: message.text,
             isMe: isMe,
-            time: _hhmm(msg.createdAt),
+            time: _formatTime(message.createdAt),
           );
         },
       ),
     );
   }
 
-  static String _hhmm(DateTime dt) {
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    return '$h:$m';
+  static String _formatTime(DateTime dateTime) {
+    final hours = dateTime.hour.toString().padLeft(2, '0');
+    final minutes = dateTime.minute.toString().padLeft(2, '0');
+    return '$hours:$minutes';
   }
 }
 
@@ -344,8 +354,7 @@ class _Header extends StatelessWidget {
               radius: AppSizes.avatarRadius,
               backgroundColor: const Color(0xFFE5E7EB),
               backgroundImage: avatarProvider,
-              child: (imageUrl == null || imageUrl!.isEmpty) &&
-                      (imagePath == null || imagePath!.isEmpty)
+              child: avatarProvider == null
                   ? Text(
                       letter.isEmpty ? '?' : letter[0].toUpperCase(),
                       style: const TextStyle(
@@ -377,7 +386,10 @@ class _Header extends StatelessWidget {
             children: [
               Text(title, style: AppTextStyles.name),
               const SizedBox(height: 2),
-              Text(online ? 'Online' : 'Offline', style: AppTextStyles.secondary12),
+              Text(
+                online ? 'В сети' : 'Не в сети',
+                style: AppTextStyles.secondary12,
+              ),
             ],
           ),
         ),
@@ -413,18 +425,24 @@ class _Bubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           ConstrainedBox(
             constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.72),
+              maxWidth: MediaQuery.of(context).size.width * 0.72,
+            ),
             child: Column(
               crossAxisAlignment:
                   isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(color: bubbleColor, borderRadius: radius),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: bubbleColor,
+                    borderRadius: radius,
+                  ),
                   child: Text(
                     text,
                     style: TextStyle(

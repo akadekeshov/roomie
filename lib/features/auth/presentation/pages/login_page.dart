@@ -11,6 +11,9 @@ import '../../../../core/widgets/app_segmented_control.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../data/auth_repository.dart';
 import '../state/login_state.dart';
+import '../../../home/data/home_providers.dart';
+import '../../../people/data/favorites_users_providers.dart';
+import '../../../profile/data/me_repository.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -39,6 +42,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             password: state.password,
             rememberMe: state.rememberMe,
           );
+
+      ref.invalidate(meProvider);
+      ref.invalidate(homeAutoRecommendationsProvider);
+      ref.invalidate(recommendedUsersProvider);
+      ref.invalidate(favoriteUsersProvider);
 
       if (!mounted) return;
 

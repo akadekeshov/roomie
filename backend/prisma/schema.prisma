@@ -7,6 +7,211 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                       String                    @id @default(uuid())
+  email                    String?                   @unique
+  phone                    String?                   @unique
+  password                 String
+  role                     UserRole                  @default(USER)
+  isBanned                 Boolean                   @default(false)
+  emailVerified            Boolean                   @default(false)
+  phoneVerified            Boolean                   @default(false)
+  firstName                String?
+  lastName                 String?
+  gender                   Gender?
+  age                      Int?
+  city                     String?
+  bio                      String?
+  onboardingCompleted      Boolean                   @default(false)
+  onboardingStep           OnboardingStep            @default(NAME_AGE)
+  occupationStatus         OccupationStatus?
+  university               String?
+  chronotype               Chronotype?
+  noisePreference          NoisePreference?
+  personalityType          PersonalityType?
+  smokingPreference        SmokingPreference?
+  petsPreference           PetsPreference?
+  searchBudgetMin          Int?
+  searchBudgetMax          Int?
+  searchDistrict           String?
+  roommateGenderPreference RoommateGenderPreference?
+  stayTerm                 String?
+  photos                   String[]
+  verificationStatus       VerificationStatus        @default(NONE)
+  verificationDocumentUrl  String?
+  verificationSelfieUrl    String?
+  verificationRejectReason String?
+  verificationReviewedAt   DateTime?
+  verificationReviewedBy   String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  matchingPriorities       Json                      @default("{\"budget\": \"important\", \"district\": \"important\", \"chronotype\": \"neutral\", \"petsPreference\": \"important\", \"noisePreference\": \"neutral\", \"personalityType\": \"neutral\", \"occupationStatus\": \"neutral\", \"smokingPreference\": \"important\"}")
+  conversationParticipants ConversationParticipant[]
+  favoriteUsers            FavoriteUser[]            @relation("FavoriteOwner")
+  favoritedBy              FavoriteUser[]            @relation("FavoriteTarget")
+  listings                 Listing[]
+  sentMessages             Message[]
+  refreshTokens            RefreshToken[]
+  savedListings            SavedListing[]
+  embedding                UserEmbedding?
+  aiRecommendationsGiven   AiRecommendationCache[]    @relation("AiRecommendationCurrentUser")
+  aiRecommendationsReceived AiRecommendationCache[]   @relation("AiRecommendationCandidateUser")
+
+  @@map("users")
+}
+
+model UserEmbedding {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  profileText     String
+  profileTextHash String
+  model           String
+  dimensions      Int
+  vector          Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_embeddings")
+}
+
+model AiRecommendationCache {
+  id              String   @id @default(uuid())
+  currentUserId   String
+  candidateUserId String
+  ruleScore       Float
+  embeddingScore  Float?
+  aiScore         Float?
+  finalScore      Float
+  reasoning       String?
+  strengths       Json?
+  risks           Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  currentUser   User @relation("AiRecommendationCurrentUser", fields: [currentUserId], references: [id], onDelete: Cascade)
+  candidateUser User @relation("AiRecommendationCandidateUser", fields: [candidateUserId], references: [id], onDelete: Cascade)
+
+  @@unique([currentUserId, candidateUserId])
+  @@index([currentUserId])
+  @@index([candidateUserId])
+  @@map("ai_recommendation_cache")
+}
+
+model OtpCode {
+  id         String     @id @default(uuid())
+  channel    OTPChannel
+  purpose    OTPPurpose
+  target     String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int        @default(0)
+  lastSentAt DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@unique([channel, purpose, target])
+  @@index([channel, purpose, target])
+  @@map("otp_codes")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Listing {
+  id            String         @id @default(uuid())
+  title         String
+  description   String
+  address       String
+  city          String
+  state         String?
+  zipCode       String?
+  country       String
+  price         Float
+  roomType      RoomType
+  availableFrom DateTime?
+  availableTo   DateTime?
+  amenities     String[]
+  images        String[]
+  ownerId       String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  savedBy       SavedListing[]
+
+  @@map("listings")
+}
+
+model SavedListing {
+  id        String   @id @default(uuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("saved_listings")
+}
+
+model FavoriteUser {
+  id           String   @id @default(uuid())
+  ownerId      String
+  targetUserId String
+  createdAt    DateTime @default(now())
+  owner        User     @relation("FavoriteOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  target       User     @relation("FavoriteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, targetUserId])
+  @@map("favorite_users")
+}
+
+model Conversation {
+  id           String                    @id @default(uuid())
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  userId         String
+  createdAt      DateTime     @default(now())
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  text           String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -89,174 +294,4 @@ enum VerificationStatus {
   PENDING
   VERIFIED
   REJECTED
-}
-
-model User {
-  id                 String          @id @default(uuid())
-  email              String?         @unique
-  phone              String?         @unique
-  password           String
-  role               UserRole        @default(USER)
-  isBanned           Boolean         @default(false)
-  emailVerified      Boolean         @default(false)
-  phoneVerified      Boolean         @default(false)
-  firstName          String?
-  lastName           String?
-  gender             Gender?
-  age                Int?
-  city               String?
-  bio                String?
-  onboardingCompleted Boolean        @default(false)
-  onboardingStep    OnboardingStep  @default(NAME_AGE)
-  occupationStatus   OccupationStatus?
-  university         String?
-  chronotype         Chronotype?
-  noisePreference    NoisePreference?
-  personalityType    PersonalityType?
-  smokingPreference  SmokingPreference?
-  petsPreference     PetsPreference?
-  searchBudgetMin    Int?
-  searchBudgetMax    Int?
-  searchDistrict     String?
-  roommateGenderPreference RoommateGenderPreference?
-  stayTerm           String?
-  photos             String[]
-  verificationStatus VerificationStatus @default(PENDING)
-  verificationDocumentUrl String?
-  verificationSelfieUrl String?
-  verificationRejectReason String?
-  verificationReviewedAt DateTime?
-  verificationReviewedBy String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-
-  refreshTokens RefreshToken[]
-  listings      Listing[]
-  savedListings SavedListing[]
-
-  favoriteUsers FavoriteUser[] @relation("FavoriteOwner")
-  favoritedBy   FavoriteUser[] @relation("FavoriteTarget")
-  conversationParticipants ConversationParticipant[]
-  sentMessages Message[]
-
-  @@map("users")
-}
-
-model OtpCode {
-  id         String     @id @default(uuid())
-  channel    OTPChannel
-  purpose    OTPPurpose
-  target     String
-  codeHash   String
-  expiresAt  DateTime
-  attempts   Int        @default(0)
-  lastSentAt DateTime
-  consumedAt DateTime?
-  createdAt  DateTime   @default(now())
-
-  @@unique([channel, purpose, target])
-  @@index([channel, purpose, target])
-  @@map("otp_codes")
-}
-
-model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("refresh_tokens")
-}
-
-model Listing {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  address     String
-  city        String
-  state       String?
-  zipCode     String?
-  country     String
-  price       Float
-  roomType    RoomType
-  availableFrom DateTime?
-  availableTo   DateTime?
-  amenities   String[]
-  images      String[]
-  ownerId     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  owner User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  savedBy SavedListing[]
-
-  @@map("listings")
-}
-
-model SavedListing {
-  id        String   @id @default(uuid())
-  userId    String
-  listingId String
-  createdAt DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, listingId])
-  @@map("saved_listings")
-}
-
-model FavoriteUser {
-  id           String   @id @default(uuid())
-  ownerId      String
-  targetUserId String
-  createdAt    DateTime @default(now())
-
-  owner  User @relation("FavoriteOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  target User @relation("FavoriteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
-
-  @@unique([ownerId, targetUserId])
-  @@map("favorite_users")
-}
-
-model Conversation {
-  id           String                    @id @default(uuid())
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
-  participants ConversationParticipant[]
-  messages     Message[]
-
-  @@map("conversations")
-}
-
-model ConversationParticipant {
-  id             String       @id @default(uuid())
-  conversationId String
-  userId         String
-  createdAt      DateTime     @default(now())
-  lastReadAt     DateTime?
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([conversationId, userId])
-  @@index([userId])
-  @@map("conversation_participants")
-}
-
-model Message {
-  id             String   @id @default(uuid())
-  conversationId String
-  senderId       String
-  text           String
-  createdAt      DateTime @default(now())
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([conversationId, createdAt])
-  @@map("messages")
 }

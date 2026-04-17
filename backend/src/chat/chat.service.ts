@@ -11,9 +11,12 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getOrCreateDirectConversation(currentUserId: string, peerUserId: string) {
+  async getOrCreateDirectConversation(
+    currentUserId: string,
+    peerUserId: string,
+  ) {
     if (currentUserId === peerUserId) {
-      throw new BadRequestException('Cannot create chat with yourself');
+      throw new BadRequestException('Нельзя создать чат с самим собой');
     }
 
     const peer = await this.prisma.user.findFirst({
@@ -25,39 +28,70 @@ export class ChatService {
     });
 
     if (!peer) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Пользователь не найден');
     }
 
-    const existing = await this.prisma.conversation.findFirst({
+    const conversations = await this.prisma.conversation.findMany({
       where: {
-        AND: [
-          {
-            participants: {
-              every: {
-                userId: { in: [currentUserId, peerUserId] },
-              },
-            },
+        participants: {
+          some: {
+            userId: { in: [currentUserId, peerUserId] },
           },
-          {
-            participants: {
-              some: {
-                userId: currentUserId,
-              },
-            },
-          },
-          {
-            participants: {
-              some: {
-                userId: peerUserId,
-              },
-            },
-          },
-        ],
+        },
       },
-      select: { id: true },
+      include: {
+        participants: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const expectedIds = [currentUserId, peerUserId].sort();
+    const existing = conversations.find((conversation) => {
+      const participantIds = conversation.participants
+        .map((participant) => participant.userId)
+        .sort();
+
+      return (
+        participantIds.length === 2 &&
+        participantIds[0] === expectedIds[0] &&
+        participantIds[1] === expectedIds[1]
+      );
     });
 
     if (existing) {
+      await Promise.all([
+        this.prisma.conversationParticipant.upsert({
+          where: {
+            conversationId_userId: {
+              conversationId: existing.id,
+              userId: currentUserId,
+            },
+          },
+          update: {},
+          create: {
+            conversationId: existing.id,
+            userId: currentUserId,
+          },
+        }),
+        this.prisma.conversationParticipant.upsert({
+          where: {
+            conversationId_userId: {
+              conversationId: existing.id,
+              userId: peerUserId,
+            },
+          },
+          update: {},
+          create: {
+            conversationId: existing.id,
+            userId: peerUserId,
+          },
+        }),
+      ]);
+
       return { conversationId: existing.id };
     }
 
@@ -110,14 +144,14 @@ export class ChatService {
     const data = await Promise.all(
       rows.map(async (row) => {
         const peer = row.conversation.participants.find(
-          (p) => p.userId !== currentUserId,
+          (participant) => participant.userId !== currentUserId,
         )?.user;
 
         const peerName =
           [peer?.firstName, peer?.lastName]
-            .filter((v) => !!v && v.trim().length > 0)
+            .filter((value) => !!value && value.trim().length > 0)
             .join(' ')
-            .trim() || 'User';
+            .trim() || 'Пользователь';
 
         const avatarPath = peer?.photos?.[0] ?? null;
         const lastMessage = row.conversation.messages[0] ?? null;
@@ -172,7 +206,7 @@ export class ChatService {
 
     const messages = await this.prisma.message.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
       take: safeLimit,
       select: {
         id: true,
@@ -187,53 +221,56 @@ export class ChatService {
       data: { lastReadAt: new Date() },
     });
 
-    const data = [...messages].reverse();
-    const nextBefore = messages.length > 0 ? messages[messages.length - 1].createdAt : null;
-
     return {
-      data,
+      data: messages,
       meta: {
         limit: safeLimit,
         hasMore: messages.length === safeLimit,
-        nextBefore,
+        nextBefore: messages.length > 0 ? messages[0].createdAt : null,
       },
     };
   }
 
-  async sendMessage(currentUserId: string, conversationId: string, text: string) {
+  async sendMessage(
+    currentUserId: string,
+    conversationId: string,
+    text: string,
+  ) {
     await this.ensureParticipant(currentUserId, conversationId);
 
     const normalizedText = text.trim();
     if (!normalizedText) {
-      throw new BadRequestException('Message text is required');
+      throw new BadRequestException('Текст сообщения обязателен');
     }
 
-    const message = await this.prisma.message.create({
-      data: {
-        conversationId,
-        senderId: currentUserId,
-        text: normalizedText,
-      },
-      select: {
-        id: true,
-        text: true,
-        senderId: true,
-        createdAt: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const message = await tx.message.create({
+        data: {
+          conversationId,
+          senderId: currentUserId,
+          text: normalizedText,
+        },
+        select: {
+          id: true,
+          text: true,
+          senderId: true,
+          createdAt: true,
+        },
+      });
+
+      await Promise.all([
+        tx.conversation.update({
+          where: { id: conversationId },
+          data: { updatedAt: new Date() },
+        }),
+        tx.conversationParticipant.updateMany({
+          where: { conversationId, userId: currentUserId },
+          data: { lastReadAt: new Date() },
+        }),
+      ]);
+
+      return message;
     });
-
-    await this.prisma.$transaction([
-      this.prisma.conversation.update({
-        where: { id: conversationId },
-        data: { updatedAt: new Date() },
-      }),
-      this.prisma.conversationParticipant.updateMany({
-        where: { conversationId, userId: currentUserId },
-        data: { lastReadAt: new Date() },
-      }),
-    ]);
-
-    return message;
   }
 
   async markRead(currentUserId: string, conversationId: string) {
@@ -247,14 +284,17 @@ export class ChatService {
     return { success: true };
   }
 
-  private async ensureParticipant(currentUserId: string, conversationId: string) {
+  private async ensureParticipant(
+    currentUserId: string,
+    conversationId: string,
+  ) {
     const participant = await this.prisma.conversationParticipant.findFirst({
       where: { conversationId, userId: currentUserId },
       select: { id: true },
     });
 
     if (!participant) {
-      throw new ForbiddenException('No access to this conversation');
+      throw new ForbiddenException('Нет доступа к этому чату');
     }
   }
 }

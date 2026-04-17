@@ -28,7 +28,7 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(chatConversationsProvider);
+    final conversationsAsync = ref.watch(chatConversationsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
@@ -40,7 +40,7 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
             children: [
               Row(
                 children: const [
-                  Text('Messages', style: AppTextStyles.title),
+                  Text('Сообщения', style: AppTextStyles.title),
                   Spacer(),
                   Icon(Icons.more_horiz),
                 ],
@@ -62,7 +62,7 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
                         controller: _searchController,
                         onChanged: (_) => setState(() {}),
                         decoration: const InputDecoration(
-                          hintText: 'Search',
+                          hintText: 'Поиск',
                           border: InputBorder.none,
                           isCollapsed: true,
                         ),
@@ -73,40 +73,44 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
               ),
               const SizedBox(height: AppSpacing.searchGap),
               Expanded(
-                child: async.when(
+                child: conversationsAsync.when(
                   loading: () => const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   ),
-                  error: (e, _) => Center(
+                  error: (error, _) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Failed to load chats\n$e',
+                            'Не удалось загрузить чаты.\n$error',
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 12),
                           FilledButton(
                             onPressed: () =>
                                 ref.invalidate(chatConversationsProvider),
-                            child: const Text('Retry'),
+                            child: const Text('Повторить'),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  data: (chats) {
+                  data: (conversations) {
                     final query = _searchController.text.trim().toLowerCase();
-                    final filtered = chats.where((c) {
+                    final filtered = conversations.where((conversation) {
                       if (query.isEmpty) return true;
-                      return c.peerName.toLowerCase().contains(query) ||
-                          (c.lastMessageText ?? '').toLowerCase().contains(query);
+                      return conversation.peerName.toLowerCase().contains(query) ||
+                          (conversation.lastMessageText ?? '')
+                              .toLowerCase()
+                              .contains(query);
                     }).toList();
 
                     if (filtered.isEmpty) {
-                      return const Center(child: Text('No messages yet'));
+                      return const Center(
+                        child: Text('У вас пока нет сообщений'),
+                      );
                     }
 
                     return RefreshIndicator(
@@ -118,23 +122,26 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
                         itemCount: filtered.length,
                         separatorBuilder: (_, __) =>
                             const SizedBox(height: AppSpacing.chatItemGap),
-                        itemBuilder: (_, i) => _ChatTile(
-                          chat: filtered[i],
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ChatDetailPage(
-                                  conversationId: filtered[i].id,
-                                  title: filtered[i].peerName,
-                                  imageUrl: filtered[i].peerAvatarUrl,
-                                  letter: _firstLetter(filtered[i].peerName),
+                        itemBuilder: (_, index) {
+                          final conversation = filtered[index];
+                          return _ChatTile(
+                            chat: conversation,
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChatDetailPage(
+                                    conversationId: conversation.id,
+                                    title: conversation.peerName,
+                                    imageUrl: conversation.peerAvatarUrl,
+                                    letter: _firstLetter(conversation.peerName),
+                                  ),
                                 ),
-                              ),
-                            );
-                            ref.invalidate(chatConversationsProvider);
-                          },
-                        ),
+                              );
+                              ref.invalidate(chatConversationsProvider);
+                            },
+                          );
+                        },
                       ),
                     );
                   },
@@ -147,10 +154,10 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
     );
   }
 
-  String _firstLetter(String s) {
-    final t = s.trim();
-    if (t.isEmpty) return '?';
-    return t.characters.first.toUpperCase();
+  String _firstLetter(String text) {
+    final value = text.trim();
+    if (value.isEmpty) return '?';
+    return value.characters.first.toUpperCase();
   }
 }
 
@@ -196,7 +203,7 @@ class _ChatTile extends StatelessWidget {
                 Text(chat.peerName, style: AppTextStyles.name),
                 const SizedBox(height: AppSpacing.nameToLastGap),
                 Text(
-                  lastText.isEmpty ? 'Start conversation' : lastText,
+                  lastText.isEmpty ? 'Начните переписку' : lastText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.secondary12,
@@ -236,20 +243,22 @@ class _ChatTile extends StatelessWidget {
     );
   }
 
-  static String _firstLetter(String s) {
-    final t = s.trim();
-    if (t.isEmpty) return '?';
-    return t.characters.first.toUpperCase();
+  static String _firstLetter(String text) {
+    final value = text.trim();
+    if (value.isEmpty) return '?';
+    return value.characters.first.toUpperCase();
   }
 
-  static String _formatTime(DateTime? dt) {
-    if (dt == null) return '';
+  static String _formatTime(DateTime? dateTime) {
+    if (dateTime == null) return '';
     final now = DateTime.now();
-    if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
-      final h = dt.hour.toString().padLeft(2, '0');
-      final m = dt.minute.toString().padLeft(2, '0');
-      return '$h:$m';
+    if (dateTime.year == now.year &&
+        dateTime.month == now.month &&
+        dateTime.day == now.day) {
+      final hours = dateTime.hour.toString().padLeft(2, '0');
+      final minutes = dateTime.minute.toString().padLeft(2, '0');
+      return '$hours:$minutes';
     }
-    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}';
+    return '${dateTime.day.toString().padLeft(2, '0')}.${dateTime.month.toString().padLeft(2, '0')}';
   }
 }

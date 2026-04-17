@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
+import '../../../../core/errors/app_exception.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -59,14 +59,9 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
       }
 
       Navigator.of(context).pushReplacementNamed(AppRoutes.verifyEmail);
-    } on DioException catch (e) {
+    } on AppException catch (e) {
       if (!mounted) return;
-      final serverMessage = e.response?.data is Map<String, dynamic>
-          ? (e.response?.data['message']?.toString())
-          : null;
-      final message = (serverMessage != null && serverMessage.isNotEmpty)
-          ? serverMessage
-          : 'Ошибка регистрации. Проверьте данные.';
+      final message = e.message;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
@@ -321,5 +316,3 @@ class _RememberRow extends StatelessWidget {
     );
   }
 }
-
-

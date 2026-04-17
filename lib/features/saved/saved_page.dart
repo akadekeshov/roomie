@@ -91,7 +91,7 @@ class _SavedUserCard extends StatelessWidget {
     final r = BorderRadius.circular(AppSizes.cardRadius);
     final imageUrl = user.avatarUrl ?? '';
 
-    final match = user.matchPercent;
+    final match = user.compatibilityPercent;
     final verified = user.isVerified;
     final tag = (user.preferenceTag ?? '').trim();
 
@@ -340,5 +340,4 @@ class _WriteButton extends StatelessWidget {
     );
   }
 }
-
 

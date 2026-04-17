@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../chat/chat_detail_page.dart';
+import '../../../people/data/favorites_users_providers.dart';
+import '../../../people/data/hidden_users_provider.dart';
+import '../../../people/ui/recommended_user_profile_page.dart';
 import '../../data/filter_providers.dart' as filter;
 import '../../data/home_providers.dart' as home;
 import '../../data/recommended_user_model.dart';
 import 'filter_page.dart';
-import 'package:roommate_app/features/people/data/favorites_users_providers.dart';
-import 'package:roommate_app/features/people/data/hidden_users_provider.dart';
-import 'package:roommate_app/features/people/ui/recommended_user_profile_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -18,49 +19,57 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  void _msg(String text) {
+  void _invalidateHomeData() {
+    ref.invalidate(home.homeAutoRecommendationsProvider);
+    ref.invalidate(home.recommendedUsersProvider);
+    ref.invalidate(filter.filteredUsersProvider);
+    ref.invalidate(favoriteUsersProvider);
+  }
+
+  void _showMessage(String text) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text)),
     );
   }
 
-  Future<void> _hideUser(RecommendedUser user) async {
-    final repo = ref.read(home.homeRepositoryProvider);
+  Future<void> _hideUser(
+    RecommendedUser user, {
+    required bool isSaved,
+  }) async {
+    final repository = ref.read(home.homeRepositoryProvider);
 
     try {
-      if (user.isSaved) {
-        await repo.unsaveUser(user.id);
+      if (isSaved) {
+        await repository.unsaveUser(user.id);
       }
 
       ref.read(hiddenUserIdsProvider.notifier).hide(user.id);
-      ref.invalidate(home.recommendedUsersProvider);
-      ref.invalidate(filter.filteredUsersProvider);
-      ref.invalidate(favoriteUsersProvider);
-
-      _msg('Скрыто');
-    } catch (e) {
-      _msg('Ошибка: $e');
+      _invalidateHomeData();
+      _showMessage('Пользователь скрыт');
+    } catch (error) {
+      _showMessage('Ошибка: $error');
     }
   }
 
-  Future<void> _toggleSave(RecommendedUser user) async {
-    final repo = ref.read(home.homeRepositoryProvider);
+  Future<void> _toggleSave(
+    RecommendedUser user, {
+    required bool isSaved,
+  }) async {
+    final repository = ref.read(home.homeRepositoryProvider);
 
     try {
-      if (user.isSaved) {
-        await repo.unsaveUser(user.id);
-        _msg('Удалено из избранного');
+      if (isSaved) {
+        await repository.unsaveUser(user.id);
+        _showMessage('Удалено из сохранённых');
       } else {
-        await repo.saveUser(user.id);
-        _msg('Сохранено');
+        await repository.saveUser(user.id);
+        _showMessage('Сохранено');
       }
 
-      ref.invalidate(home.recommendedUsersProvider);
-      ref.invalidate(filter.filteredUsersProvider);
-      ref.invalidate(favoriteUsersProvider);
-    } catch (e) {
-      _msg('Ошибка: $e');
+      _invalidateHomeData();
+    } catch (error) {
+      _showMessage('Ошибка: $error');
     }
   }
 
@@ -73,14 +82,30 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  void _openChat(RecommendedUser user) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatDetailPage(
+          peerUserId: user.id,
+          title: user.displayName,
+          imageUrl: user.avatarUrl,
+          online: true,
+          letter: user.displayName.trim().isNotEmpty
+              ? user.displayName.trim()[0]
+              : '?',
+        ),
+      ),
+    );
+  }
+
   Future<void> _openFilters() async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const FilterPage()),
     );
 
-    ref.invalidate(filter.filteredUsersProvider);
-    ref.invalidate(home.recommendedUsersProvider);
+    _invalidateHomeData();
   }
 
   @override
@@ -88,10 +113,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     final textTheme = Theme.of(context).textTheme;
     final filterState = ref.watch(filter.filterStateProvider);
     final hasFilters = filterState.hasAnyFilter;
+    final favoriteIds = ref.watch(favoriteUserIdsProvider);
 
     final asyncUsers = hasFilters
-        ? ref.watch(filter.filteredUsersProvider)
-        : ref.watch(home.recommendedUsersProvider);
+        ? ref.watch(filter.filteredUsersProvider).whenData(
+              (users) => home.HomeAutoRecommendations(
+                home.HomeAutoState.loaded,
+                users,
+              ),
+            )
+        : ref.watch(home.homeAutoRecommendationsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
@@ -137,7 +168,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     border: Border.all(color: const Color(0xFFE2E5ED)),
                   ),
                   child: const Text(
-                    'Показаны отфильтрованные пользователи',
+                    'Показаны пользователи по выбранным фильтрам',
                     style: TextStyle(
                       color: Color(0xFF001561),
                       fontWeight: FontWeight.w600,
@@ -149,40 +180,63 @@ class _HomePageState extends ConsumerState<HomePage> {
                   loading: () => const Center(
                     child: CircularProgressIndicator(),
                   ),
-                  error: (e, _) => Center(
-                    child: Text('Ошибка: $e'),
+                  error: (error, _) => Center(
+                    child: Text('Ошибка: $error'),
                   ),
-                  data: (users) {
+                  data: (autoData) {
                     final hiddenIds = ref.watch(hiddenUserIdsProvider);
-                    final visible =
-                        users.where((u) => !hiddenIds.contains(u.id)).toList();
+                    final visibleUsers = autoData.users
+                        .where((user) => !hiddenIds.contains(user.id))
+                        .toList();
+                    final showBanner =
+                        !hasFilters && autoData.state != home.HomeAutoState.loaded;
 
-                    if (visible.isEmpty) {
-                      return Center(
-                        child: Text(
-                          hasFilters
-                              ? 'По фильтру пользователи не найдены'
-                              : 'Нет подходящих анкет',
+                    if (visibleUsers.isEmpty) {
+                      return RefreshIndicator(
+                        onRefresh: () async => _invalidateHomeData(),
+                        child: ListView(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          children: [
+                            if (showBanner)
+                              _HomeStateBanner(state: autoData.state),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: Center(
+                                child: Text(
+                                  hasFilters
+                                      ? 'По этим фильтрам пользователи не найдены'
+                                      : 'Пока нет видимых пользователей',
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }
 
                     return RefreshIndicator(
-                      onRefresh: () async {
-                        ref.invalidate(home.recommendedUsersProvider);
-                        ref.invalidate(filter.filteredUsersProvider);
-                      },
+                      onRefresh: () async => _invalidateHomeData(),
                       child: ListView.separated(
                         padding: const EdgeInsets.only(bottom: 12),
-                        itemCount: visible.length,
+                        itemCount: visibleUsers.length + (showBanner ? 1 : 0),
                         separatorBuilder: (_, __) =>
                             const SizedBox(height: 16),
                         itemBuilder: (context, index) {
-                          final user = visible[index];
+                          if (showBanner && index == 0) {
+                            return _HomeStateBanner(state: autoData.state);
+                          }
+
+                          final user =
+                              visibleUsers[index - (showBanner ? 1 : 0)];
+                          final isSaved = favoriteIds.contains(user.id);
+
                           return _RoommateCard(
                             user: user,
-                            onHide: () => _hideUser(user),
-                            onSave: () => _toggleSave(user),
+                            isSaved: isSaved,
+                            onHide: () => _hideUser(user, isSaved: isSaved),
+                            onSave: () => _toggleSave(user, isSaved: isSaved),
+                            onChat: () => _openChat(user),
                             onOpen: () => _openDetails(user),
                           );
                         },
@@ -199,17 +253,117 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
+class _HomeStateBanner extends StatelessWidget {
+  const _HomeStateBanner({required this.state});
+
+  final home.HomeAutoState state;
+
+  @override
+  Widget build(BuildContext context) {
+    late final String title;
+    late final String subtitle;
+    late final Color background;
+    late final Color border;
+    late final Color accent;
+    late final IconData icon;
+
+    switch (state) {
+      case home.HomeAutoState.profileIncomplete:
+        title = 'Заполните профиль для лучших совпадений';
+        subtitle =
+            'Пользователи всё равно показываются, но рекомендации станут точнее после завершения анкеты.';
+        background = const Color(0xFFFFF7ED);
+        border = const Color(0xFFFED7AA);
+        accent = const Color(0xFFC2410C);
+        icon = Icons.person_search_outlined;
+        break;
+      case home.HomeAutoState.verificationPending:
+        title = 'Проверка ещё идёт';
+        subtitle =
+            'Ваш профиль остаётся активным, пока модерация не завершена.';
+        background = const Color(0xFFF4F2FF);
+        border = const Color(0xFFD8CBFF);
+        accent = AppColors.primary;
+        icon = Icons.hourglass_top_rounded;
+        break;
+      case home.HomeAutoState.verificationRejected:
+        title = 'Проверка требует внимания';
+        subtitle =
+            'Вы всё ещё можете смотреть пользователей. Обновите данные для верификации, чтобы вернуть значок доверия.';
+        background = const Color(0xFFFFF1F2);
+        border = const Color(0xFFFDA4AF);
+        accent = const Color(0xFFE11D48);
+        icon = Icons.error_outline;
+        break;
+      case home.HomeAutoState.noRecommendations:
+        title = 'Пока нет сильных совпадений';
+        subtitle =
+            'Пока собираются новые сигналы для рекомендаций, показывается более широкий список пользователей.';
+        background = const Color(0xFFEFF6FF);
+        border = const Color(0xFFBFDBFE);
+        accent = const Color(0xFF1D4ED8);
+        icon = Icons.auto_awesome_outlined;
+        break;
+      case home.HomeAutoState.loaded:
+        return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF475569),
+                        height: 1.35,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RoommateCard extends StatelessWidget {
   const _RoommateCard({
     required this.user,
+    required this.isSaved,
     required this.onHide,
     required this.onSave,
+    required this.onChat,
     required this.onOpen,
   });
 
   final RecommendedUser user;
+  final bool isSaved;
   final VoidCallback onHide;
   final VoidCallback onSave;
+  final VoidCallback onChat;
   final VoidCallback onOpen;
 
   @override
@@ -261,39 +415,40 @@ class _RoommateCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Positioned(
-                      right: 12,
-                      bottom: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0x801C1C1D),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              size: 14,
-                              color: Color(0xFF00C853),
-                            ),
-                            SizedBox(width: 5),
-                            Text(
-                              'Подтверждён',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                    if (user.isVerified)
+                      Positioned(
+                        right: 12,
+                        bottom: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0x801C1C1D),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                size: 14,
+                                color: Color(0xFF00C853),
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 5),
+                              Text(
+                                'Подтверждён',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -310,6 +465,24 @@ class _RoommateCard extends StatelessWidget {
                       fontSize: 16,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Совместимость: ${user.compatibilityPercent}%',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF4C1D95),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (user.quickBadges.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      user.quickBadges.first,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.map_outlined,
@@ -329,6 +502,23 @@ class _RoommateCard extends StatelessWidget {
                     value: user.budgetText,
                   ),
                   const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: onChat,
+                      icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                      label: const Text('Написать'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -336,18 +526,17 @@ class _RoommateCard extends StatelessWidget {
                           icon: Icons.block,
                           label: 'Скрыть',
                           onTap: onHide,
-                          isActive: false,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _ActionOutlinedButton(
-                          icon: user.isSaved
+                          icon: isSaved
                               ? Icons.favorite
                               : Icons.favorite_border,
-                          label: user.isSaved ? 'Сохранено' : 'Сохранить',
+                          label: isSaved ? 'Сохранено' : 'Сохранить',
                           onTap: onSave,
-                          isActive: user.isSaved,
+                          isActive: isSaved,
                         ),
                       ),
                     ],

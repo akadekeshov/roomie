@@ -32,6 +32,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { DiscoverUsersQueryDto } from './dto/discover-users-query.dto';
 import { FilterUsersQueryDto } from './dto/filter-users-query.dto';
+import { MatchingPrioritiesDto } from './dto/matching-priorities.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
@@ -71,7 +72,7 @@ function createAvatarMulterOptions() {
       if (!ALLOWED_AVATAR_MIME_TYPES.includes(file.mimetype)) {
         return cb(
           new BadRequestException(
-            'Invalid file type. Only JPEG, PNG, and WEBP images are allowed.',
+            'Неверный формат файла. Разрешены только JPEG, PNG и WEBP.',
           ),
           false,
         );
@@ -179,16 +180,13 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description:
-      'Recommended users retrieved successfully (onboardingCompleted + verified only, excluding current user)',
+      'Recommended users retrieved successfully, with discover fallback when personalized matches are unavailable',
   })
   async getRecommendations(
     @CurrentUser() user: any,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() query: DiscoverUsersQueryDto,
   ) {
-    const pageNum = Number(page) || 1;
-    const limitNum = Number(limit) || 20;
-    return this.usersService.getRecommendations(user.id, pageNum, limitNum);
+    return this.usersService.getRecommendations(user.id, query);
   }
 
   @Get('recommendations/personal')
@@ -197,13 +195,73 @@ export class UsersController {
     summary:
       'Get personalized recommendations for current user based on their profile',
   })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 20,
+    description: 'Items per page (max 50)',
+  })
   @ApiResponse({
     status: 200,
     description:
-      'Personalized recommended users (verified + onboarding completed, excluding current user)',
+      'Personalized recommended users for the current user profile',
   })
-  async getPersonalizedRecommendations(@CurrentUser() user: any) {
-    return this.usersService.getPersonalizedRecommendations(user.id);
+  async getPersonalizedRecommendations(
+    @CurrentUser() user: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 20;
+    return this.usersService.getPersonalizedRecommendations(
+      user.id,
+      pageNum,
+      limitNum,
+    );
+  }
+
+  @Get('recommendations/cache')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get cached recommendation scores for current user' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 20,
+    description: 'Items per page (max 100)',
+  })
+  async getRecommendationCache(
+    @CurrentUser() user: any,
+    @Query('limit') limit?: string,
+  ) {
+    const limitNum = Number(limit) || 20;
+    return this.usersService.getRecommendationCache(user.id, limitNum);
+  }
+
+  @Patch('me/embedding/refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Regenerate embedding for current user profile text' })
+  async refreshMyEmbedding(@CurrentUser() user: any) {
+    return this.usersService.regenerateMyEmbedding(user.id);
+  }
+
+  @Get('me/matching-priorities')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get current user matching priorities' })
+  async getMatchingPriorities(@CurrentUser() user: any) {
+    return this.usersService.getMatchingPriorities(user.id);
+  }
+
+  @Patch('me/matching-priorities')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update current user matching priorities' })
+  async updateMatchingPriorities(
+    @CurrentUser() user: any,
+    @Body() body: MatchingPrioritiesDto,
+  ) {
+    return this.usersService.updateMatchingPriorities(user.id, body);
   }
 
   @Get(':id/profile')
@@ -314,7 +372,7 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
-      throw new BadRequestException('File is required');
+      throw new BadRequestException('Файл обязателен');
     }
     return this.usersService.updateAvatarFile(user.id, file);
   }

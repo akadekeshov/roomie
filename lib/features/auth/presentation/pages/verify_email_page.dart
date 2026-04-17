@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +7,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../../home/data/home_providers.dart';
+import '../../../people/data/favorites_users_providers.dart';
+import '../../../profile/data/me_repository.dart';
 import '../../data/auth_repository.dart';
 
 class VerifyEmailPage extends ConsumerStatefulWidget {
@@ -28,6 +31,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
   final TextEditingController _codeController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   Timer? _timer;
+
   int _secondsLeft = 35;
   bool _showError = false;
   bool _isSubmitting = false;
@@ -43,9 +47,8 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     super.initState();
     _startTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _focusCodeInput();
-      }
+      if (!mounted) return;
+      _focusCodeInput();
     });
   }
 
@@ -103,13 +106,21 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
       _isSubmitting = true;
       _showError = false;
     });
+
     try {
       final result = await ref.read(authRepositoryProvider).verifyRegisterOtp(
             useEmail: _useEmail,
             identity: _identity,
             code: _code,
           );
+
+      ref.invalidate(meProvider);
+      ref.invalidate(homeAutoRecommendationsProvider);
+      ref.invalidate(recommendedUsersProvider);
+      ref.invalidate(favoriteUsersProvider);
+
       if (!mounted) return;
+
       final nextRoute = OnboardingRouteMapper.fromStep(result.onboardingStep);
       if (nextRoute == AppRoutes.profileIntro) {
         final prefs = await SharedPreferences.getInstance();
@@ -117,21 +128,16 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
         await prefs.remove(_cityDraftKey);
         if (!mounted) return;
       }
+
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil(nextRoute, (route) => false);
-    } on DioException catch (e) {
+    } on AppException catch (e) {
       if (!mounted) return;
-      final serverMessage = e.response?.data is Map<String, dynamic>
-          ? (e.response?.data['message']?.toString())
-          : null;
-      final message = (serverMessage != null && serverMessage.isNotEmpty)
-          ? serverMessage
-          : AppStrings.verifyInvalidCode;
       setState(() => _showError = true);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       setState(() => _showError = true);
@@ -149,6 +155,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
 
   Future<void> _onResend() async {
     if (_secondsLeft > 0 || _isResending) return;
+
     setState(() => _isResending = true);
     try {
       await ref
@@ -159,17 +166,11 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Код отправлен повторно')));
-    } on DioException catch (e) {
+    } on AppException catch (e) {
       if (!mounted) return;
-      final serverMessage = e.response?.data is Map<String, dynamic>
-          ? (e.response?.data['message']?.toString())
-          : null;
-      final message = (serverMessage != null && serverMessage.isNotEmpty)
-          ? serverMessage
-          : 'Не удалось отправить код';
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) {
         setState(() => _isResending = false);
@@ -243,7 +244,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
               ),
               const SizedBox(height: 2),
               Text(
-                _identity.isEmpty ? 'email@gmail.com' : _identity,
+                _identity.isEmpty ? 'email@example.com' : _identity,
                 style: textTheme.titleMedium?.copyWith(
                   fontFamily: 'Gilroy',
                   fontWeight: FontWeight.w800,

@@ -42,7 +42,7 @@ class ChatConversation {
       peerId: peer['id']?.toString(),
       peerName: (peer['name']?.toString().trim().isNotEmpty ?? false)
           ? peer['name'].toString().trim()
-          : 'User',
+          : 'Пользователь',
       peerAvatarRaw: peer['avatarUrl']?.toString(),
       lastMessageText: last?['text']?.toString(),
       lastMessageAt: lastAtRaw == null ? null : DateTime.tryParse('$lastAtRaw'),

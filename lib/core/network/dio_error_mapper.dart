@@ -41,6 +41,14 @@ AppException mapDioErrorToAppException(DioException error) {
     );
   }
 
+  if (status == 401 && normalized.contains('not verified')) {
+    return const AppException(
+      code: AppErrorCode.validation,
+      message: 'Аккаунт не подтвержден. Завершите проверку кода.',
+      field: 'identity',
+    );
+  }
+
   if (status == 409 &&
       normalized.contains('email') &&
       (normalized.contains('exist') || normalized.contains('already'))) {
@@ -73,9 +81,28 @@ AppException mapDioErrorToAppException(DioException error) {
   }
 
   if (status == 400) {
+    return AppException(
+      code: AppErrorCode.validation,
+      message: rawMessage?.isNotEmpty == true
+          ? rawMessage!
+          : 'Проверьте корректность введенных данных.',
+    );
+  }
+
+  if (status == 429) {
+    return AppException(
+      code: AppErrorCode.validation,
+      message: rawMessage?.isNotEmpty == true
+          ? rawMessage!
+          : 'Слишком много попыток. Подождите немного и попробуйте снова.',
+    );
+  }
+
+  if (status == 404 && normalized.contains('user not found')) {
     return const AppException(
       code: AppErrorCode.validation,
-      message: 'Проверьте корректность введенных данных.',
+      message: 'Пользователь не найден. Сначала зарегистрируйтесь.',
+      field: 'identity',
     );
   }
 
@@ -91,4 +118,3 @@ AppException mapDioErrorToAppException(DioException error) {
     message: 'Что-то пошло не так. Попробуйте еще раз.',
   );
 }
-

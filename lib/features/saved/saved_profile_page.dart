@@ -24,7 +24,6 @@ class SavedUserProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final photo = user.avatarUrl;
-    final isComplete = user.isProfileComplete; // backend field
     final lifestyleItems = _lifestyleToItems(user.lifestyle); // backend map -> UI items
 
     return Scaffold(
@@ -59,40 +58,40 @@ class SavedUserProfilePage extends ConsumerWidget {
                       ),
                     ),
 
-                    // Verified pill (optional)
-                    Positioned(
-                      bottom: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0x801C1C1D),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              size: 14,
-                              color: user.isVerified
-                                  ? const Color(0xFF00C853)
-                                  : Colors.white54,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              user.isVerified ? 'Подтверждён' : 'Не подтверждён',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                    if (user.isVerified)
+                      Positioned(
+                        bottom: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0x801C1C1D),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                size: 14,
+                                color: Color(0xFF00C853),
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 6),
+                              Text(
+                                'Подтвержден',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
 
@@ -101,36 +100,6 @@ class SavedUserProfilePage extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      // Warning if profile incomplete
-                      if (!isComplete) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orange.shade300),
-                          ),
-                          child: Row(
-                            children: const [
-                              Icon(Icons.warning_amber_rounded,
-                                  color: Colors.orange),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Профиль заполнен не полностью. '
-                                  'Чат может быть недоступен.',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.orange,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-
                       // Name + match%
                       Align(
                         alignment: Alignment.centerLeft,
@@ -145,38 +114,56 @@ class SavedUserProfilePage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
 
-                      // ===== Match card (placeholder progress) =====
                       _Card(
                         child: Column(
                           children: [
                             _ProgressRow(
                               label: 'Совместимость',
-                              value: (user.matchPercent.clamp(0, 100)) / 100.0,
-                              rightText: '${user.matchPercent}%',
+                              value: user.compatibilityPercent / 100.0,
+                              rightText: '${user.compatibilityPercent}%',
                             ),
                             const SizedBox(height: 10),
                             _ProgressRow(
                               label: 'Бюджет',
-                              value: 0.90,
-                              rightText: '90%',
+                              value: user.budgetMatchPercent / 100.0,
+                              rightText: '${user.budgetMatchPercent}%',
                             ),
                             const SizedBox(height: 10),
                             _ProgressRow(
                               label: 'Образ жизни',
-                              value: 0.85,
-                              rightText: '85%',
+                              value: user.lifestyleMatchPercent / 100.0,
+                              rightText: '${user.lifestyleMatchPercent}%',
                             ),
                             const SizedBox(height: 10),
                             _ProgressRow(
                               label: 'Локация',
-                              value: 0.86,
-                              rightText: '86%',
+                              value: user.locationMatchPercent / 100.0,
+                              rightText: '${user.locationMatchPercent}%',
                             ),
                           ],
                         ),
                       ),
 
                       const SizedBox(height: 14),
+                      if (user.quickBadges.isNotEmpty)
+                        _Card(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children:
+                                user.quickBadges.map((badge) => _Chip(badge)).toList(),
+                          ),
+                        ),
+                      if (user.quickBadges.isNotEmpty) const SizedBox(height: 14),
+                      if ((user.aiReasoning ?? '').trim().isNotEmpty)
+                        _Card(
+                          child: Text(
+                            user.aiReasoning!,
+                            style: const TextStyle(height: 1.35),
+                          ),
+                        ),
+                      if ((user.aiReasoning ?? '').trim().isNotEmpty)
+                        const SizedBox(height: 14),
 
                       // ===== Info card =====
                       _Card(
@@ -229,7 +216,6 @@ class SavedUserProfilePage extends ConsumerWidget {
                         const SizedBox(height: 14),
                       ],
 
-                      // ===== Lifestyle (FROM BACKEND) =====
                       _Card(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +259,6 @@ class SavedUserProfilePage extends ConsumerWidget {
 
                       const SizedBox(height: 14),
 
-                      // ===== Rules (Т›Р°Р·С–СЂ placeholder, РєРµР№С–РЅ backend) =====
                       _Card(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +281,6 @@ class SavedUserProfilePage extends ConsumerWidget {
 
                       const SizedBox(height: 14),
 
-                      // ===== Preferences chips (placeholder tag + examples) =====
                       _Card(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,17 +343,6 @@ class SavedUserProfilePage extends ConsumerWidget {
                           ),
                         ),
                         onPressed: () {
-                          if (!isComplete) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Пользователь не заполнил профиль полностью',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -377,7 +350,7 @@ class SavedUserProfilePage extends ConsumerWidget {
                                 peerUserId: user.id,
                                 title: user.displayName,
                                 imageUrl: user.avatarUrl,
-                                online: true, // backend Р¶РѕТ› У™Р·С–СЂРіРµ
+                                online: true,
                                 letter: _firstLetter(user.displayName),
                               ),
                             ),
@@ -402,18 +375,16 @@ class SavedUserProfilePage extends ConsumerWidget {
                           ),
                         ),
                         onPressed: () async {
-                          // 1) remove from favorites (saved)
                           final repo =
                               ref.read(favoritesUsersRepositoryProvider);
                           await repo.removeFavorite(user.id);
 
-                          // 2) if hidden earlier -> show again on Home
                           ref
                               .read(hiddenUserIdsProvider.notifier)
                               .unhide(user.id);
 
-                          // 3) refresh lists
                           ref.invalidate(favoriteUsersProvider);
+                          ref.invalidate(homeAutoRecommendationsProvider);
                           ref.invalidate(recommendedUsersProvider);
 
                           if (context.mounted) Navigator.pop(context);
@@ -497,7 +468,7 @@ List<_LifestyleItem> _lifestyleToItems(Map<String, dynamic>? lifestyle) {
     items.add(
       _LifestyleItem(
         Icons.home_work_outlined,
-        workFormat ? 'Работаю удалённо' : 'Офис/аралас',
+        workFormat ? 'Работаю удаленно' : 'Работаю из офиса',
       ),
     );
   } else if (workFormat is String && workFormat.trim().isNotEmpty) {
@@ -515,7 +486,7 @@ List<_LifestyleItem> _lifestyleToItems(Map<String, dynamic>? lifestyle) {
   if (cleanliness is num) {
     items.add(_LifestyleItem(
       Icons.cleaning_services_outlined,
-      cleanliness >= 4 ? 'Таза адам' : 'Қарапайым',
+      cleanliness >= 4 ? 'Любит порядок' : 'Спокойно относится к быту',
     ));
   } else if (cleanliness is String && cleanliness.trim().isNotEmpty) {
     items.add(_LifestyleItem(Icons.cleaning_services_outlined, cleanliness));
@@ -527,12 +498,11 @@ List<_LifestyleItem> _lifestyleToItems(Map<String, dynamic>? lifestyle) {
     items.add(
       _LifestyleItem(
         Icons.restaurant_outlined,
-        cooking ? 'Люблю готовить' : 'Көп пісірмеймін',
+        cooking ? 'Любит готовить' : 'Готовит редко',
       ),
     );
   }
 
-  // If backend filled nothing recognized, show nothing (UI will show "РЅРµ Р·Р°РїРѕР»РЅРµРЅР°")
   return items;
 }
 
@@ -737,5 +707,3 @@ class _Chip extends StatelessWidget {
     );
   }
 }
-
-

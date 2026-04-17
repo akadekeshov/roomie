@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../home/data/home_providers.dart';
+import '../../data/me_repository.dart';
 import '../../data/onboarding_repository.dart';
 
 class ProfileEditPage extends ConsumerStatefulWidget {
@@ -31,6 +33,9 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
       arguments: {'fromEdit': true},
     );
     if (!mounted) return;
+    ref.invalidate(meProvider);
+    ref.invalidate(recommendedUsersProvider);
+    ref.invalidate(homeAutoRecommendationsProvider);
     setState(() => _statusFuture = _loadStatus());
   }
 

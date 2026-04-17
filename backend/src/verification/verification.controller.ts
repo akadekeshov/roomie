@@ -66,7 +66,7 @@ function createKycMulterOptions(folder: 'documents' | 'selfies') {
       if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
         return cb(
           new BadRequestException(
-            'Invalid file type. Only JPEG, PNG, and WEBP images are allowed.',
+            'Неверный формат файла. Разрешены только JPEG, PNG и WEBP.',
           ),
           false,
         );
@@ -120,7 +120,7 @@ export class VerificationController {
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException('File is required');
+    if (!file) throw new BadRequestException('Файл обязателен');
     return this.verificationService.uploadDocumentFile(user.id, file);
   }
 
@@ -161,7 +161,7 @@ export class VerificationController {
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException('File is required');
+    if (!file) throw new BadRequestException('Файл обязателен');
     return this.verificationService.uploadSelfieFile(user.id, file);
   }
 

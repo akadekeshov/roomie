@@ -8,10 +8,7 @@ CREATE TABLE "favorite_users" (
   CONSTRAINT "favorite_users_pkey" PRIMARY KEY ("id")
 );
 
-<<<<<<< HEAD
-=======
 -- Owner (who favorites) relation
->>>>>>> 2ea17bf8e1c72ffdcc2e01aee5660b7f0a7a3750
 ALTER TABLE "favorite_users"
 ADD CONSTRAINT "favorite_users_ownerId_fkey"
 FOREIGN KEY ("ownerId") REFERENCES "users"("id")

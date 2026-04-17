@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/network_providers.dart';
 import '../../../core/network/api_config.dart';
+import '../../../core/network/network_providers.dart';
 
 class MeUser {
   const MeUser({
@@ -48,15 +48,15 @@ class MeUser {
       );
 
   String get displayName {
-    final fn = (firstName ?? '').trim();
-    final ln = (lastName ?? '').trim();
-    final name = ('$fn $ln').trim();
+    final first = (firstName ?? '').trim();
+    final last = (lastName ?? '').trim();
+    final name = ('$first $last').trim();
     return name.isEmpty ? 'Пользователь' : name;
   }
 
   String get subtitle {
-    final e = (email ?? '').trim();
-    if (e.isNotEmpty) return e;
+    final emailValue = (email ?? '').trim();
+    if (emailValue.isNotEmpty) return emailValue;
     return (phone ?? '').trim();
   }
 

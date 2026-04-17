@@ -15,6 +15,7 @@ import { VerificationModule } from './verification/verification.module';
 import { AdminVerificationsModule } from './admin-verifications/admin-verifications.module';
 import { FavoritesUsersModule } from './favorites-users/favorites-users.module';
 import { ChatModule } from './chat/chat.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ChatModule } from './chat/chat.module';
     AdminVerificationsModule,
     FavoritesUsersModule,
     ChatModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

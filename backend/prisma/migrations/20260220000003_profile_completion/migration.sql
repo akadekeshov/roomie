@@ -1,13 +1,3 @@
-
-CREATE TYPE "OccupationStatus" AS ENUM ('STUDY', 'WORK', 'STUDY_WORK');
-CREATE TYPE "Chronotype" AS ENUM ('OWL', 'LARK');
-CREATE TYPE "NoisePreference" AS ENUM ('QUIET', 'SOCIAL');
-CREATE TYPE "PersonalityType" AS ENUM ('INTROVERT', 'EXTROVERT');
-CREATE TYPE "SmokingPreference" AS ENUM ('SMOKER', 'NON_SMOKER');
-CREATE TYPE "PetsPreference" AS ENUM ('WITH_PETS', 'NO_PETS');
-CREATE TYPE "RoommateGenderPreference" AS ENUM ('MALE', 'FEMALE', 'ANY');
-CREATE TYPE "VerificationStatus" AS ENUM ('NONE', 'PENDING', 'VERIFIED', 'REJECTED');
-
 -- CreateEnum
 CREATE TYPE "OccupationStatus" AS ENUM ('STUDY', 'WORK', 'STUDY_WORK');
 

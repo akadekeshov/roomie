@@ -6,6 +6,19 @@ class HomeRepository {
   const HomeRepository(this._dio);
   final Dio _dio;
 
+  List<RecommendedUser> _parseRecommendedUsers(Map<String, dynamic>? data) {
+    final list = data?['data'];
+    if (list is! List) return const <RecommendedUser>[];
+
+    return list
+        .map(
+          (e) => RecommendedUser.fromJson(
+            (e as Map<String, dynamic>).cast<String, dynamic>(),
+          ),
+        )
+        .toList();
+  }
+
   /// Legacy listings
   Future<List<Listing>> getListings({int page = 1, int limit = 20}) async {
     final response = await _dio.get<Map<String, dynamic>>(
@@ -48,16 +61,7 @@ class HomeRepository {
       queryParameters: query,
     );
 
-    final list = response.data?['data'];
-    if (list is! List) return [];
-
-    return list
-        .map(
-          (e) => RecommendedUser.fromJson(
-            (e as Map<String, dynamic>).cast<String, dynamic>(),
-          ),
-        )
-        .toList();
+    return _parseRecommendedUsers(response.data);
   }
 
   /// Personalized recommendations for the current user based on their profile.
@@ -69,16 +73,19 @@ class HomeRepository {
       queryParameters: {'limit': limit},
     );
 
-    final list = response.data?['data'];
-    if (list is! List) return [];
+    return _parseRecommendedUsers(response.data);
+  }
 
-    return list
-        .map(
-          (e) => RecommendedUser.fromJson(
-            (e as Map<String, dynamic>).cast<String, dynamic>(),
-          ),
-        )
-        .toList();
+  Future<List<RecommendedUser>> discoverUsers({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/users/discover',
+      queryParameters: {'page': page, 'limit': limit},
+    );
+
+    return _parseRecommendedUsers(response.data);
   }
 
   /// Save roommate

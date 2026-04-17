@@ -22,10 +22,17 @@ class MainShellController {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
+    _pages = const [
+      HomePage(),
+      SavedPage(),
+      ChatsPage(),
+      ProfilePage(),
+    ];
     MainShellController.instance.changeTab = (i) {
       setState(() => _currentIndex = i);
     };
@@ -33,17 +40,10 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = <Widget>[
-      const HomePage(),
-      const SavedPage(),
-      const ChatsPage(),
-      const ProfilePage(),
-    ];
-
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: pages,
+        children: _pages,
       ),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,

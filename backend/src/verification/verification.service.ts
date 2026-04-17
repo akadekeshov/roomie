@@ -19,7 +19,7 @@ export class VerificationService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     const updated = await this.prisma.user.update({
@@ -48,7 +48,7 @@ export class VerificationService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     const documentUrl = `/uploads/kyc/documents/${file.filename}`;
@@ -79,7 +79,7 @@ export class VerificationService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     const updated = await this.prisma.user.update({
@@ -108,7 +108,7 @@ export class VerificationService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     const selfieUrl = `/uploads/kyc/selfies/${file.filename}`;
@@ -144,15 +144,15 @@ export class VerificationService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     if (!user.verificationDocumentUrl) {
-      throw new BadRequestException('Verification document is required');
+      throw new BadRequestException('Необходимо загрузить документ');
     }
 
     if (!user.verificationSelfieUrl) {
-      throw new BadRequestException('Verification selfie is required');
+      throw new BadRequestException('Необходимо загрузить селфи');
     }
 
     const updated = await this.prisma.user.update({
@@ -189,7 +189,7 @@ export class VerificationService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Пользователь не найден');
     }
 
     return {

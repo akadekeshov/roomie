@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../../../app/app_routes.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class RoomieSplashPage extends StatefulWidget {
+import '../app/app_routes.dart';
+import '../core/utils/onboarding_route_mapper.dart';
+import 'auth/data/auth_repository.dart';
+
+class RoomieSplashPage extends ConsumerStatefulWidget {
   const RoomieSplashPage({super.key});
 
   @override
-  State<RoomieSplashPage> createState() => _RoomieSplashPageState();
+  ConsumerState<RoomieSplashPage> createState() => _RoomieSplashPageState();
 }
 
-class _RoomieSplashPageState extends State<RoomieSplashPage>
+class _RoomieSplashPageState extends ConsumerState<RoomieSplashPage>
     with TickerProviderStateMixin {
   late final AnimationController _houseController;
   late final AnimationController _peopleController;
@@ -100,7 +104,17 @@ class _RoomieSplashPageState extends State<RoomieSplashPage>
     await Future.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(context, AppRoutes.register);
+    final loginResult =
+        await ref.read(authRepositoryProvider).tryLoginWithRefreshToken();
+    if (!mounted) return;
+
+    final targetRoute = loginResult == null
+        ? AppRoutes.register
+        : loginResult.onboardingCompleted
+            ? AppRoutes.shell
+            : OnboardingRouteMapper.fromStep(loginResult.onboardingStep);
+
+    Navigator.pushReplacementNamed(context, targetRoute);
   }
 
   @override

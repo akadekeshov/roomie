@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/admin_verification_repository.dart';
 import '../../../home/data/home_providers.dart';
+import '../../data/admin_verification_repository.dart';
 
 final adminPendingProvider =
     FutureProvider<List<AdminVerificationItem>>((ref) async {
@@ -17,7 +17,7 @@ class AdminVerificationsPage extends ConsumerWidget {
     final async = ref.watch(adminPendingProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin • Pending Verifications')),
+      appBar: AppBar(title: const Text('Проверка анкет')),
       body: async.when(
         data: (items) {
           if (items.isEmpty) {
@@ -55,12 +55,12 @@ class AdminVerificationsPage extends ConsumerWidget {
                         Row(
                           children: [
                             _StatusChip(
-                              label: 'Document',
+                              label: 'Документ',
                               ok: (item.documentUrl ?? '').isNotEmpty,
                             ),
                             const SizedBox(width: 10),
                             _StatusChip(
-                              label: 'Selfie',
+                              label: 'Селфи',
                               ok: (item.selfieUrl ?? '').isNotEmpty,
                             ),
                           ],
@@ -75,19 +75,18 @@ class AdminVerificationsPage extends ConsumerWidget {
                                       .read(adminVerificationRepositoryProvider)
                                       .approve(item.id);
 
-                                  // ✅ refresh admin list + home recommendations
                                   ref.invalidate(adminPendingProvider);
                                   ref.invalidate(recommendedUsersProvider);
 
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Approved ✅'),
+                                        content: Text('Анкета подтверждена'),
                                       ),
                                     );
                                   }
                                 },
-                                child: const Text('Approve'),
+                                child: const Text('Подтвердить'),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -98,19 +97,18 @@ class AdminVerificationsPage extends ConsumerWidget {
                                       .read(adminVerificationRepositoryProvider)
                                       .reject(item.id);
 
-                                  // ✅ refresh admin list + home recommendations
                                   ref.invalidate(adminPendingProvider);
                                   ref.invalidate(recommendedUsersProvider);
 
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Rejected ❌'),
+                                        content: Text('Заявка отклонена'),
                                       ),
                                     );
                                   }
                                 },
-                                child: const Text('Reject'),
+                                child: const Text('Отклонить'),
                               ),
                             ),
                           ],
@@ -124,7 +122,7 @@ class AdminVerificationsPage extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (error, _) => Center(child: Text('Ошибка: $error')),
       ),
     );
   }

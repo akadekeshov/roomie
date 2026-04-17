@@ -7,6 +7,8 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../../home/data/home_providers.dart';
+import '../../data/me_repository.dart';
 import '../../data/onboarding_repository.dart';
 
 enum GenderChoice { male, female }
@@ -31,6 +33,9 @@ class _GenderPageState extends ConsumerState<GenderPage> {
           .read(onboardingRepositoryProvider)
           .submitGender(genderValue);
       if (!mounted) return;
+      ref.invalidate(meProvider);
+      ref.invalidate(recommendedUsersProvider);
+      ref.invalidate(homeAutoRecommendationsProvider);
       final route = OnboardingRouteMapper.fromStep(result.nextStep);
       Navigator.of(context).pushReplacementNamed(route);
     } on DioException catch (e) {

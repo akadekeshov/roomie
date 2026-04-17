@@ -125,6 +125,16 @@ class LoginController extends StateNotifier<LoginState> {
 
       case AppErrorCode.invalidOrExpiredToken:
       case AppErrorCode.validation:
+        if (exception.field == 'identity') {
+          state = state.copyWith(
+            identityErrorMessage: exception.message,
+            generalErrorMessage: null,
+          );
+          break;
+        }
+        state = state.copyWith(generalErrorMessage: exception.message);
+        break;
+
       case AppErrorCode.unknown:
         state = state.copyWith(generalErrorMessage: exception.message);
         break;
