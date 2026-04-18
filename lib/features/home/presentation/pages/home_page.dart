@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../chat/chat_detail_page.dart';
 import '../../../people/data/favorites_users_providers.dart';
@@ -108,6 +109,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     _invalidateHomeData();
   }
 
+  void _openAiSearch() {
+    Navigator.of(context).pushNamed(AppRoutes.aiSearch);
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -142,6 +147,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                   ),
                   const Spacer(),
+                  IconButton(
+                    onPressed: _openAiSearch,
+                    tooltip: 'AI-поиск',
+                    icon: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFF001561),
+                    ),
+                  ),
                   IconButton(
                     onPressed: _openFilters,
                     icon: Icon(
@@ -188,8 +201,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     final visibleUsers = autoData.users
                         .where((user) => !hiddenIds.contains(user.id))
                         .toList();
-                    final showBanner =
-                        !hasFilters && autoData.state != home.HomeAutoState.loaded;
+                    final showBanner = !hasFilters &&
+                        autoData.state != home.HomeAutoState.loaded;
 
                     if (visibleUsers.isEmpty) {
                       return RefreshIndicator(
@@ -220,8 +233,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: ListView.separated(
                         padding: const EdgeInsets.only(bottom: 12),
                         itemCount: visibleUsers.length + (showBanner ? 1 : 0),
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 16),
+                        separatorBuilder: (_, __) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           if (showBanner && index == 0) {
                             return _HomeStateBanner(state: autoData.state);
@@ -531,9 +543,8 @@ class _RoommateCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _ActionOutlinedButton(
-                          icon: isSaved
-                              ? Icons.favorite
-                              : Icons.favorite_border,
+                          icon:
+                              isSaved ? Icons.favorite : Icons.favorite_border,
                           label: isSaved ? 'Сохранено' : 'Сохранить',
                           onTap: onSave,
                           isActive: isSaved,

@@ -16,6 +16,7 @@ import { AdminVerificationsModule } from './admin-verifications/admin-verificati
 import { FavoritesUsersModule } from './favorites-users/favorites-users.module';
 import { ChatModule } from './chat/chat.module';
 import { AiModule } from './ai/ai.module';
+import { AiSearchModule } from './ai_search/ai.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AiModule } from './ai/ai.module';
     FavoritesUsersModule,
     ChatModule,
     AiModule,
+    AiSearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

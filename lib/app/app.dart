@@ -6,6 +6,7 @@ import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/otp_page.dart';
 import '../features/auth/presentation/pages/registration_page.dart';
 import '../features/auth/presentation/pages/verify_email_page.dart';
+import '../features/home/presentation/pages/ai_search_page.dart';
 import '../features/main/main_shell.dart';
 import '../features/onboarding/presentation/pages/welcome_page.dart';
 import '../features/profile/presentation/pages/gender_page.dart';
@@ -59,6 +60,7 @@ class RoommateApp extends StatelessWidget {
             const ProfileVerificationPage(),
         AppRoutes.profileVerificationUpload: (context) =>
             const ProfileVerificationUploadPage(),
+        AppRoutes.aiSearch: (context) => const AiSearchPage(),
       },
     );
   }

@@ -8,54 +8,58 @@ datasource db {
 }
 
 model User {
-  id                       String                    @id @default(uuid())
-  email                    String?                   @unique
-  phone                    String?                   @unique
-  password                 String
-  role                     UserRole                  @default(USER)
-  isBanned                 Boolean                   @default(false)
-  emailVerified            Boolean                   @default(false)
-  phoneVerified            Boolean                   @default(false)
-  firstName                String?
-  lastName                 String?
-  gender                   Gender?
-  age                      Int?
-  city                     String?
-  bio                      String?
-  onboardingCompleted      Boolean                   @default(false)
-  onboardingStep           OnboardingStep            @default(NAME_AGE)
-  occupationStatus         OccupationStatus?
-  university               String?
-  chronotype               Chronotype?
-  noisePreference          NoisePreference?
-  personalityType          PersonalityType?
-  smokingPreference        SmokingPreference?
-  petsPreference           PetsPreference?
-  searchBudgetMin          Int?
-  searchBudgetMax          Int?
-  searchDistrict           String?
-  roommateGenderPreference RoommateGenderPreference?
-  stayTerm                 String?
-  photos                   String[]
-  verificationStatus       VerificationStatus        @default(NONE)
-  verificationDocumentUrl  String?
-  verificationSelfieUrl    String?
-  verificationRejectReason String?
-  verificationReviewedAt   DateTime?
-  verificationReviewedBy   String?
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  matchingPriorities       Json                      @default("{\"budget\": \"important\", \"district\": \"important\", \"chronotype\": \"neutral\", \"petsPreference\": \"important\", \"noisePreference\": \"neutral\", \"personalityType\": \"neutral\", \"occupationStatus\": \"neutral\", \"smokingPreference\": \"important\"}")
-  conversationParticipants ConversationParticipant[]
-  favoriteUsers            FavoriteUser[]            @relation("FavoriteOwner")
-  favoritedBy              FavoriteUser[]            @relation("FavoriteTarget")
-  listings                 Listing[]
-  sentMessages             Message[]
-  refreshTokens            RefreshToken[]
-  savedListings            SavedListing[]
-  embedding                UserEmbedding?
-  aiRecommendationsGiven   AiRecommendationCache[]    @relation("AiRecommendationCurrentUser")
+  id                        String                    @id @default(uuid())
+  email                     String?                   @unique
+  phone                     String?                   @unique
+  password                  String
+  role                      UserRole                  @default(USER)
+  isBanned                  Boolean                   @default(false)
+  emailVerified             Boolean                   @default(false)
+  phoneVerified             Boolean                   @default(false)
+  firstName                 String?
+  lastName                  String?
+  gender                    Gender?
+  age                       Int?
+  city                      String?
+  bio                       String?
+  onboardingCompleted       Boolean                   @default(false)
+  onboardingStep            OnboardingStep            @default(NAME_AGE)
+  occupationStatus          OccupationStatus?
+  university                String?
+  chronotype                Chronotype?
+  noisePreference           NoisePreference?
+  personalityType           PersonalityType?
+  smokingPreference         SmokingPreference?
+  petsPreference            PetsPreference?
+  searchBudgetMin           Int?
+  searchBudgetMax           Int?
+  searchDistrict            String?
+  roommateGenderPreference  RoommateGenderPreference?
+  stayTerm                  String?
+  photos                    String[]
+  verificationStatus        VerificationStatus        @default(NONE)
+  verificationDocumentUrl   String?
+  verificationSelfieUrl     String?
+  verificationRejectReason  String?
+  verificationReviewedAt    DateTime?
+  verificationReviewedBy    String?
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  matchingPriorities        Json                      @default("{\"budget\": \"important\", \"district\": \"important\", \"chronotype\": \"neutral\", \"petsPreference\": \"important\", \"noisePreference\": \"neutral\", \"personalityType\": \"neutral\", \"occupationStatus\": \"neutral\", \"smokingPreference\": \"important\"}")
+  conversationParticipants  ConversationParticipant[]
+  favoriteUsers             FavoriteUser[]            @relation("FavoriteOwner")
+  favoritedBy               FavoriteUser[]            @relation("FavoriteTarget")
+  listings                  Listing[]
+  sentMessages              Message[]
+  refreshTokens             RefreshToken[]
+  savedListings             SavedListing[]
+  embedding                 UserEmbedding?
+  aiRecommendationsGiven    AiRecommendationCache[]   @relation("AiRecommendationCurrentUser")
   aiRecommendationsReceived AiRecommendationCache[]   @relation("AiRecommendationCandidateUser")
+  aiUnifiedProfile          AiUnifiedProfile?
+  aiEmbeddings              AiEmbedding[]
+  aiSearchSessions          AiSearchSession[]
+  aiSearchResults           AiSearchResult[]          @relation("AiSearchResultTargetUser")
 
   @@map("users")
 }
@@ -97,6 +101,91 @@ model AiRecommendationCache {
   @@index([currentUserId])
   @@index([candidateUserId])
   @@map("ai_recommendation_cache")
+}
+
+model AiUnifiedProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  profileText   String
+  profileJson   Json
+  profileHash   String
+  completeness  Float
+  sourceVersion Int
+  builtAt       DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  embeddings AiEmbedding[]
+
+  @@index([profileHash])
+  @@map("ai_unified_profiles")
+}
+
+model AiEmbedding {
+  id          String          @id @default(uuid())
+  kind        AiEmbeddingKind
+  userId      String?
+  aiProfileId String?
+  queryText   String
+  queryHash   String
+  model       String
+  dimensions  Int
+  vector      Json
+  generatedAt DateTime        @default(now())
+
+  user      User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiProfile AiUnifiedProfile? @relation(fields: [aiProfileId], references: [id], onDelete: SetNull)
+  sessions  AiSearchSession[] @relation("AiSearchQueryEmbedding")
+
+  @@index([kind, userId, generatedAt])
+  @@index([aiProfileId])
+  @@index([queryHash])
+  @@map("ai_embeddings")
+}
+
+model AiSearchSession {
+  id               String         @id @default(uuid())
+  userId           String
+  query            String
+  normalizedQuery  String?
+  parsedFilters    Json?
+  queryEmbeddingId String?
+  status           AiSearchStatus
+  errorMessage     String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  queryEmbedding AiEmbedding?     @relation("AiSearchQueryEmbedding", fields: [queryEmbeddingId], references: [id], onDelete: SetNull)
+  results        AiSearchResult[]
+
+  @@index([userId, createdAt])
+  @@index([queryEmbeddingId])
+  @@map("ai_search_sessions")
+}
+
+model AiSearchResult {
+  id                 String   @id @default(uuid())
+  sessionId          String
+  targetUserId       String
+  semanticSimilarity Float
+  lifestyleMatch     Float
+  preferenceMatch    Float
+  behavioralMatch    Float
+  profileQuality     Float
+  finalScore         Float
+  matchedFields      String[]
+  explanation        Json?
+  createdAt          DateTime @default(now())
+
+  session    AiSearchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  targetUser User            @relation("AiSearchResultTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, targetUserId])
+  @@index([targetUserId])
+  @@index([sessionId, finalScore])
+  @@map("ai_search_results")
 }
 
 model OtpCode {
@@ -217,6 +306,17 @@ enum Gender {
   FEMALE
   OTHER
   PREFER_NOT_TO_SAY
+}
+
+enum AiEmbeddingKind {
+  USER_PROFILE
+  USER_PREFERENCES
+  SEARCH_QUERY
+}
+
+enum AiSearchStatus {
+  COMPLETED
+  FAILED
 }
 
 enum RoomType {
