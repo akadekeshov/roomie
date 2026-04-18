@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
@@ -36,7 +35,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      final result = await ref.read(authRepositoryProvider).login(
+      await ref.read(authRepositoryProvider).login(
             useEmail: state.useEmail,
             identity: state.identity,
             password: state.password,
@@ -50,11 +49,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       if (!mounted) return;
 
-      final route = result.onboardingCompleted
-          ? AppRoutes.shell
-          : OnboardingRouteMapper.fromStep(result.onboardingStep);
-
-      Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.shell,
+        (_) => false,
+      );
     } on AppException catch (e) {
       controller.applyBackendError(e);
     } catch (_) {

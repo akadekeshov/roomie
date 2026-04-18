@@ -29,6 +29,7 @@ export class FavoritesUsersService {
     return {
       role: UserRole.USER,
       isBanned: false,
+      onboardingCompleted: true,
       ...(currentUserId ? { id: { not: currentUserId } } : {}),
       OR: [{ emailVerified: true }, { phoneVerified: true }],
     };

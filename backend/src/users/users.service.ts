@@ -155,13 +155,92 @@ export class UsersService {
     return {
       role: UserRole.USER,
       isBanned: false,
+      onboardingCompleted: true,
       id: { not: currentUserId },
       OR: [{ emailVerified: true }, { phoneVerified: true }],
+      AND: this.buildCompletedProfileCandidateConditions(),
     };
+  }
+
+  private buildCompletedProfileCandidateConditions(): Prisma.UserWhereInput[] {
+    return [
+      { occupationStatus: { not: null } },
+      { university: { not: null } },
+      { NOT: { university: '' } },
+      { bio: { not: null } },
+      { NOT: { bio: '' } },
+      { chronotype: { not: null } },
+      { noisePreference: { not: null } },
+      { personalityType: { not: null } },
+      { smokingPreference: { not: null } },
+      { petsPreference: { not: null } },
+      { searchBudgetMin: { not: null } },
+      { searchBudgetMax: { not: null } },
+      { searchDistrict: { not: null } },
+      { NOT: { searchDistrict: '' } },
+      { roommateGenderPreference: { not: null } },
+      { stayTerm: { not: null } },
+      { NOT: { stayTerm: '' } },
+      { photos: { isEmpty: false } },
+    ];
+  }
+
+  private hasCompletedProfileFields(user: {
+    occupationStatus?: string | null;
+    university?: string | null;
+    bio?: string | null;
+    chronotype?: string | null;
+    noisePreference?: string | null;
+    personalityType?: string | null;
+    smokingPreference?: string | null;
+    petsPreference?: string | null;
+    searchBudgetMin?: number | null;
+    searchBudgetMax?: number | null;
+    searchDistrict?: string | null;
+    roommateGenderPreference?: string | null;
+    stayTerm?: string | null;
+    photos?: string[] | null;
+  }): boolean {
+    const photos = user.photos ?? [];
+
+    return Boolean(
+      user.occupationStatus &&
+        user.university?.trim() &&
+        user.bio?.trim() &&
+        user.chronotype &&
+        user.noisePreference &&
+        user.personalityType &&
+        user.smokingPreference &&
+        user.petsPreference &&
+        user.searchBudgetMin != null &&
+        user.searchBudgetMax != null &&
+        user.searchDistrict?.trim() &&
+        user.roommateGenderPreference &&
+        user.stayTerm?.trim() &&
+        photos.some((photo) => photo.trim().length > 0),
+    );
   }
 
   private normalizeComparableText(value: string | null | undefined): string {
     return (value ?? '').trim().toLowerCase();
+  }
+
+  private mergeAndConditions(
+    where: Prisma.UserWhereInput,
+    extraConditions: Prisma.UserWhereInput[],
+  ) {
+    if (extraConditions.length === 0) {
+      return;
+    }
+
+    const currentAnd = where.AND;
+    const normalizedCurrentAnd = Array.isArray(currentAnd)
+      ? currentAnd
+      : currentAnd
+        ? [currentAnd]
+        : [];
+
+    where.AND = [...normalizedCurrentAnd, ...extraConditions];
   }
 
   private isAllDistrictValue(value: string | null | undefined): boolean {
@@ -327,26 +406,8 @@ export class UsersService {
     photos?: string[] | null;
     onboardingCompleted?: boolean;
   }): boolean {
-    if (user.onboardingCompleted) {
-      return true;
-    }
-
-    const photos = user.photos ?? [];
     return Boolean(
-      user.occupationStatus &&
-      user.university &&
-      user.bio &&
-      user.chronotype &&
-      user.noisePreference &&
-      user.personalityType &&
-      user.smokingPreference &&
-      user.petsPreference &&
-      user.searchBudgetMin != null &&
-      user.searchBudgetMax != null &&
-      user.searchDistrict &&
-      user.roommateGenderPreference &&
-      user.stayTerm &&
-      photos.some((photo) => photo.trim().length > 0),
+      user.onboardingCompleted && this.hasCompletedProfileFields(user),
     );
   }
 
@@ -1331,9 +1392,7 @@ export class UsersService {
         id: { in: specificCandidateIds },
       });
     }
-    if (candidateConditions.length > 0) {
-      candidateWhere.AND = candidateConditions;
-    }
+    this.mergeAndConditions(candidateWhere, candidateConditions);
 
     const candidates = await this.prisma.user.findMany({
       where: candidateWhere,
@@ -1804,9 +1863,7 @@ export class UsersService {
       ageRange,
     });
 
-    if (andConditions.length > 0) {
-      where.AND = andConditions;
-    }
+    this.mergeAndConditions(where, andConditions);
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
