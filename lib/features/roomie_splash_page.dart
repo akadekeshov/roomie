@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/app_routes.dart';
+import '../core/utils/onboarding_route_mapper.dart';
 import 'auth/data/auth_repository.dart';
 
 class RoomieSplashPage extends ConsumerStatefulWidget {
@@ -107,8 +108,11 @@ class _RoomieSplashPageState extends ConsumerState<RoomieSplashPage>
         await ref.read(authRepositoryProvider).tryLoginWithRefreshToken();
     if (!mounted) return;
 
-    final targetRoute =
-        loginResult == null ? AppRoutes.register : AppRoutes.shell;
+    final targetRoute = loginResult == null
+        ? AppRoutes.register
+        : loginResult.onboardingCompleted
+            ? AppRoutes.shell
+            : OnboardingRouteMapper.fromStep(loginResult.onboardingStep);
 
     Navigator.pushReplacementNamed(context, targetRoute);
   }

@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../home/data/home_providers.dart';
 import '../../../people/data/favorites_users_providers.dart';
@@ -22,6 +24,8 @@ class VerifyEmailPage extends ConsumerStatefulWidget {
 }
 
 class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
+  static const _birthDateDraftKey = 'profile_birth_date_draft';
+  static const _cityDraftKey = 'profile_city_draft';
   static const int _codeLength = 6;
 
   final TextEditingController _codeController = TextEditingController();
@@ -104,7 +108,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     });
 
     try {
-      await ref.read(authRepositoryProvider).verifyRegisterOtp(
+      final result = await ref.read(authRepositoryProvider).verifyRegisterOtp(
             useEmail: _useEmail,
             identity: _identity,
             code: _code,
@@ -117,9 +121,17 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
 
       if (!mounted) return;
 
+      final nextRoute = OnboardingRouteMapper.fromStep(result.onboardingStep);
+      if (nextRoute == AppRoutes.profileIntro) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_birthDateDraftKey);
+        await prefs.remove(_cityDraftKey);
+        if (!mounted) return;
+      }
+
       Navigator.of(
         context,
-      ).pushNamedAndRemoveUntil(AppRoutes.shell, (route) => false);
+      ).pushNamedAndRemoveUntil(nextRoute, (route) => false);
     } on AppException catch (e) {
       if (!mounted) return;
       setState(() => _showError = true);

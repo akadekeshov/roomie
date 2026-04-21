@@ -12,6 +12,7 @@ import {
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { UsersService } from '../users/users.service';
 import { AI_SEARCH_DEFAULT_LIMIT, AI_SEARCH_MAX_LIMIT } from './ai.constants';
 import { AiEmbeddingService } from './ai-embedding.service';
 import {
@@ -20,14 +21,27 @@ import {
   AiUserProfileRecord,
 } from './ai-profile-builder.service';
 import { AiParserService } from './ai-parser.service';
-import { AiScoringService } from './ai-scoring.service';
 import { AiVectorSearchService } from './ai-vector-search.service';
 import { AiQueryFilters } from './ai.types';
 import { AiSearchRequestDto } from './dto/ai-search-request.dto';
 import { AiSearchResponseDto } from './dto/ai-search-response.dto';
 
-type RankedCandidate = {
+type SearchCandidate = {
   user: AiUserProfileRecord;
+  semanticSimilarity: number;
+  lexicalScore: number;
+  filterScore: number;
+  searchRelevance: number;
+};
+
+type SharedRecommendation = Awaited<
+  ReturnType<UsersService['getPersonalizedRecommendations']>
+>['data'][number];
+
+type ScoredSearchResult = {
+  recommendation: SharedRecommendation;
+  user: SharedRecommendation;
+  semanticSimilarity: number;
   score: number;
   breakdown: {
     semanticSimilarity: number;
@@ -54,8 +68,8 @@ export class AiSearchService {
     private readonly aiParserService: AiParserService,
     private readonly aiProfileBuilderService: AiProfileBuilderService,
     private readonly aiEmbeddingService: AiEmbeddingService,
-    private readonly aiScoringService: AiScoringService,
     private readonly aiVectorSearchService: AiVectorSearchService,
+    private readonly usersService: UsersService,
   ) {}
 
   async search(
@@ -103,18 +117,25 @@ export class AiSearchService {
         },
       });
 
-      const ranked = await this.rankCandidates({
+      const searchCandidates = await this.findSearchCandidates({
         source: profileContext.user,
         queryEmbeddingVector: this.extractVector(queryEmbedding.vector),
+        queryTokens: parsed.tokens,
+        parsedFilters: parsed.filters,
+        limit,
+      });
+      const scored = await this.scoreWithSharedCompatibility({
+        currentUserId: userId,
+        searchCandidates,
         parsedFilters: parsed.filters,
         limit,
       });
 
-      if (ranked.length > 0) {
+      if (scored.length > 0) {
         await this.prisma.aiSearchResult.createMany({
-          data: ranked.map((item) => ({
+          data: scored.map((item) => ({
             sessionId: session.id,
-            targetUserId: item.user.id,
+            targetUserId: item.recommendation.id,
             semanticSimilarity: item.breakdown.semanticSimilarity,
             lifestyleMatch: item.breakdown.lifestyleMatch,
             preferenceMatch: item.breakdown.preferenceMatch,
@@ -128,21 +149,21 @@ export class AiSearchService {
       }
 
       return {
-        results: ranked.map((item) => ({
+        results: scored.map((item) => ({
           user: {
-            id: item.user.id,
-            firstName: item.user.firstName ?? 'Пользователь',
-            age: item.user.age ?? 0,
-            city: item.user.city ?? '',
-            bio: item.user.bio ?? '',
-            photos: item.user.photos,
+            id: item.recommendation.id,
+            firstName: item.recommendation.firstName ?? 'Пользователь',
+            age: item.recommendation.age ?? 0,
+            city: item.recommendation.city ?? '',
+            bio: item.recommendation.bio ?? '',
+            photos: item.recommendation.photos,
           },
           score: item.score,
           breakdown: item.breakdown,
           explanation: item.explanation,
         })),
         meta: {
-          status: 'stage_6_pgvector_ready',
+          status: 'shared_compatibility_scoring',
           limit,
           sessionId: session.id,
           parsedFilters: parsed.filters,
@@ -202,13 +223,14 @@ export class AiSearchService {
     }
   }
 
-  private async rankCandidates(input: {
+  private async findSearchCandidates(input: {
     source: AiUserProfileRecord;
     queryEmbeddingVector: number[];
+    queryTokens: string[];
     parsedFilters: AiQueryFilters;
     limit: number;
-  }): Promise<RankedCandidate[]> {
-    const poolSize = Math.min(Math.max(input.limit * 4, 40), 140);
+  }): Promise<SearchCandidate[]> {
+    const poolSize = Math.min(Math.max(input.limit * 12, 160), 500);
     const semanticPoolLimit = Math.min(poolSize * 4, 300);
 
     const semanticRows =
@@ -237,6 +259,24 @@ export class AiSearchService {
       semanticUserIds,
     );
 
+    if (semanticUserIds.length > 0) {
+      const fallbackCandidates = await this.fetchCandidates(
+        input.source,
+        input.parsedFilters,
+        poolSize,
+        [],
+      );
+      const byId = new Map(
+        candidates.map((candidate) => [candidate.id, candidate]),
+      );
+      for (const candidate of fallbackCandidates) {
+        if (!byId.has(candidate.id)) {
+          byId.set(candidate.id, candidate);
+        }
+      }
+      candidates = Array.from(byId.values());
+    }
+
     if (candidates.length === 0) {
       candidates = await this.fetchCandidates(
         input.source,
@@ -253,13 +293,15 @@ export class AiSearchService {
     const candidateIds = candidates.map((user) => user.id);
     const vectorByUser = await this.fetchCandidateVectors(candidateIds);
 
-    const missingVectorUsers = candidates
-      .filter((candidate) => !vectorByUser.has(candidate.id))
-      .slice(0, 8);
+    const missingVectorUsers = candidates.filter(
+      (candidate) => !vectorByUser.has(candidate.id),
+    );
 
     if (missingVectorUsers.length > 0) {
-      await Promise.all(
-        missingVectorUsers.map(async (candidate) => {
+      await this.runWithConcurrency(
+        missingVectorUsers.slice(0, this.embeddingGenerationLimit()),
+        4,
+        async (candidate) => {
           const context =
             await this.aiProfileBuilderService.buildAndPersistFromRecord(
               candidate,
@@ -271,83 +313,416 @@ export class AiSearchService {
               context.unified.profileText,
             );
           vectorByUser.set(candidate.id, this.extractVector(embedding.vector));
-        }),
+        },
       );
     }
 
-    const ranked: RankedCandidate[] = [];
-
-    for (const candidate of candidates) {
-      const candidateProfile =
-        this.aiProfileBuilderService.buildUnifiedProfile(candidate);
+    const ranked = candidates.map((candidate) => {
       const vector = vectorByUser.get(candidate.id) ?? [];
       const semanticSimilarity =
         semanticSimilarityByUser.get(candidate.id) ??
-        this.aiScoringService.semanticSimilarity(
-          input.queryEmbeddingVector,
-          vector,
-        );
-
-      const lifestyle = this.aiScoringService.calculateLifestyleMatch(
-        input.source,
-        candidate,
-        input.parsedFilters,
-      );
-      const preference = this.aiScoringService.calculatePreferenceMatch(
-        input.source,
-        candidate,
-        input.parsedFilters,
-      );
-      const behavioralMatch =
-        this.aiScoringService.calculateBehavioralMatch(candidate);
-      const profileQuality = this.aiScoringService.calculateProfileQuality(
-        candidateProfile.completeness,
-        candidate.bio,
-        candidate.photos,
-      );
-
-      const breakdown = this.aiScoringService.calculateBreakdown({
+        this.semanticSimilarity(input.queryEmbeddingVector, vector);
+      const lexicalScore = this.lexicalMatchScore(input.queryTokens, candidate);
+      const filterScore = this.filterMatchScore(input.parsedFilters, candidate);
+      const searchRelevance = this.computeSearchRelevance({
         semanticSimilarity,
-        lifestyleMatch: lifestyle.score,
-        preferenceMatch: preference.score,
-        behavioralMatch,
-        profileQuality,
+        lexicalScore,
+        filterScore,
       });
 
-      const matchedFields = Array.from(
-        new Set([
-          ...lifestyle.matchedFields,
-          ...preference.matchedFields,
-          ...(semanticSimilarity >= 0.75 ? ['semanticIntent'] : []),
-        ]),
+      return {
+        user: candidate,
+        semanticSimilarity,
+        lexicalScore,
+        filterScore,
+        searchRelevance,
+      };
+    });
+
+    const hasQuerySignal =
+      input.queryTokens.length > 0 ||
+      Object.keys(input.parsedFilters).length > 0;
+    const hasUsableSemanticVector = input.queryEmbeddingVector.length >= 512;
+    const relevant = hasQuerySignal
+      ? ranked.filter(
+          (candidate) =>
+            (hasUsableSemanticVector && candidate.semanticSimilarity >= 0.62) ||
+            candidate.lexicalScore > 0 ||
+            candidate.filterScore > 0,
+        )
+      : ranked;
+
+    relevant.sort(
+      (a, b) =>
+        b.searchRelevance - a.searchRelevance ||
+        b.semanticSimilarity - a.semanticSimilarity,
+    );
+    return relevant.slice(0, input.limit);
+  }
+
+  private async scoreWithSharedCompatibility(input: {
+    currentUserId: string;
+    searchCandidates: SearchCandidate[];
+    parsedFilters: AiQueryFilters;
+    limit: number;
+  }): Promise<ScoredSearchResult[]> {
+    if (input.searchCandidates.length === 0) {
+      return [];
+    }
+
+    const semanticByUserId = new Map(
+      input.searchCandidates.map((candidate) => [
+        candidate.user.id,
+        candidate.semanticSimilarity,
+      ]),
+    );
+    const relevanceByUserId = new Map(
+      input.searchCandidates.map((candidate, index) => [
+        candidate.user.id,
+        {
+          index,
+          searchRelevance: candidate.searchRelevance,
+        },
+      ]),
+    );
+    const candidateUserIds = input.searchCandidates.map(
+      (candidate) => candidate.user.id,
+    );
+    const scored = await this.usersService.getPersonalizedRecommendations(
+      input.currentUserId,
+      1,
+      Math.max(input.limit, candidateUserIds.length),
+      {
+        candidateUserIds,
+        gender: input.parsedFilters.preferredGender ?? null,
+      },
+    );
+
+    const queryOrdered = [...scored.data].sort((left, right) => {
+      const leftRelevance = relevanceByUserId.get(left.id);
+      const rightRelevance = relevanceByUserId.get(right.id);
+      return (
+        (rightRelevance?.searchRelevance ?? 0) -
+          (leftRelevance?.searchRelevance ?? 0) ||
+        (leftRelevance?.index ?? 999999) - (rightRelevance?.index ?? 999999)
+      );
+    });
+
+    return queryOrdered.slice(0, input.limit).map((recommendation) => {
+      const finalScore = this.normalizePercent(
+        recommendation.finalScore ??
+          recommendation.matchPercent ??
+          recommendation.compatibility ??
+          0,
+      );
+      const normalizedScore = this.percentToRatio(finalScore);
+      const semanticSimilarity =
+        semanticByUserId.get(recommendation.id) ?? normalizedScore;
+      const matchedFields = this.toStringArray(
+        recommendation.compatibilityBreakdown?.matchedCriteria,
+      );
+      const partialFields = this.toStringArray(
+        recommendation.compatibilityBreakdown?.partiallyMatchedCriteria,
+      );
+      const requiredMismatches = this.toStringArray(
+        recommendation.compatibilityBreakdown?.requiredMismatches,
+      );
+      const criterionScores = this.toNumberRecord(
+        recommendation.compatibilityBreakdown?.criterionScores,
       );
 
-      ranked.push({
-        user: candidate,
-        score: breakdown.finalScore,
+      const lifestyleMatch = this.averageCriteria(criterionScores, [
+        'noisePreference',
+        'smokingPreference',
+        'petsPreference',
+        'chronotype',
+        'personalityType',
+        'occupationStatus',
+      ]);
+      const preferenceMatch = this.averageCriteria(criterionScores, [
+        'budget',
+        'district',
+        'roommateGenderPreference',
+      ]);
+
+      return {
+        recommendation,
+        user: recommendation,
+        semanticSimilarity,
+        score: normalizedScore,
         breakdown: {
-          semanticSimilarity: breakdown.semanticSimilarity,
-          lifestyleMatch: breakdown.lifestyleMatch,
-          preferenceMatch: breakdown.preferenceMatch,
-          behavioralMatch: breakdown.behavioralMatch,
-          profileQuality: breakdown.profileQuality,
-          finalScore: breakdown.finalScore,
+          semanticSimilarity,
+          lifestyleMatch,
+          preferenceMatch,
+          behavioralMatch: 0,
+          profileQuality: 0,
+          finalScore: normalizedScore,
         },
         explanation: {
-          semantic: `Семантическая близость между запросом и профилем составляет ${Math.round(
-            breakdown.semanticSimilarity * 100,
-          )}%.`,
-          lifestyle: this.buildLifestyleExplanation(lifestyle.matchedFields),
-          preferences: this.buildPreferenceExplanation(
-            preference.matchedFields,
+          semantic:
+            'Совместимость рассчитана общим алгоритмом, как на главном экране.',
+          lifestyle: this.buildSharedLifestyleExplanation(
+            matchedFields,
+            partialFields,
+          ),
+          preferences: this.buildSharedPreferenceExplanation(
+            matchedFields,
+            requiredMismatches,
           ),
           matchedFields,
         },
-      });
+      };
+    });
+  }
+
+  private computeSearchRelevance(input: {
+    semanticSimilarity: number;
+    lexicalScore: number;
+    filterScore: number;
+  }): number {
+    return this.clamp01(
+      input.semanticSimilarity * 0.8 +
+        input.lexicalScore * 0.15 +
+        input.filterScore * 0.05,
+    );
+  }
+
+  private embeddingGenerationLimit(): number {
+    const raw = Number(process.env.AI_SEARCH_PROFILE_EMBED_LIMIT ?? '120');
+    if (!Number.isFinite(raw)) {
+      return 120;
+    }
+    return Math.min(Math.max(Math.floor(raw), 0), 500);
+  }
+
+  private async runWithConcurrency<T>(
+    items: T[],
+    concurrency: number,
+    worker: (item: T) => Promise<void>,
+  ): Promise<void> {
+    if (items.length === 0) {
+      return;
     }
 
-    ranked.sort((a, b) => b.score - a.score);
-    return ranked.slice(0, input.limit);
+    let index = 0;
+    const safeConcurrency = Math.max(1, Math.min(concurrency, items.length));
+    const workers = Array.from({ length: safeConcurrency }, async () => {
+      while (index < items.length) {
+        const item = items[index];
+        index += 1;
+        await worker(item);
+      }
+    });
+
+    await Promise.all(workers);
+  }
+
+  private lexicalMatchScore(
+    rawTokens: string[],
+    candidate: AiUserProfileRecord,
+  ): number {
+    const tokens = rawTokens
+      .map((token) => this.normalizeSearchToken(token))
+      .filter((token) => token.length >= 2 && !this.isStopToken(token));
+
+    if (tokens.length === 0) {
+      return 0;
+    }
+
+    const searchable = this.buildCandidateSearchText(candidate);
+    let score = 0;
+
+    for (const token of tokens) {
+      if (searchable.includes(token)) {
+        score += 1;
+        continue;
+      }
+
+      const stem = this.searchStem(token);
+      if (stem.length >= 3 && searchable.includes(stem)) {
+        score += 0.7;
+      }
+    }
+
+    return this.clamp01(score / tokens.length);
+  }
+
+  private filterMatchScore(
+    filters: AiQueryFilters,
+    candidate: AiUserProfileRecord,
+  ): number {
+    const scores: number[] = [];
+
+    if (filters.smokingPreference) {
+      scores.push(
+        candidate.smokingPreference === filters.smokingPreference ? 1 : 0,
+      );
+    }
+    if (filters.petsPreference) {
+      scores.push(candidate.petsPreference === filters.petsPreference ? 1 : 0);
+    }
+    if (filters.noisePreference) {
+      scores.push(
+        candidate.noisePreference === filters.noisePreference ? 1 : 0,
+      );
+    }
+    if (filters.chronotype) {
+      scores.push(candidate.chronotype === filters.chronotype ? 1 : 0);
+    }
+    if (filters.personalityType) {
+      scores.push(
+        candidate.personalityType === filters.personalityType ? 1 : 0,
+      );
+    }
+    if (filters.preferredGender) {
+      scores.push(candidate.gender === filters.preferredGender ? 1 : 0);
+    }
+    if (filters.occupationStatus) {
+      scores.push(
+        candidate.occupationStatus === filters.occupationStatus ? 1 : 0,
+      );
+    }
+    if (filters.roommateGenderPreference) {
+      scores.push(
+        candidate.roommateGenderPreference === filters.roommateGenderPreference
+          ? 1
+          : 0,
+      );
+    }
+    if (filters.requiresCleanLifestyle) {
+      const text = this.buildCandidateSearchText(candidate);
+      scores.push(
+        text.includes('clean') ||
+          text.includes('tidy') ||
+          text.includes('neat') ||
+          text.includes('chist') ||
+          text.includes('чист') ||
+          text.includes('поряд')
+          ? 1
+          : 0,
+      );
+    }
+
+    if (scores.length === 0) {
+      return 0;
+    }
+
+    const sum = scores.reduce((acc, value) => acc + value, 0);
+    return this.clamp01(sum / scores.length);
+  }
+
+  private buildCandidateSearchText(candidate: AiUserProfileRecord): string {
+    const chunks = [
+      candidate.firstName,
+      candidate.lastName,
+      candidate.city,
+      candidate.searchDistrict,
+      candidate.bio,
+      candidate.university,
+      candidate.stayTerm,
+      candidate.gender,
+      candidate.occupationStatus,
+      candidate.chronotype,
+      candidate.noisePreference,
+      candidate.personalityType,
+      candidate.smokingPreference,
+      candidate.petsPreference,
+      candidate.roommateGenderPreference,
+      this.enumSearchTerms('gender', candidate.gender),
+      this.enumSearchTerms('occupationStatus', candidate.occupationStatus),
+      this.enumSearchTerms('chronotype', candidate.chronotype),
+      this.enumSearchTerms('noisePreference', candidate.noisePreference),
+      this.enumSearchTerms('personalityType', candidate.personalityType),
+      this.enumSearchTerms('smokingPreference', candidate.smokingPreference),
+      this.enumSearchTerms('petsPreference', candidate.petsPreference),
+      this.enumSearchTerms(
+        'roommateGenderPreference',
+        candidate.roommateGenderPreference,
+      ),
+    ];
+
+    return this.normalizeSearchText(chunks.filter(Boolean).join(' '));
+  }
+
+  private enumSearchTerms(
+    kind: string,
+    value: string | null | undefined,
+  ): string {
+    if (!value) {
+      return '';
+    }
+
+    const key = `${kind}:${value}`;
+    const terms: Record<string, string> = {
+      'gender:MALE': 'male man guy мужчина парень сосед',
+      'gender:FEMALE': 'female woman girl женщина девушка соседка',
+      'occupationStatus:STUDY':
+        'student study university учится студент студентка учеба',
+      'occupationStatus:WORK': 'work job employed работает работа',
+      'occupationStatus:STUDY_WORK':
+        'student work study job учится работает студент работа',
+      'chronotype:OWL': 'night owl late sleeper сова ночной поздно',
+      'chronotype:LARK': 'early morning lark жаворонок рано утро',
+      'noisePreference:QUIET':
+        'quiet calm silent silence тихий тихая тихо тишина спокойный спокойная спокойствие',
+      'noisePreference:SOCIAL':
+        'social outgoing party шумный шумная общительный тусовки',
+      'personalityType:INTROVERT':
+        'introvert quiet private интроверт спокойный закрытый',
+      'personalityType:EXTROVERT':
+        'extrovert social outgoing экстраверт общительный',
+      'smokingPreference:NON_SMOKER':
+        'non smoker no smoking does not smoke не курит некурящий без курения',
+      'smokingPreference:SMOKER': 'smoker smoking курит курящий',
+      'petsPreference:NO_PETS':
+        'no pets without pets без животных без питомцев',
+      'petsPreference:WITH_PETS':
+        'with pets pet friendly животные питомцы с животными',
+      'roommateGenderPreference:MALE': 'male man guy парень мужчина сосед',
+      'roommateGenderPreference:FEMALE':
+        'female woman girl девушка женщина соседка',
+      'roommateGenderPreference:ANY': 'any gender любой пол не важно',
+    };
+
+    return terms[key] ?? value;
+  }
+
+  private normalizeSearchText(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/ё/g, 'е')
+      .replace(/[^\p{L}\p{N}\s-]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private normalizeSearchToken(value: string): string {
+    return this.normalizeSearchText(value);
+  }
+
+  private searchStem(value: string): string {
+    return value
+      .replace(
+        /(иями|ями|ами|ого|ему|ыми|ими|ая|яя|ое|ее|ые|ие|ый|ий|ой|ую|юю|ом|ем|ах|ях|ов|ев|ей|ам|ям|ами|ями|а|я|ы|и|у|ю|е|о)$/u,
+        '',
+      )
+      .replace(/(ing|ers|er|ed|es|s)$/u, '');
+  }
+
+  private isStopToken(value: string): boolean {
+    return new Set([
+      'и',
+      'в',
+      'во',
+      'на',
+      'по',
+      'для',
+      'the',
+      'a',
+      'an',
+      'and',
+      'or',
+    ]).has(value);
   }
 
   private async fetchCandidates(
@@ -442,18 +817,53 @@ export class AiSearchService {
     return result;
   }
 
-  private buildLifestyleExplanation(matched: string[]): string {
-    if (matched.length === 0) {
-      return 'Явных совпадений по образу жизни не найдено, совместимость умеренная.';
+  private buildSharedLifestyleExplanation(
+    matched: string[],
+    partial: string[],
+  ): string {
+    const lifestyleFields = [
+      'noisePreference',
+      'smokingPreference',
+      'petsPreference',
+      'chronotype',
+      'personalityType',
+      'occupationStatus',
+    ];
+    const matchedLifestyle = matched.filter((field) =>
+      lifestyleFields.includes(field),
+    );
+    const partialLifestyle = partial.filter((field) =>
+      lifestyleFields.includes(field),
+    );
+
+    if (matchedLifestyle.length > 0) {
+      return `Совпадения по образу жизни: ${matchedLifestyle.join(', ')}.`;
     }
-    return `Совпадения по образу жизни: ${matched.join(', ')}.`;
+    if (partialLifestyle.length > 0) {
+      return `Есть частичные совпадения по образу жизни: ${partialLifestyle.join(', ')}.`;
+    }
+    return 'Явных совпадений по образу жизни общий алгоритм не нашел.';
   }
 
-  private buildPreferenceExplanation(matched: string[]): string {
-    if (matched.length === 0) {
-      return 'Совпадение предпочтений частичное: бюджет и локация совпадают не полностью.';
+  private buildSharedPreferenceExplanation(
+    matched: string[],
+    requiredMismatches: string[],
+  ): string {
+    const preferenceFields = ['budget', 'district', 'roommateGenderPreference'];
+    const matchedPreferences = matched.filter((field) =>
+      preferenceFields.includes(field),
+    );
+    const requiredPreferenceMismatches = requiredMismatches.filter((field) =>
+      preferenceFields.includes(field),
+    );
+
+    if (matchedPreferences.length > 0) {
+      return `Совпадения по предпочтениям: ${matchedPreferences.join(', ')}.`;
     }
-    return `Совпадения по предпочтениям: ${matched.join(', ')}.`;
+    if (requiredPreferenceMismatches.length > 0) {
+      return `Есть важные расхождения: ${requiredPreferenceMismatches.join(', ')}.`;
+    }
+    return 'Предпочтения оценены тем же правилом, что и на главном экране.';
   }
 
   private extractVector(value: Prisma.JsonValue): number[] {
@@ -472,6 +882,97 @@ export class AiSearchService {
       }
     }
     return result;
+  }
+
+  private semanticSimilarity(vectorA: number[], vectorB: number[]): number {
+    const length = Math.min(vectorA.length, vectorB.length);
+    if (length === 0) {
+      return 0;
+    }
+
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < length; i++) {
+      const a = vectorA[i] ?? 0;
+      const b = vectorB[i] ?? 0;
+      dot += a * b;
+      normA += a * a;
+      normB += b * b;
+    }
+
+    const denom = Math.sqrt(normA) * Math.sqrt(normB);
+    if (!denom || !Number.isFinite(denom)) {
+      return 0;
+    }
+
+    return this.clamp01((dot / denom + 1) / 2);
+  }
+
+  private normalizePercent(value: number | null | undefined): number {
+    if (!Number.isFinite(value ?? NaN)) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, Number(value)));
+  }
+
+  private percentToRatio(value: number): number {
+    return this.clamp01(value / 100);
+  }
+
+  private averageCriteria(
+    scores: Record<string, number>,
+    criteria: string[],
+  ): number {
+    const values = criteria
+      .map((criterion) => scores[criterion])
+      .filter((value): value is number => Number.isFinite(value));
+
+    if (values.length === 0) {
+      return 0;
+    }
+
+    const sum = values.reduce((acc, value) => acc + value, 0);
+    return this.clamp01(sum / values.length);
+  }
+
+  private toNumberRecord(value: unknown): Record<string, number> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    const result: Record<string, number> = {};
+    for (const [key, raw] of Object.entries(value)) {
+      const numeric = Number(raw);
+      if (Number.isFinite(numeric)) {
+        result[key] = numeric;
+      }
+    }
+    return result;
+  }
+
+  private toStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  private clamp01(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    if (value < 0) {
+      return 0;
+    }
+    if (value > 1) {
+      return 1;
+    }
+    return Number(value.toFixed(4));
   }
 
   private normalizeLimit(limit: number | undefined): number {

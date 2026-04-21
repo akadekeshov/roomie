@@ -1380,10 +1380,12 @@ export class UsersService {
       this.buildVisibleUserWhere(currentUserId);
     const candidateConditions: Prisma.UserWhereInput[] = [];
 
-    this.pushRoommateGenderPreferenceFilter(
-      candidateConditions,
-      me.roommateGenderPreference,
-    );
+    if (!filters?.gender) {
+      this.pushRoommateGenderPreferenceFilter(
+        candidateConditions,
+        me.roommateGenderPreference,
+      );
+    }
     if (filters) {
       this.appendCandidateFilters(candidateConditions, filters);
     }

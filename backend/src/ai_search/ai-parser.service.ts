@@ -74,6 +74,9 @@ const FEMALE_PATTERNS = [
   /соседк/u,
   /девушк/u,
   /женщин/u,
+  /женьщин/u,
+  /женьшин/u,
+  /женшин/u,
 ];
 
 const MALE_PATTERNS = [

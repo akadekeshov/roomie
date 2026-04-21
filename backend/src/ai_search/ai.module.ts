@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
+import { UsersModule } from '../users/users.module';
 import { AiController } from './ai.controller';
 import { AiEmbeddingService } from './ai-embedding.service';
 import { AiParserService } from './ai-parser.service';
 import { AiProfileBuilderService } from './ai-profile-builder.service';
-import { AiScoringService } from './ai-scoring.service';
 import { AiSearchService } from './ai-search.service';
 import { AiService } from './ai.service';
 import { AiVectorSearchService } from './ai-vector-search.service';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, UsersModule],
   controllers: [AiController],
   providers: [
     AiService,
@@ -19,7 +19,6 @@ import { AiVectorSearchService } from './ai-vector-search.service';
     AiEmbeddingService,
     AiVectorSearchService,
     AiProfileBuilderService,
-    AiScoringService,
   ],
   exports: [
     AiService,
@@ -28,7 +27,6 @@ import { AiVectorSearchService } from './ai-vector-search.service';
     AiEmbeddingService,
     AiVectorSearchService,
     AiProfileBuilderService,
-    AiScoringService,
   ],
 })
 export class AiSearchModule {}
