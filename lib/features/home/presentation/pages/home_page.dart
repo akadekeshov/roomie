@@ -479,7 +479,7 @@ class _RoommateCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Совместимость: ${user.compatibilityPercent}%',
+                    'Совместимо: ${user.compatibilityPercent}%',
                     style: textTheme.bodyMedium?.copyWith(
                       color: const Color(0xFF4C1D95),
                       fontWeight: FontWeight.w700,

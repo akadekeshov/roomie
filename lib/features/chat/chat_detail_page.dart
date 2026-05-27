@@ -6,6 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_sizes.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../agreements/data/agreement_models.dart';
+import '../agreements/data/agreement_service.dart';
+import '../agreements/presentation/pages/agreement_detail_page.dart';
+import '../agreements/presentation/pages/agreement_edit_page.dart';
+import '../disputes/presentation/pages/create_dispute_page.dart';
 import '../profile/data/me_repository.dart';
 import 'data/chat_models.dart';
 import 'data/chat_providers.dart';
@@ -43,6 +48,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   bool _loading = true;
   bool _sending = false;
   String? _error;
+  AgreementConversationStatus? _agreementStatus;
+  bool _agreementLoading = false;
   Timer? _pollTimer;
 
   @override
@@ -69,15 +76,17 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       }
 
       if (conversationId == null || conversationId.isEmpty) {
-        throw Exception('Не удалось открыть чат');
+        throw Exception('Не удалось открыть чат.');
       }
 
       _conversationId = conversationId;
       await _loadMessages(scrollToBottom: true);
+      await _loadAgreementStatus();
 
       _pollTimer?.cancel();
       _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
         _loadMessages();
+        _loadAgreementStatus(silent: true);
       });
     } catch (error) {
       if (!mounted) return;
@@ -113,6 +122,29 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     }
   }
 
+  Future<void> _loadAgreementStatus({bool silent = false}) async {
+    final conversationId = _conversationId;
+    if (conversationId == null || conversationId.isEmpty) return;
+
+    if (!silent && mounted) {
+      setState(() => _agreementLoading = true);
+    }
+
+    try {
+      final status = await ref
+          .read(agreementServiceProvider)
+          .getConversationStatus(conversationId);
+      if (!mounted) return;
+      setState(() {
+        _agreementStatus = status;
+        _agreementLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _agreementLoading = false);
+    }
+  }
+
   Future<void> _send() async {
     final text = _inputController.text.trim();
     final conversationId = _conversationId;
@@ -124,6 +156,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       await repository.sendMessage(conversationId, text);
       _inputController.clear();
       await _loadMessages(scrollToBottom: true);
+      await _loadAgreementStatus();
       ref.invalidate(chatConversationsProvider);
       if (!mounted) return;
       _scrollToBottom(animated: true);
@@ -139,6 +172,28 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         setState(() => _sending = false);
       }
     }
+  }
+
+  Future<void> _openDispute() async {
+    final conversationId = _conversationId;
+    final accusedId = widget.peerUserId;
+    if (conversationId == null || accusedId == null || accusedId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось определить пользователя для жалобы.'),
+        ),
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CreateDisputePage(
+          conversationId: conversationId,
+          accusedId: accusedId,
+        ),
+      ),
+    );
   }
 
   void _scrollToBottom({required bool animated}) {
@@ -182,11 +237,54 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                 letter: widget.letter,
                 imageUrl: widget.imageUrl,
                 imagePath: widget.imagePath,
+                onReport: widget.peerUserId == null ? null : _openDispute,
               ),
               const SizedBox(height: 8),
-              Expanded(
-                child: _buildBody(currentUserId),
-              ),
+              if (_conversationId != null) ...[
+                _AgreementBanner(
+                  loading: _agreementLoading,
+                  status: _agreementStatus,
+                  onCreate: () async {
+                    final conversationId = _conversationId;
+                    if (conversationId == null) return;
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
+                    try {
+                      final agreement = await ref
+                          .read(agreementServiceProvider)
+                          .createFromConversation(conversationId);
+                      if (!context.mounted) return;
+                      await navigator.push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              AgreementEditPage(agreementId: agreement.id),
+                        ),
+                      );
+                      ref.invalidate(myAgreementsProvider);
+                      await _loadAgreementStatus();
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      messenger.showSnackBar(SnackBar(content: Text('$error')));
+                    }
+                  },
+                  onOpenExisting: () async {
+                    final existingAgreement = _agreementStatus?.existingAgreement;
+                    if (existingAgreement == null) return;
+                    final navigator = Navigator.of(context);
+                    await navigator.push(
+                      MaterialPageRoute(
+                        builder: (_) => AgreementDetailPage(
+                          agreementId: existingAgreement.id,
+                        ),
+                      ),
+                    );
+                    ref.invalidate(myAgreementsProvider);
+                    await _loadAgreementStatus();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+              Expanded(child: _buildBody(currentUserId)),
               Row(
                 children: [
                   Expanded(
@@ -269,10 +367,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-            ),
+            Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             FilledButton(
               onPressed: _init,
@@ -315,6 +410,92 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   }
 }
 
+class _AgreementBanner extends StatelessWidget {
+  const _AgreementBanner({
+    required this.loading,
+    required this.status,
+    required this.onCreate,
+    required this.onOpenExisting,
+  });
+
+  final bool loading;
+  final AgreementConversationStatus? status;
+  final VoidCallback onCreate;
+  final VoidCallback onOpenExisting;
+
+  @override
+  Widget build(BuildContext context) {
+    final existingAgreement = status?.existingAgreement;
+    final canCreate = status?.canCreateAgreement ?? false;
+    final reason = status?.reason ??
+        'Чтобы создать договор, сначала обсудите условия в чате.';
+    final messageCount = status?.messageCount ?? 0;
+    final bothUsersHaveMessages = status?.bothUsersHaveMessages ?? false;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F2FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Договор',
+            style: TextStyle(
+              color: Color(0xFF001561),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (loading)
+            const LinearProgressIndicator(color: AppColors.primary)
+          else if (existingAgreement != null)
+            FilledButton(
+              onPressed: onOpenExisting,
+              child: const Text('Посмотреть договор'),
+            )
+          else if (canCreate)
+            FilledButton(
+              onPressed: onCreate,
+              child: const Text('Создать договор'),
+            )
+          else ...[
+            OutlinedButton(
+              onPressed: null,
+              child: const Text('Создать договор'),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              reason,
+              style: const TextStyle(color: Colors.black54),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Нужно минимум 3 сообщения в этом чате или хотя бы по 1 сообщению от каждого участника.',
+              style: TextStyle(
+                color: Colors.black54,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Сейчас: $messageCount сообщ. От обоих участников: ${bothUsersHaveMessages ? 'да' : 'нет'}.',
+              style: const TextStyle(
+                color: Colors.black45,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header({
     required this.title,
@@ -322,6 +503,7 @@ class _Header extends StatelessWidget {
     required this.letter,
     this.imageUrl,
     this.imagePath,
+    this.onReport,
   });
 
   final String title;
@@ -329,6 +511,7 @@ class _Header extends StatelessWidget {
   final String letter;
   final String? imageUrl;
   final String? imagePath;
+  final VoidCallback? onReport;
 
   @override
   Widget build(BuildContext context) {
@@ -393,7 +576,21 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        const Icon(Icons.more_horiz),
+        if (onReport != null)
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'report') {
+                onReport?.call();
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem<String>(
+                value: 'report',
+                child: Text('Подать жалобу'),
+              ),
+            ],
+            icon: const Icon(Icons.more_horiz),
+          ),
       ],
     );
   }

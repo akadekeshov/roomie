@@ -3,9 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../admin/presentation/pages/admin_disputes_page.dart';
+import '../../../agreements/presentation/pages/my_agreements_page.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../disputes/presentation/pages/my_disputes_page.dart';
 import '../../../home/data/filter_providers.dart';
 import '../../../home/data/home_providers.dart';
+import '../../../payments/data/payment_service.dart';
+import '../../../payments/presentation/pages/agreement_payments_page.dart';
+import '../../../payments/presentation/pages/my_cards_page.dart';
 import '../../../people/data/favorites_users_providers.dart';
 import '../../../people/data/hidden_users_provider.dart';
 import '../../data/me_repository.dart';
@@ -117,6 +124,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final meAsync = ref.watch(meProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
@@ -174,12 +182,65 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                      ref.invalidate(meProvider); 
                    },
                   ),
+                    const SizedBox(height: 12),
+                    const _PaymentRemindersCard(),
                     const SizedBox(height: 18),
                      _MenuItem(
                       icon: Icons.edit_outlined,
                      title: 'Редактировать профиль',
   onTap: () => Navigator.of(context).pushNamed(AppRoutes.profileEdit),
 ),
+                    const SizedBox(height: 8),
+                    _MenuItem(
+                      icon: Icons.description_outlined,
+                      title: 'Мои договоры',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const MyAgreementsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _MenuItem(
+                      icon: Icons.credit_card_outlined,
+                      title: 'Мои карты',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const MyCardsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _MenuItem(
+                      icon: Icons.report_gmailerrorred_outlined,
+                      title: 'Мои жалобы',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const MyDisputesPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    if ((meAsync.valueOrNull?.role == 'ADMIN') ||
+                        (meAsync.valueOrNull?.role == 'MODERATOR')) ...[
+                      const SizedBox(height: 8),
+                      _MenuItem(
+                        icon: Icons.admin_panel_settings_outlined,
+                        title: 'Жалобы пользователей',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const AdminDisputesPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     const _MenuItem(
                       icon: Icons.notifications_none,
@@ -249,6 +310,93 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
       ),
       
+    );
+  }
+}
+
+class _PaymentRemindersCard extends ConsumerWidget {
+  const _PaymentRemindersCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remindersAsync = ref.watch(paymentRemindersProvider);
+
+    return remindersAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (payments) {
+        if (payments.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Напоминания об оплате',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF001561),
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text('Сейчас у вас нет ожидающих оплат.'),
+              ],
+            ),
+          );
+        }
+
+        final visible = payments.take(3).toList();
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Напоминания об оплате',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF001561),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ...visible.map(
+                (payment) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    payment.type.label,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    'Срок оплаты: ${formatDateRu(payment.dueDate)}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AgreementPaymentsPage(
+                          agreementId: payment.agreementId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -672,7 +820,6 @@ class _MenuItem extends StatelessWidget {
     required this.icon,
     required this.title,
     this.onTap,
-    super.key,
   });
 
   final IconData icon;
@@ -712,35 +859,6 @@ class _MenuItem extends StatelessWidget {
             ),
             const Icon(Icons.chevron_right, color: Color(0xFFA7AEBD), size: 22),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NavIcon extends StatelessWidget {
-  const _NavIcon({required this.icon, required this.selected, this.onTap});
-
-  final IconData icon;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(28),
-      onTap: onTap,
-      child: Container(
-        height: 44,
-        width: 44,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: selected ? Colors.white : const Color(0xFF7A7A7A),
-          size: 24,
         ),
       ),
     );

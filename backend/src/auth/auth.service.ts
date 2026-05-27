@@ -49,6 +49,12 @@ export class AuthService {
     phoneVerified: true,
     onboardingStep: true,
     onboardingCompleted: true,
+    warningCount: true,
+    isRestricted: true,
+    restrictedUntil: true,
+    bannedAt: true,
+    banReason: true,
+    profileTrustPenalty: true,
     createdAt: true,
     updatedAt: true,
   } as const;

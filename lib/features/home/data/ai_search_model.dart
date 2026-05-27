@@ -1,6 +1,51 @@
 import '../../../core/network/api_config.dart';
 import 'recommended_user_model.dart';
 
+String localizeAiSearchText(String value) {
+  var text = value;
+  const replacements = <String, String>{
+    'budget': '\u0411\u044e\u0434\u0436\u0435\u0442',
+    'district': '\u0420\u0430\u0439\u043e\u043d',
+    'noisePreference':
+        '\u041e\u0442\u043d\u043e\u0448\u0435\u043d\u0438\u0435 \u043a \u0448\u0443\u043c\u0443',
+    'smokingPreference':
+        '\u041e\u0442\u043d\u043e\u0448\u0435\u043d\u0438\u0435 \u043a \u043a\u0443\u0440\u0435\u043d\u0438\u044e',
+    'petsPreference':
+        '\u041e\u0442\u043d\u043e\u0448\u0435\u043d\u0438\u0435 \u043a \u0436\u0438\u0432\u043e\u0442\u043d\u044b\u043c',
+    'chronotype': '\u0420\u0435\u0436\u0438\u043c \u0434\u043d\u044f',
+    'personalityType':
+        '\u0422\u0438\u043f \u043b\u0438\u0447\u043d\u043e\u0441\u0442\u0438',
+    'occupationStatus':
+        '\u0423\u0447\u0435\u0431\u0430/\u0440\u0430\u0431\u043e\u0442\u0430',
+    'roommateGenderPreference':
+        '\u041f\u0440\u0435\u0434\u043f\u043e\u0447\u0442\u0435\u043d\u0438\u0435 \u043f\u043e \u043f\u043e\u043b\u0443 \u0441\u043e\u0441\u0435\u0434\u0430',
+  };
+
+  for (final entry in replacements.entries) {
+    text = text.replaceAll(entry.key, entry.value);
+  }
+  return text;
+}
+
+String aiSearchFieldLabel(String field) {
+  return switch (field.trim()) {
+    'budget' => '\u0411\u044e\u0434\u0436\u0435\u0442',
+    'district' => '\u0420\u0430\u0439\u043e\u043d',
+    'noisePreference' =>
+      '\u0423\u0440\u043e\u0432\u0435\u043d\u044c \u0448\u0443\u043c\u0430',
+    'smokingPreference' => '\u041a\u0443\u0440\u0435\u043d\u0438\u0435',
+    'petsPreference' => '\u0416\u0438\u0432\u043e\u0442\u043d\u044b\u0435',
+    'chronotype' => '\u0420\u0435\u0436\u0438\u043c \u0434\u043d\u044f',
+    'personalityType' =>
+      '\u0422\u0438\u043f \u043b\u0438\u0447\u043d\u043e\u0441\u0442\u0438',
+    'occupationStatus' =>
+      '\u0423\u0447\u0435\u0431\u0430/\u0440\u0430\u0431\u043e\u0442\u0430',
+    'roommateGenderPreference' =>
+      '\u041f\u043e\u043b \u0441\u043e\u0441\u0435\u0434\u0430',
+    _ => field,
+  };
+}
+
 class AiSearchUser {
   const AiSearchUser({
     required this.id,
@@ -8,6 +53,10 @@ class AiSearchUser {
     required this.age,
     required this.city,
     required this.bio,
+    required this.searchDistrict,
+    required this.occupationStatus,
+    required this.searchBudgetMin,
+    required this.searchBudgetMax,
     required this.photos,
   });
 
@@ -16,6 +65,10 @@ class AiSearchUser {
   final int? age;
   final String? city;
   final String? bio;
+  final String? searchDistrict;
+  final String? occupationStatus;
+  final int? searchBudgetMin;
+  final int? searchBudgetMax;
   final List<String> photos;
 
   factory AiSearchUser.fromJson(Map<String, dynamic> json) {
@@ -38,6 +91,10 @@ class AiSearchUser {
       age: parseInt(json['age']),
       city: parseString(json['city']),
       bio: parseString(json['bio']),
+      searchDistrict: parseString(json['searchDistrict']),
+      occupationStatus: parseString(json['occupationStatus']),
+      searchBudgetMin: parseInt(json['searchBudgetMin']),
+      searchBudgetMax: parseInt(json['searchBudgetMax']),
       photos:
           (json['photos'] as List<dynamic>?)?.whereType<String>().toList() ??
               const <String>[],
@@ -173,9 +230,9 @@ class AiSearchResult {
 
   RecommendedUser toRecommendedUser({required bool isSaved}) {
     final reasoningParts = <String>[
-      explanation.semantic,
-      explanation.lifestyle,
-      explanation.preferences,
+      localizeAiSearchText(explanation.semantic),
+      localizeAiSearchText(explanation.lifestyle),
+      localizeAiSearchText(explanation.preferences),
     ].where((text) => text.trim().isNotEmpty).toList(growable: false);
 
     return RecommendedUser(
@@ -185,7 +242,7 @@ class AiSearchResult {
       age: user.age,
       city: user.city,
       bio: user.bio,
-      searchDistrict: user.city,
+      searchDistrict: user.searchDistrict ?? user.city,
       photos: user.photos,
       isSaved: isSaved,
       matchPercent: matchPercent,
@@ -193,12 +250,13 @@ class AiSearchResult {
       preferenceTag: null,
       isProfileComplete: true,
       lifestyle: null,
-      occupationStatus: null,
-      searchBudgetMin: null,
-      searchBudgetMax: null,
+      occupationStatus: user.occupationStatus,
+      searchBudgetMin: user.searchBudgetMin,
+      searchBudgetMax: user.searchBudgetMax,
       finalScore: matchPercent,
       aiReasoning: reasoningParts.join(' '),
-      compatibilityReasons: explanation.matchedFields,
+      compatibilityReasons:
+          explanation.matchedFields.map(aiSearchFieldLabel).toList(),
     );
   }
 }

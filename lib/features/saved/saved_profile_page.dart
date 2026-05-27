@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -24,7 +24,8 @@ class SavedUserProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final photo = user.avatarUrl;
-    final lifestyleItems = _lifestyleToItems(user.lifestyle); // backend map -> UI items
+    final lifestyleItems =
+        _lifestyleToItems(user.lifestyle); // backend map -> UI items
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
@@ -47,7 +48,6 @@ class SavedUserProfilePage extends ConsumerWidget {
                               child: const Icon(Icons.person, size: 72),
                             ),
                     ),
-
                     Positioned(
                       top: 36,
                       left: 10,
@@ -57,7 +57,6 @@ class SavedUserProfilePage extends ConsumerWidget {
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
-
                     if (user.isVerified)
                       Positioned(
                         bottom: 12,
@@ -118,7 +117,7 @@ class SavedUserProfilePage extends ConsumerWidget {
                         child: Column(
                           children: [
                             _ProgressRow(
-                              label: 'Совместимость',
+                              label: 'Совместимо',
                               value: user.compatibilityPercent / 100.0,
                               rightText: '${user.compatibilityPercent}%',
                             ),
@@ -150,11 +149,13 @@ class SavedUserProfilePage extends ConsumerWidget {
                           child: Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children:
-                                user.quickBadges.map((badge) => _Chip(badge)).toList(),
+                            children: user.quickBadges
+                                .map((badge) => _Chip(badge))
+                                .toList(),
                           ),
                         ),
-                      if (user.quickBadges.isNotEmpty) const SizedBox(height: 14),
+                      if (user.quickBadges.isNotEmpty)
+                        const SizedBox(height: 14),
                       if ((user.aiReasoning ?? '').trim().isNotEmpty)
                         _Card(
                           child: Text(
@@ -297,7 +298,9 @@ class SavedUserProfilePage extends ConsumerWidget {
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                if ((user.preferenceTag ?? '').trim().isNotEmpty)
+                                if ((user.preferenceTag ?? '')
+                                    .trim()
+                                    .isNotEmpty)
                                   _Chip((user.preferenceTag ?? '').trim()),
                                 const _Chip('Не курит'),
                                 const _Chip('Работает/учится'),
@@ -356,8 +359,7 @@ class SavedUserProfilePage extends ConsumerWidget {
                             ),
                           );
                         },
-                        icon:
-                            const Icon(Icons.chat_bubble_outline, size: 18),
+                        icon: const Icon(Icons.chat_bubble_outline, size: 18),
                         label: const Text('Написать'),
                       ),
                     ),

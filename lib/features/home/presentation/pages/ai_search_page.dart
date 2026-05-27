@@ -69,7 +69,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
-        title: const Text('AI-поиск соседей'),
+        title: const Text('ИИ-поиск соседей'),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF001561),
         elevation: 0,
@@ -332,18 +332,13 @@ class _AiSearchResultCard extends StatelessWidget {
             ),
           const SizedBox(height: 12),
           _ExplanationBlock(
-            title: 'Почему подходит',
-            value: result.explanation.semantic,
-          ),
-          const SizedBox(height: 8),
-          _ExplanationBlock(
             title: 'Образ жизни',
-            value: result.explanation.lifestyle,
+            value: localizeAiSearchText(result.explanation.lifestyle),
           ),
           const SizedBox(height: 8),
           _ExplanationBlock(
             title: 'Предпочтения',
-            value: result.explanation.preferences,
+            value: localizeAiSearchText(result.explanation.preferences),
           ),
           if (result.explanation.matchedFields.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -362,7 +357,7 @@ class _AiSearchResultCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        field,
+                        aiSearchFieldLabel(field),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: const Color(0xFF475569),
                               fontWeight: FontWeight.w600,

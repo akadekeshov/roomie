@@ -89,6 +89,15 @@ AppException mapDioErrorToAppException(DioException error) {
     );
   }
 
+  if (status == 401 || status == 403) {
+    return AppException(
+      code: AppErrorCode.validation,
+      message: rawMessage?.isNotEmpty == true
+          ? rawMessage!
+          : 'У вас нет доступа к этому действию.',
+    );
+  }
+
   if (status == 429) {
     return AppException(
       code: AppErrorCode.validation,

@@ -58,4 +58,10 @@ export class MatchingPrioritiesDto {
   @Transform(({ value }) => normalizeLevel(value))
   @IsIn(LEVELS)
   occupationStatus?: MatchingPriorityLevelDto;
+
+  @ApiPropertyOptional({ enum: LEVELS })
+  @IsOptional()
+  @Transform(({ value }) => normalizeLevel(value))
+  @IsIn(LEVELS)
+  roommateGenderPreference?: MatchingPriorityLevelDto;
 }

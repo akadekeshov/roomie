@@ -18,4 +18,7 @@ class AppException implements Exception {
   final AppErrorCode code;
   final String message;
   final String? field;
+
+  @override
+  String toString() => message;
 }

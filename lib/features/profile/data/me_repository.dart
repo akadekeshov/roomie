@@ -66,7 +66,7 @@ class MeUser {
 
     if (raw.startsWith('http')) return raw;
     final base = ApiConfig.publicBaseUrl;
-    return '${base}${raw.startsWith('/') ? '' : '/'}$raw';
+    return '$base${raw.startsWith('/') ? '' : '/'}$raw';
   }
 
   bool get isVerified => verificationStatus == 'VERIFIED';

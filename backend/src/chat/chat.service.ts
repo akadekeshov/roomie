@@ -236,6 +236,7 @@ export class ChatService {
     conversationId: string,
     text: string,
   ) {
+    await this.ensureUserCanSendMessages(currentUserId);
     await this.ensureParticipant(currentUserId, conversationId);
 
     const normalizedText = text.trim();
@@ -295,6 +296,22 @@ export class ChatService {
 
     if (!participant) {
       throw new ForbiddenException('Нет доступа к этому чату');
+    }
+  }
+  private async ensureUserCanSendMessages(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        isBanned: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден.');
+    }
+
+    if (user.isBanned) {
+      throw new ForbiddenException('Ваш аккаунт заблокирован.');
     }
   }
 }

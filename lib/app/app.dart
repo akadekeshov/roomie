@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../core/constants/app_strings.dart';
 import '../features/auth/presentation/pages/bio_auth_page.dart';
@@ -35,6 +36,13 @@ class RoommateApp extends StatelessWidget {
       title: AppStrings.appName,
       theme: AppTheme.light(),
       debugShowCheckedModeBanner: false,
+      locale: const Locale('ru'),
+      supportedLocales: const [
+        Locale('ru'),
+        Locale('kk'),
+        Locale('en'),
+      ],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       initialRoute: AppRoutes.splash,
       routes: {
         AppRoutes.splash: (context) => const RoomieSplashPage(),

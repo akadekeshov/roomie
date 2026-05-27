@@ -1560,6 +1560,7 @@ export class UsersService {
         chronotype: chrono.score,
         personalityType: personality.score,
         occupationStatus: occupation.score,
+        roommateGenderPreference: genderPreferenceScore,
       };
 
       for (const criterion of MATCHING_CRITERIA) {
@@ -1579,17 +1580,6 @@ export class UsersService {
         if (level === 'required' && score < 0.5) {
           requiredMismatches.push(criterion);
         }
-      }
-
-      criterionScores.roommateGenderPreference = genderPreferenceScore;
-      weightedSum += genderPreferenceScore * 0.4;
-      totalWeight += 0.4;
-      if (genderPreferenceScore >= 0.99) {
-        matchedCriteria.push('roommateGenderPreference');
-      } else if (genderPreferenceScore > 0 && genderPreferenceScore < 1) {
-        partiallyMatchedCriteria.push('roommateGenderPreference');
-      } else {
-        mismatchedCriteria.push('roommateGenderPreference');
       }
 
       let ruleScore = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : 0;

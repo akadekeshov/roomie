@@ -6,138 +6,694 @@
     <title>Roomie Admin</title>
     <style>
       :root {
-        --bg: #f5f7fb;
+        --bg: #f4f7fc;
+        --bg-soft: #eef3ff;
         --card: #ffffff;
-        --text: #0f1a3c;
+        --card-soft: #f8faff;
+        --text: #10204c;
         --muted: #66708f;
         --accent: #0a5be1;
+        --accent-soft: rgba(10, 91, 225, 0.1);
         --danger: #c22626;
+        --danger-soft: rgba(194, 38, 38, 0.08);
         --ok: #177245;
+        --ok-soft: rgba(23, 114, 69, 0.1);
+        --warn: #b26a00;
+        --warn-soft: rgba(178, 106, 0, 0.1);
         --border: #d7dced;
+        --shadow: 0 14px 36px rgba(15, 26, 60, 0.06);
+        --radius-lg: 18px;
+        --radius-md: 14px;
+        --radius-sm: 10px;
       }
-      * { box-sizing: border-box; }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
         font-family: Segoe UI, Arial, sans-serif;
         color: var(--text);
-        background: linear-gradient(180deg, #eef3ff, var(--bg));
+        background:
+          radial-gradient(circle at top left, rgba(10, 91, 225, 0.08), transparent 28%),
+          linear-gradient(180deg, #eef3ff, var(--bg));
       }
-      .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+
+      .wrap {
+        max-width: 1380px;
+        margin: 24px auto 40px;
+        padding: 0 16px;
+      }
+
       .card {
         background: var(--card);
         border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 8px 20px rgba(15, 26, 60, 0.04);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
       }
-      h1, h2 { margin: 0 0 12px; }
-      h1 { font-size: 24px; }
-      h2 { font-size: 18px; }
-      .muted { color: var(--muted); font-size: 13px; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-      .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-      input, select, button, textarea {
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 10px 12px;
+
+      .panel-card {
+        padding: 18px;
+      }
+
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 22px;
+        margin-bottom: 16px;
+      }
+
+      .hero-title {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .hero-subtitle {
+        margin: 8px 0 0;
+        color: var(--muted);
         font-size: 14px;
       }
-      input, textarea, select { width: 100%; }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      .hero-badge::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .login-card {
+        padding: 22px;
+      }
+
+      .section-title {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 800;
+      }
+
+      .section-subtitle {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .grow {
+        flex: 1 1 260px;
+      }
+
+      input,
+      select,
+      textarea,
       button {
+        font: inherit;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+      }
+
+      textarea {
+        min-height: 84px;
+        resize: vertical;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: 2px solid rgba(10, 91, 225, 0.18);
+        border-color: rgba(10, 91, 225, 0.3);
+      }
+
+      button {
+        border: none;
         cursor: pointer;
+        border-radius: var(--radius-sm);
+        padding: 11px 16px;
+        font-weight: 700;
+        transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.58;
+        cursor: default;
+        transform: none;
+      }
+
+      .btn-primary {
         background: var(--accent);
         color: #fff;
-        border: none;
       }
-      button.secondary { background: #e8eefc; color: #1a3c7a; }
-      button.danger { background: var(--danger); }
-      button.ok { background: var(--ok); }
-      table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border-bottom: 1px solid var(--border); padding: 10px 8px; text-align: left; vertical-align: top; }
-      .hidden { display: none; }
-      .status { padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
-      .okText { color: var(--ok); }
-      .errText { color: var(--danger); }
-      @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+
+      .btn-secondary {
+        background: var(--card-soft);
+        color: #21448f;
+        border: 1px solid rgba(10, 91, 225, 0.08);
+      }
+
+      .btn-ok {
+        background: var(--ok);
+        color: #fff;
+      }
+
+      .btn-danger {
+        background: var(--danger);
+        color: #fff;
+      }
+
+      .btn-warn {
+        background: var(--warn);
+        color: #fff;
+      }
+
+      .panel-shell {
+        display: grid;
+        gap: 16px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        padding: 16px 18px;
+      }
+
+      .status-line {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .status-line.error {
+        color: var(--danger);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .summary-card {
+        padding: 18px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+      }
+
+      .summary-label {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .summary-value {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 800;
+      }
+
+      .summary-hint {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        width: fit-content;
+      }
+
+      .tab-btn {
+        background: transparent;
+        color: var(--muted);
+        padding: 10px 16px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+
+      .tab-btn.active {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(10, 91, 225, 0.22);
+      }
+
+      .section {
+        display: none;
+      }
+
+      .section.active {
+        display: block;
+      }
+
+      .section-card {
+        padding: 20px;
+      }
+
+      .section-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 14px;
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        font-size: 22px;
+      }
+
+      .section-heading p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      .toolbar .grow {
+        flex: 1 1 280px;
+      }
+
+      .table-wrap {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: #fff;
+      }
+
+      .scroll {
+        max-height: 620px;
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8faff;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      th,
+      td {
+        padding: 14px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      tbody tr:hover {
+        background: rgba(10, 91, 225, 0.02);
+      }
+
+      .user-main {
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #f8faff;
+        border: 1px solid var(--border);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .status-pill.ok {
+        color: var(--ok);
+        background: var(--ok-soft);
+        border-color: rgba(23, 114, 69, 0.12);
+      }
+
+      .status-pill.danger {
+        color: var(--danger);
+        background: var(--danger-soft);
+        border-color: rgba(194, 38, 38, 0.12);
+      }
+
+      .status-pill.warn {
+        color: var(--warn);
+        background: var(--warn-soft);
+        border-color: rgba(178, 106, 0, 0.14);
+      }
+
+      .status-pill.info {
+        color: var(--accent);
+        background: var(--accent-soft);
+        border-color: rgba(10, 91, 225, 0.12);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .mini-btn {
+        padding: 9px 12px;
+        font-size: 12px;
+      }
+
+      .dispute-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .dispute-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: #fff;
+        padding: 16px;
+      }
+
+      .dispute-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+
+      .dispute-route {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .dispute-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .meta-card {
+        background: var(--card-soft);
+        border: 1px solid rgba(10, 91, 225, 0.08);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+      }
+
+      .meta-label {
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .meta-value {
+        margin: 0;
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .dispute-description {
+        margin: 0 0 10px;
+        color: var(--text);
+        line-height: 1.5;
+      }
+
+      .comment-box {
+        margin-top: 10px;
+        padding: 12px 14px;
+        border-radius: var(--radius-sm);
+        background: var(--card-soft);
+        border: 1px solid rgba(10, 91, 225, 0.08);
+      }
+
+      .empty-state {
+        padding: 28px;
+        text-align: center;
+        color: var(--muted);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 1180px) {
+        .summary-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dispute-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 820px) {
+        .hero,
+        .topbar,
+        .section-heading {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .wrap {
+          margin-top: 16px;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <h1>Roomie Admin Panel</h1>
-      <p class="muted">Только для ролей ADMIN/MODERATOR</p>
-
-      <div class="card" id="loginCard">
-        <h2>Вход администратора</h2>
-        <div class="row">
-          <div style="flex:1;min-width:260px">
-            <input id="email" placeholder="Email" />
-          </div>
-          <div style="flex:1;min-width:260px">
-            <input id="password" type="password" placeholder="Password" />
-          </div>
-          <button id="loginBtn">Войти</button>
+      <div class="card hero">
+        <div>
+          <h1 class="hero-title">Roomie Admin Panel</h1>
+          <p class="hero-subtitle">
+            Управление пользователями, заявками на верификацию и жалобами в одном месте.
+          </p>
         </div>
-        <p id="loginMsg" class="muted"></p>
+        <div class="hero-badge">Только для ADMIN и MODERATOR</div>
       </div>
 
-      <div id="panel" class="hidden">
-        <div class="card" style="margin-top:16px;">
+      <div class="card login-card" id="loginCard">
+        <h2 class="section-title">Вход администратора</h2>
+        <p class="section-subtitle">
+          Используйте аккаунт с ролью ADMIN или MODERATOR.
+        </p>
+        <div class="row">
+          <div class="grow">
+            <input id="email" placeholder="Email" />
+          </div>
+          <div class="grow">
+            <input id="password" type="password" placeholder="Password" />
+          </div>
+          <button class="btn-primary" id="loginBtn">Войти</button>
+        </div>
+        <p id="loginMsg" class="muted" style="margin: 14px 0 0"></p>
+      </div>
+
+      <div id="panel" class="panel-shell hidden">
+        <div class="card topbar">
+          <div>
+            <strong style="font-size: 16px">Панель управления</strong>
+            <div id="stateMsg" class="status-line">Готово к работе</div>
+          </div>
           <div class="row">
-            <button class="secondary" id="logoutBtn">Выйти</button>
-            <button class="secondary" id="refreshBtn">Обновить всё</button>
-            <span id="stateMsg" class="muted"></span>
+            <button class="btn-secondary" id="refreshBtn">Обновить всё</button>
+            <button class="btn-secondary" id="logoutBtn">Выйти</button>
           </div>
         </div>
 
-        <div class="grid" style="margin-top:16px;">
-          <div class="card">
-            <h2>Пользователи</h2>
-            <div class="row" style="margin-bottom:12px;">
-              <input id="userSearch" placeholder="Поиск: email / phone / name" />
-              <button id="searchBtn" class="secondary">Поиск</button>
-            </div>
-            <div style="max-height:520px;overflow:auto;">
-              <table>
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>Ban</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="usersBody"></tbody>
-              </table>
-            </div>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p class="summary-label">Пользователи</p>
+            <p class="summary-value" id="usersCount">0</p>
+            <div class="summary-hint">Всего записей в текущем списке</div>
           </div>
-
-          <div class="card">
-            <h2>Заявки на верификацию</h2>
-            <div style="max-height:520px;overflow:auto;">
-              <table>
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Status</th>
-                    <th>Docs</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="verBody"></tbody>
-              </table>
-            </div>
+          <div class="summary-card">
+            <p class="summary-label">Заблокированы</p>
+            <p class="summary-value" id="bannedCount">0</p>
+            <div class="summary-hint">Аккаунты с активным баном</div>
+          </div>
+          <div class="summary-card">
+            <p class="summary-label">Заявки на верификацию</p>
+            <p class="summary-value" id="verificationCount">0</p>
+            <div class="summary-hint">Ожидают решения модератора</div>
+          </div>
+          <div class="summary-card">
+            <p class="summary-label">Жалобы</p>
+            <p class="summary-value" id="disputeCount">0</p>
+            <div class="summary-hint">С учетом текущего фильтра</div>
           </div>
         </div>
+
+        <div class="tabs card" style="padding: 8px">
+          <button class="tab-btn active" data-tab="usersSection">Пользователи</button>
+          <button class="tab-btn" data-tab="verificationsSection">Верификация</button>
+          <button class="tab-btn" data-tab="disputesSection">Жалобы</button>
+        </div>
+
+        <section id="usersSection" class="section active">
+          <div class="card section-card">
+            <div class="section-heading">
+              <div>
+                <h2>Пользователи</h2>
+                <p>Поиск по email, телефону и имени. Здесь же меняется роль и бан.</p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <div class="grow">
+                <input id="userSearch" placeholder="Поиск: email / phone / name" />
+              </div>
+              <button class="btn-secondary" id="searchBtn">Найти</button>
+            </div>
+            <div class="table-wrap">
+              <div class="scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Пользователь</th>
+                      <th>Роль</th>
+                      <th>Статус</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="verificationsSection" class="section">
+          <div class="card section-card">
+            <div class="section-heading">
+              <div>
+                <h2>Заявки на верификацию</h2>
+                <p>Проверка документов и селфи пользователей перед подтверждением.</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <div class="scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Пользователь</th>
+                      <th>Статус</th>
+                      <th>Документы</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="verBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="disputesSection" class="section">
+          <div class="card section-card">
+            <div class="section-heading">
+              <div>
+                <h2>Жалобы пользователей</h2>
+                <p>Смотрите, кто на кого пожаловался, и меняйте статус жалобы.</p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <div class="grow">
+                <select id="disputeStatusFilter">
+                  <option value="">Все статусы</option>
+                  <option value="OPEN">Открыта</option>
+                  <option value="IN_REVIEW">На рассмотрении</option>
+                  <option value="RESOLVED">Решена</option>
+                  <option value="REJECTED">Отклонена</option>
+                  <option value="CLOSED">Закрыта</option>
+                </select>
+              </div>
+              <div class="grow">
+                <select id="disputeReasonFilter">
+                  <option value="">Все причины</option>
+                  <option value="PAYMENT_NOT_PAID">Не оплатил(а)</option>
+                  <option value="AGREEMENT_VIOLATION">Нарушение договора</option>
+                  <option value="PROPERTY_DAMAGE">Порча имущества</option>
+                  <option value="FAKE_INFORMATION">Ложная информация</option>
+                  <option value="RUDE_BEHAVIOR">Грубое поведение</option>
+                  <option value="SAFETY_CONCERN">Угроза безопасности</option>
+                  <option value="OTHER">Другое</option>
+                </select>
+              </div>
+              <button class="btn-secondary" id="disputeFilterBtn">Применить</button>
+            </div>
+            <div class="dispute-list" id="disputesBody"></div>
+          </div>
+        </section>
       </div>
     </div>
 
     <script>
-      // API base URL:
-      // - по умолчанию: бекенд на localhost:3001/api (для случая, когда панель открывают напрямую через file:// или с другого порта)
-      // - можно переопределить через глобальную переменную window.ROOMIE_API_BASE
       const apiBase =
         (window.ROOMIE_API_BASE && String(window.ROOMIE_API_BASE)) ||
         `${window.location.protocol}//${window.location.hostname}:3001/api`;
+
       let accessToken = localStorage.getItem('admin_access_token') || '';
 
       const loginCard = document.getElementById('loginCard');
@@ -146,31 +702,131 @@
       const stateMsg = document.getElementById('stateMsg');
       const usersBody = document.getElementById('usersBody');
       const verBody = document.getElementById('verBody');
+      const disputesBody = document.getElementById('disputesBody');
+      const disputeStatusFilter = document.getElementById('disputeStatusFilter');
+      const disputeReasonFilter = document.getElementById('disputeReasonFilter');
+      const usersCountEl = document.getElementById('usersCount');
+      const bannedCountEl = document.getElementById('bannedCount');
+      const verificationCountEl = document.getElementById('verificationCount');
+      const disputeCountEl = document.getElementById('disputeCount');
 
       function setState(text, isError = false) {
         stateMsg.textContent = text || '';
-        stateMsg.className = isError ? 'errText' : 'muted';
+        stateMsg.className = isError ? 'status-line error' : 'status-line';
       }
 
       async function api(path, options = {}) {
         const headers = options.headers || {};
         headers['Content-Type'] = 'application/json';
-        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
         const res = await fetch(apiBase + path, { ...options, headers });
         const text = await res.text();
         let json = null;
-        try { json = text ? JSON.parse(text) : null; } catch (_) {}
+
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch (_) {}
+
         if (!res.ok) {
-          const msg = (json && (json.message || json.error)) || text || `HTTP ${res.status}`;
+          const msg =
+            (json && (json.message || json.error)) || text || `HTTP ${res.status}`;
           throw new Error(Array.isArray(msg) ? msg.join(', ') : String(msg));
         }
+
         return json;
       }
 
-      function userLabel(u) {
-        const name = [u.firstName || '', u.lastName || ''].join(' ').trim();
-        const contact = u.email || u.phone || '';
-        return `${name || 'No name'}<br><span class="muted">${contact}</span>`;
+      function userLabel(user) {
+        const name = [user.firstName || '', user.lastName || ''].join(' ').trim();
+        const contact = user.email || user.phone || '';
+        return `
+          <div class="user-main">${name || 'Без имени'}</div>
+          <div class="muted">${contact}</div>
+        `;
+      }
+
+      function userName(user) {
+        if (!user) return 'Не указано';
+        const name = [user.firstName || '', user.lastName || ''].join(' ').trim();
+        return name || 'Пользователь';
+      }
+
+      function formatDate(value) {
+        if (!value) return 'Не указано';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Не указано';
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+      }
+
+      function disputeReasonLabel(reason) {
+        const map = {
+          PAYMENT_NOT_PAID: 'Не оплатил(а)',
+          AGREEMENT_VIOLATION: 'Нарушение договора',
+          PROPERTY_DAMAGE: 'Порча имущества',
+          FAKE_INFORMATION: 'Ложная информация',
+          RUDE_BEHAVIOR: 'Грубое поведение',
+          SAFETY_CONCERN: 'Угроза безопасности',
+          OTHER: 'Другое',
+        };
+        return map[reason] || reason || 'Не указано';
+      }
+
+      function disputeStatusLabel(status) {
+        const map = {
+          OPEN: 'Открыта',
+          IN_REVIEW: 'На рассмотрении',
+          RESOLVED: 'Решена',
+          REJECTED: 'Отклонена',
+          CLOSED: 'Закрыта',
+        };
+        return map[status] || status || 'Не указано';
+      }
+
+      function disputeDecisionLabel(decision) {
+        const map = {
+          NONE: 'Решение не принято',
+          ACCEPTED: 'Жалоба подтверждена',
+          REJECTED: 'Жалоба отклонена',
+          NEED_MORE_INFO: 'Нужна дополнительная информация',
+        };
+        return map[decision] || decision || 'Не указано';
+      }
+
+      function disputeActionLabel(action) {
+        const map = {
+          NONE: 'Действие не применено',
+          WARNING: 'Предупреждение',
+          TEMPORARY_RESTRICTION: 'Временное ограничение',
+          ACCOUNT_BAN: 'Блокировка аккаунта',
+          AGREEMENT_CANCELLED: 'Договор отменен',
+          PAYMENT_REQUIRED: 'Требуется оплата',
+          PROFILE_FLAGGED: 'Профиль помечен',
+        };
+        return map[action] || action || 'Не указано';
+      }
+
+      function disputeStatusTone(status) {
+        switch (status) {
+          case 'RESOLVED':
+            return 'ok';
+          case 'IN_REVIEW':
+            return 'warn';
+          case 'REJECTED':
+          case 'CLOSED':
+            return 'danger';
+          default:
+            return 'info';
+        }
+      }
+
+      function contextLabel(dispute) {
+        if (dispute.conversationId) return `Чат: ${dispute.conversationId}`;
+        if (dispute.agreementId) return `Договор: ${dispute.agreementId}`;
+        return 'Контекст не указан';
       }
 
       function showPanel() {
@@ -183,6 +839,15 @@
         loginCard.classList.remove('hidden');
       }
 
+      function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach((btn) => {
+          btn.classList.toggle('active', btn.dataset.tab === tabId);
+        });
+        document.querySelectorAll('.section').forEach((section) => {
+          section.classList.toggle('active', section.id === tabId);
+        });
+      }
+
       async function ensureAdminRole() {
         const me = await api('/auth/me');
         const role = String(me?.role || '').toUpperCase();
@@ -193,6 +858,7 @@
 
       async function login() {
         loginMsg.textContent = 'Вход...';
+        loginMsg.className = 'muted';
         try {
           const email = document.getElementById('email').value.trim();
           const password = document.getElementById('password').value;
@@ -206,8 +872,8 @@
           loginMsg.textContent = 'Успешно';
           showPanel();
           await refreshAll();
-        } catch (e) {
-          loginMsg.textContent = e.message;
+        } catch (error) {
+          loginMsg.textContent = error.message;
           loginMsg.className = 'errText';
         }
       }
@@ -231,7 +897,10 @@
       }
 
       async function reject(userId) {
-        const reason = prompt('Причина отклонения (минимум 10 символов):', 'Документы не прошли проверку');
+        const reason = prompt(
+          'Причина отклонения (минимум 10 символов):',
+          'Документы не прошли проверку',
+        );
         if (!reason) return;
         await api(`/admin/verifications/${userId}/reject`, {
           method: 'PATCH',
@@ -239,27 +908,144 @@
         });
       }
 
+      async function resolveDisputeAdmin(id, payload) {
+        await api(`/disputes/admin/${id}/resolve`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      }
+
+      async function openDisputeResolution(dispute) {
+        const decisionChoice = prompt(
+          'Выберите решение:\n1 - Подтвердить жалобу\n2 - Отклонить жалобу\n3 - Запросить дополнительную информацию',
+          '1',
+        );
+        if (!decisionChoice) return;
+
+        let decision = 'ACCEPTED';
+        if (decisionChoice === '2') decision = 'REJECTED';
+        if (decisionChoice === '3') decision = 'NEED_MORE_INFO';
+
+        let action = 'NONE';
+        let restrictionDays;
+
+        if (decision === 'ACCEPTED') {
+          const actionChoice = prompt(
+            'Выберите действие:\n1 - Предупреждение\n2 - Временное ограничение\n3 - Блокировка аккаунта\n4 - Отменить договор\n5 - Требуется оплата\n6 - Пометить профиль',
+            '1',
+          );
+          if (!actionChoice) return;
+
+          const actionMap = {
+            '1': 'WARNING',
+            '2': 'TEMPORARY_RESTRICTION',
+            '3': 'ACCOUNT_BAN',
+            '4': 'AGREEMENT_CANCELLED',
+            '5': 'PAYMENT_REQUIRED',
+            '6': 'PROFILE_FLAGGED',
+          };
+
+          action = actionMap[actionChoice];
+          if (!action) {
+            throw new Error('Выберите корректное действие.');
+          }
+
+          if (action === 'AGREEMENT_CANCELLED' && !dispute.agreementId) {
+            throw new Error('Эта жалоба не связана с договором.');
+          }
+
+          if (action === 'TEMPORARY_RESTRICTION') {
+            const daysInput = prompt('Укажите срок ограничения в днях:', '7');
+            if (!daysInput) return;
+            restrictionDays = Number(daysInput);
+            if (!Number.isFinite(restrictionDays) || restrictionDays <= 0) {
+              throw new Error('Укажите корректный срок ограничения.');
+            }
+          }
+        }
+
+        const adminComment = prompt(
+          decision === 'NEED_MORE_INFO'
+            ? 'Комментарий модератора (необязательно):'
+            : 'Комментарий модератора:',
+          decision === 'ACCEPTED'
+            ? 'Нарушение подтверждено.'
+            : decision === 'REJECTED'
+              ? 'Доказательств недостаточно.'
+              : 'Нужно добавить дополнительные доказательства.',
+        );
+
+        if (
+          (decision === 'ACCEPTED' || decision === 'REJECTED') &&
+          (!adminComment || !adminComment.trim())
+        ) {
+          throw new Error('Комментарий модератора обязателен для этого решения.');
+        }
+
+        await resolveDisputeAdmin(dispute.id, {
+          decision,
+          action,
+          ...(adminComment && adminComment.trim()
+            ? { adminComment: adminComment.trim() }
+            : {}),
+          ...(restrictionDays ? { restrictionDays } : {}),
+        });
+      }
+
+      async function updateDisputeStatus(id, status, adminComment) {
+        if (status === 'RESOLVED') {
+          const dispute = await api(`/disputes/${id}`);
+          await openDisputeResolution(dispute);
+          return;
+        }
+
+        await api(`/disputes/admin/${id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status,
+            ...(adminComment && adminComment.trim()
+              ? { adminComment: adminComment.trim() }
+              : {}),
+          }),
+        });
+      }
+
       async function loadUsers() {
         const q = document.getElementById('userSearch').value.trim();
-        const users = await api(`/admin/verifications/users${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+        const users = await api(
+          `/admin/verifications/users${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+        );
         usersBody.innerHTML = '';
-        users.forEach((u) => {
+        usersCountEl.textContent = String(users.length);
+        bannedCountEl.textContent = String(users.filter((user) => user.isBanned).length);
+
+        if (!users.length) {
+          usersBody.innerHTML =
+            '<tr><td colspan="4" class="empty-state">Пользователи не найдены.</td></tr>';
+          return;
+        }
+
+        users.forEach((user) => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${userLabel(u)}</td>
+            <td>${userLabel(user)}</td>
             <td>
-              <select data-role="${u.id}">
-                <option ${u.role === 'USER' ? 'selected' : ''} value="USER">USER</option>
-                <option ${u.role === 'MODERATOR' ? 'selected' : ''} value="MODERATOR">MODERATOR</option>
-                <option ${u.role === 'ADMIN' ? 'selected' : ''} value="ADMIN">ADMIN</option>
+              <select data-role="${user.id}">
+                <option ${user.role === 'USER' ? 'selected' : ''} value="USER">USER</option>
+                <option ${user.role === 'MODERATOR' ? 'selected' : ''} value="MODERATOR">MODERATOR</option>
+                <option ${user.role === 'ADMIN' ? 'selected' : ''} value="ADMIN">ADMIN</option>
               </select>
             </td>
-            <td>${u.isBanned ? '<span class="status errText">BANNED</span>' : '<span class="status okText">ACTIVE</span>'}</td>
             <td>
-              <div class="row">
-                <button class="secondary" data-save-role="${u.id}">Save Role</button>
-                <button class="${u.isBanned ? 'ok' : 'danger'}" data-ban="${u.id}" data-value="${u.isBanned ? 'false' : 'true'}">
-                  ${u.isBanned ? 'Unban' : 'Ban'}
+              <span class="status-pill ${user.isBanned ? 'danger' : 'ok'}">
+                ${user.isBanned ? 'BANNED' : 'ACTIVE'}
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <button class="btn-secondary mini-btn" data-save-role="${user.id}">Сохранить роль</button>
+                <button class="${user.isBanned ? 'btn-ok' : 'btn-danger'} mini-btn" data-ban="${user.id}" data-value="${user.isBanned ? 'false' : 'true'}">
+                  ${user.isBanned ? 'Разбанить' : 'Забанить'}
                 </button>
               </div>
             </td>
@@ -276,8 +1062,8 @@
               await updateRole(id, role);
               setState('Роль обновлена');
               await loadUsers();
-            } catch (e) {
-              setState(e.message, true);
+            } catch (error) {
+              setState(error.message, true);
             }
           };
         });
@@ -287,12 +1073,12 @@
             const id = btn.getAttribute('data-ban');
             const value = btn.getAttribute('data-value') === 'true';
             try {
-              setState('Обновляю бан...');
+              setState('Обновляю статус бана...');
               await setBan(id, value);
-              setState('Статус бана обновлён');
+              setState('Статус бана обновлен');
               await loadUsers();
-            } catch (e) {
-              setState(e.message, true);
+            } catch (error) {
+              setState(error.message, true);
             }
           };
         });
@@ -301,21 +1087,34 @@
       async function loadVerifications() {
         const items = await api('/admin/verifications/pending');
         verBody.innerHTML = '';
-        items.forEach((v) => {
-          const doc = v.documentFullUrl || v.documentUrl;
-          const selfie = v.selfieFullUrl || v.selfieUrl;
+        verificationCountEl.textContent = String(items.length);
+
+        if (!items.length) {
+          verBody.innerHTML =
+            '<tr><td colspan="4" class="empty-state">Новых заявок на верификацию нет.</td></tr>';
+          return;
+        }
+
+        items.forEach((item) => {
+          const doc = item.documentFullUrl || item.documentUrl;
+          const selfie = item.selfieFullUrl || item.selfieUrl;
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${v.name || 'No name'}<br><span class="muted">${v.email || v.phone || ''}</span></td>
-            <td><span class="status">${v.status}</span></td>
             <td>
-              ${doc ? `<a href="${doc}" target="_blank">Document</a>` : '<span class="muted">No doc</span>'}<br>
+              <div class="user-main">${item.name || 'Без имени'}</div>
+              <div class="muted">${item.email || item.phone || ''}</div>
+            </td>
+            <td>
+              <span class="status-pill info">${item.status}</span>
+            </td>
+            <td>
+              ${doc ? `<a href="${doc}" target="_blank">Document</a>` : '<span class="muted">No doc</span>'}<br />
               ${selfie ? `<a href="${selfie}" target="_blank">Selfie</a>` : '<span class="muted">No selfie</span>'}
             </td>
             <td>
-              <div class="row">
-                <button class="ok" data-approve="${v.id}">Approve</button>
-                <button class="danger" data-reject="${v.id}">Reject</button>
+              <div class="actions">
+                <button class="btn-ok mini-btn" data-approve="${item.id}">Approve</button>
+                <button class="btn-danger mini-btn" data-reject="${item.id}">Reject</button>
               </div>
             </td>
           `;
@@ -326,13 +1125,13 @@
           btn.onclick = async () => {
             const id = btn.getAttribute('data-approve');
             try {
-              setState('Подтверждаю...');
+              setState('Подтверждаю заявку...');
               await approve(id);
-              setState('Подтверждено');
+              setState('Пользователь подтвержден');
               await loadVerifications();
               await loadUsers();
-            } catch (e) {
-              setState(e.message, true);
+            } catch (error) {
+              setState(error.message, true);
             }
           };
         });
@@ -341,13 +1140,110 @@
           btn.onclick = async () => {
             const id = btn.getAttribute('data-reject');
             try {
-              setState('Отклоняю...');
+              setState('Отклоняю заявку...');
               await reject(id);
-              setState('Отклонено');
+              setState('Заявка отклонена');
               await loadVerifications();
               await loadUsers();
-            } catch (e) {
-              setState(e.message, true);
+            } catch (error) {
+              setState(error.message, true);
+            }
+          };
+        });
+      }
+
+      async function loadDisputes() {
+        const params = new URLSearchParams();
+        if (disputeStatusFilter.value) params.set('status', disputeStatusFilter.value);
+        if (disputeReasonFilter.value) params.set('reason', disputeReasonFilter.value);
+
+        const suffix = params.toString() ? `?${params.toString()}` : '';
+        const disputes = await api(`/disputes/admin/all${suffix}`);
+        disputesBody.innerHTML = '';
+        disputeCountEl.textContent = String(disputes.length);
+
+        if (!disputes.length) {
+          disputesBody.innerHTML =
+            '<div class="empty-state card">Жалобы по текущему фильтру не найдены.</div>';
+          return;
+        }
+
+        disputes.forEach((dispute) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'dispute-card';
+          wrapper.innerHTML = `
+            <div class="dispute-head">
+              <div>
+                <div class="user-main">${dispute.title || 'Жалоба без заголовка'}</div>
+                <div class="dispute-route">${contextLabel(dispute)}</div>
+              </div>
+              <span class="status-pill ${disputeStatusTone(dispute.status)}">
+                ${disputeStatusLabel(dispute.status)}
+              </span>
+            </div>
+
+            <div class="dispute-grid">
+              <div class="meta-card">
+                <p class="meta-label">Кто подал</p>
+                <p class="meta-value">${userName(dispute.reporter)}</p>
+              </div>
+              <div class="meta-card">
+                <p class="meta-label">На кого</p>
+                <p class="meta-value">${userName(dispute.accused)}</p>
+              </div>
+              <div class="meta-card">
+                <p class="meta-label">Причина</p>
+                <p class="meta-value">${disputeReasonLabel(dispute.reason)}</p>
+              </div>
+            </div>
+
+            <p class="dispute-description">${dispute.description || 'Описание не указано.'}</p>
+            <div class="muted">Создана: ${formatDate(dispute.createdAt)}</div>
+
+            ${
+              dispute.adminComment
+                ? `
+                  <div class="comment-box">
+                    <strong>Комментарий модератора:</strong><br />
+                    ${dispute.adminComment}
+                  </div>
+                `
+                : ''
+            }
+
+            <div class="actions" style="margin-top: 14px;">
+              <button class="btn-secondary mini-btn" data-dispute-action="${dispute.id}" data-status="IN_REVIEW">Взять в рассмотрение</button>
+              <button class="btn-ok mini-btn" data-dispute-action="${dispute.id}" data-status="RESOLVED">Решить</button>
+              <button class="btn-danger mini-btn" data-dispute-action="${dispute.id}" data-status="REJECTED">Отклонить</button>
+              <button class="btn-warn mini-btn" data-dispute-action="${dispute.id}" data-status="CLOSED">Закрыть</button>
+            </div>
+          `;
+          disputesBody.appendChild(wrapper);
+        });
+
+        disputesBody.querySelectorAll('[data-dispute-action]').forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute('data-dispute-action');
+            const status = btn.getAttribute('data-status');
+            let comment = '';
+
+            if (status === 'RESOLVED') {
+              comment = prompt(
+                'Комментарий модератора обязателен для решения жалобы:',
+                'Жалоба рассмотрена и подтверждена.',
+              );
+              if (!comment || !comment.trim()) return;
+            } else {
+              comment = prompt('Комментарий модератора (необязательно):', '') || '';
+            }
+
+            try {
+              setState('Обновляю статус жалобы...');
+              await updateDisputeStatus(id, status, comment);
+              setState('Статус жалобы обновлен');
+              await loadDisputes();
+            } catch (error) {
+              setState(error.message, true);
             }
           };
         });
@@ -356,13 +1252,15 @@
       async function refreshAll() {
         try {
           setState('Обновляю данные...');
-          await Promise.all([loadUsers(), loadVerifications()]);
+          await Promise.all([loadUsers(), loadVerifications(), loadDisputes()]);
           setState('Готово');
-        } catch (e) {
-          setState(e.message, true);
-          if (String(e.message).toLowerCase().includes('insufficient permissions') ||
-              String(e.message).toLowerCase().includes('forbidden') ||
-              String(e.message).toLowerCase().includes('unauthorized')) {
+        } catch (error) {
+          setState(error.message, true);
+          if (
+            String(error.message).toLowerCase().includes('insufficient permissions') ||
+            String(error.message).toLowerCase().includes('forbidden') ||
+            String(error.message).toLowerCase().includes('unauthorized')
+          ) {
             localStorage.removeItem('admin_access_token');
             accessToken = '';
             showLogin();
@@ -370,9 +1268,14 @@
         }
       }
 
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.onclick = () => switchTab(btn.dataset.tab);
+      });
+
       document.getElementById('loginBtn').onclick = login;
       document.getElementById('refreshBtn').onclick = refreshAll;
       document.getElementById('searchBtn').onclick = loadUsers;
+      document.getElementById('disputeFilterBtn').onclick = loadDisputes;
       document.getElementById('logoutBtn').onclick = () => {
         localStorage.removeItem('admin_access_token');
         accessToken = '';
@@ -387,4 +1290,4 @@
       }
     </script>
   </body>
-  </html>
+</html>

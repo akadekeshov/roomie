@@ -85,9 +85,7 @@ class RecommendedUser {
         if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
           return true;
         }
-        if (normalized == 'false' ||
-            normalized == '0' ||
-            normalized == 'no') {
+        if (normalized == 'false' || normalized == '0' || normalized == 'no') {
           return false;
         }
       }
@@ -131,7 +129,8 @@ class RecommendedUser {
           json['profileVerified'] ??
           json['kycVerified'] ??
           json['verificationApproved'] ??
-          (verificationStatus == 'APPROVED' || verificationStatus == 'VERIFIED'),
+          (verificationStatus == 'APPROVED' ||
+              verificationStatus == 'VERIFIED'),
     );
 
     final rawTag = parseString(
@@ -141,9 +140,8 @@ class RecommendedUser {
           json['animalsPreference'],
     );
 
-    final petsAllowed = json.containsKey('petsAllowed')
-        ? parseBool(json['petsAllowed'])
-        : null;
+    final petsAllowed =
+        json.containsKey('petsAllowed') ? parseBool(json['petsAllowed']) : null;
     final preferenceTag = _mapPreferenceTag(rawTag) ??
         (petsAllowed == null
             ? null
@@ -205,9 +203,8 @@ class RecommendedUser {
       embeddingScore: json['embeddingScore'] == null
           ? null
           : parseDouble(json['embeddingScore']).round(),
-      aiScore: json['aiScore'] == null
-          ? null
-          : parseDouble(json['aiScore']).round(),
+      aiScore:
+          json['aiScore'] == null ? null : parseDouble(json['aiScore']).round(),
       finalScore: json['finalScore'] == null
           ? canonicalScore
           : parseDouble(json['finalScore']).round().clamp(0, 100).toInt(),
@@ -234,8 +231,8 @@ class RecommendedUser {
   }
 
   String? get avatarUrl {
-    final raw = (explicitAvatarUrl ?? (photos.isNotEmpty ? photos.first : ''))
-        .trim();
+    final raw =
+        (explicitAvatarUrl ?? (photos.isNotEmpty ? photos.first : '')).trim();
     if (raw.isEmpty) return null;
     if (raw.startsWith('http')) return raw;
 
@@ -269,6 +266,9 @@ class RecommendedUser {
   int get budgetMatchPercent => _criterionPercent('budget');
 
   int get locationMatchPercent => _criterionPercent('district');
+
+  int get roommateGenderMatchPercent =>
+      _criterionPercent('roommateGenderPreference');
 
   int get lifestyleMatchPercent {
     const keys = [
@@ -307,6 +307,9 @@ class RecommendedUser {
     }
     if (matched.contains('noisePreference')) {
       badges.add('Похожие предпочтения по уровню шума');
+    }
+    if (matched.contains('roommateGenderPreference')) {
+      badges.add('Подходит по полу соседа');
     }
     if (partial.contains('district')) {
       badges.add('Тот же город, другой район');

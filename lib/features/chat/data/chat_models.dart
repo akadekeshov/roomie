@@ -69,7 +69,8 @@ class ChatMessage {
       id: '${json['id'] ?? ''}',
       senderId: '${json['senderId'] ?? ''}',
       text: '${json['text'] ?? ''}',
-      createdAt: DateTime.tryParse('${json['createdAt'] ?? ''}') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse('${json['createdAt'] ?? ''}') ?? DateTime.now(),
     );
   }
 }

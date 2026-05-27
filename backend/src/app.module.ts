@@ -17,6 +17,9 @@ import { FavoritesUsersModule } from './favorites-users/favorites-users.module';
 import { ChatModule } from './chat/chat.module';
 import { AiModule } from './ai/ai.module';
 import { AiSearchModule } from './ai_search/ai.module';
+import { AgreementsModule } from './agreements/agreements.module';
+import { PaymentsModule } from './payments/payments.module';
+import { DisputesModule } from './disputes/disputes.module';
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { AiSearchModule } from './ai_search/ai.module';
     ChatModule,
     AiModule,
     AiSearchModule,
+    AgreementsModule,
+    PaymentsModule,
+    DisputesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

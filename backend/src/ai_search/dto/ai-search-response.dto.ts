@@ -59,6 +59,18 @@ class AiMatchedUserDto {
   @ApiProperty()
   bio!: string;
 
+  @ApiPropertyOptional()
+  searchDistrict?: string | null;
+
+  @ApiPropertyOptional()
+  occupationStatus?: string | null;
+
+  @ApiPropertyOptional()
+  searchBudgetMin?: number | null;
+
+  @ApiPropertyOptional()
+  searchBudgetMax?: number | null;
+
   @ApiProperty({ type: [String] })
   photos!: string[];
 }

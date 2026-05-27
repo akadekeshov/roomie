@@ -14,6 +14,12 @@ model User {
   password                  String
   role                      UserRole                  @default(USER)
   isBanned                  Boolean                   @default(false)
+  warningCount              Int                       @default(0)
+  isRestricted              Boolean                   @default(false)
+  restrictedUntil           DateTime?
+  bannedAt                  DateTime?
+  banReason                 String?
+  profileTrustPenalty       Int                       @default(0)
   emailVerified             Boolean                   @default(false)
   phoneVerified             Boolean                   @default(false)
   firstName                 String?
@@ -60,6 +66,14 @@ model User {
   aiEmbeddings              AiEmbedding[]
   aiSearchSessions          AiSearchSession[]
   aiSearchResults           AiSearchResult[]          @relation("AiSearchResultTargetUser")
+  createdAgreements         RoommateAgreement[]       @relation("AgreementCreator")
+  firstUserAgreements       RoommateAgreement[]       @relation("AgreementFirstUser")
+  secondUserAgreements      RoommateAgreement[]       @relation("AgreementSecondUser")
+  paymentCards              UserPaymentCard[]
+  agreementPayments         AgreementPayment[]        @relation("AgreementPaymentPayer")
+  reportedDisputes          Dispute[]                 @relation("DisputeReporter")
+  accusedDisputes           Dispute[]                 @relation("DisputeAccused")
+  reviewedDisputes          Dispute[]                 @relation("DisputeReviewedBy")
 
   @@map("users")
 }
@@ -270,6 +284,8 @@ model Conversation {
   updatedAt    DateTime                  @updatedAt
   participants ConversationParticipant[]
   messages     Message[]
+  agreements   RoommateAgreement[]
+  disputes     Dispute[]
 
   @@map("conversations")
 }
@@ -299,6 +315,136 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+model RoommateAgreement {
+  id                       String             @id @default(uuid())
+  conversationId           String?
+  creatorId                String
+  firstUserId              String
+  secondUserId             String
+  status                   AgreementStatus    @default(DRAFT)
+  city                     String?
+  address                  String?
+  moveInDate               DateTime?
+  moveOutDate              DateTime?
+  monthlyRent              Int?
+  depositAmount            Int?
+  housingFound             Boolean            @default(false)
+  utilitySplitType         String?
+  firstUserUtilityPercent  Int?
+  secondUserUtilityPercent Int?
+  houseRules               String?
+  guestPolicy              String?
+  quietHours               String?
+  cleaningSchedule         String?
+  smokingPolicy            String?
+  petPolicy                String?
+  noticePeriodDays         Int?               @default(30)
+  damageResponsibility     String?
+  terminationTerms         String?
+  disputeTerms             String?
+  sentForConfirmationAt    DateTime?
+  firstUserConfirmedAt     DateTime?
+  secondUserConfirmedAt    DateTime?
+  cancelledAt              DateTime?
+  cancelledById            String?
+  rejectedAt               DateTime?
+  rejectedById             String?
+  completedAt              DateTime?
+  pdfUrl                   String?
+  digitalSignatureStatus   String?
+  notaryStatus             String?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  conversation             Conversation?      @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  creator                  User               @relation("AgreementCreator", fields: [creatorId], references: [id])
+  firstUser                User               @relation("AgreementFirstUser", fields: [firstUserId], references: [id])
+  secondUser               User               @relation("AgreementSecondUser", fields: [secondUserId], references: [id])
+  payments                 AgreementPayment[]
+  disputes                 Dispute[]
+
+  @@index([conversationId])
+  @@index([firstUserId])
+  @@index([secondUserId])
+  @@index([status])
+  @@map("roommate_agreements")
+}
+
+model UserPaymentCard {
+  id        String            @id @default(uuid())
+  userId    String
+  provider  String?
+  maskedPan String
+  cardBrand String?
+  status    CardBindingStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_payment_cards")
+}
+
+model AgreementPayment {
+  id            String            @id @default(uuid())
+  agreementId   String
+  payerId       String
+  type          PaymentType
+  status        PaymentStatus     @default(PENDING)
+  amount        Int
+  currency      String            @default("KZT")
+  dueDate       DateTime?
+  paidAt        DateTime?
+  description   String?
+  mockReceiptNo String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  agreement     RoommateAgreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  payer         User              @relation("AgreementPaymentPayer", fields: [payerId], references: [id], onDelete: Cascade)
+
+  @@index([agreementId])
+  @@index([payerId])
+  @@index([status])
+  @@index([type])
+  @@map("agreement_payments")
+}
+
+model Dispute {
+  id                 String             @id @default(uuid())
+  agreementId        String?
+  conversationId     String?
+  reporterId         String
+  accusedId          String?
+  reason             DisputeReason
+  status             DisputeStatus      @default(OPEN)
+  decision           DisputeDecision    @default(NONE)
+  action             DisputeAction      @default(NONE)
+  title              String
+  description        String
+  evidenceUrls       String[]           @default([])
+  adminComment       String?
+  resultText         String?
+  reviewedById       String?
+  reviewedAt         DateTime?
+  actionAppliedAt    DateTime?
+  actionExpiresAt    DateTime?
+  accusedNotifiedAt  DateTime?
+  reporterNotifiedAt DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  agreement          RoommateAgreement? @relation(fields: [agreementId], references: [id], onDelete: SetNull)
+  conversation       Conversation?      @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  reporter           User               @relation("DisputeReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  accused            User?              @relation("DisputeAccused", fields: [accusedId], references: [id], onDelete: SetNull)
+  reviewedBy         User?              @relation("DisputeReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([agreementId])
+  @@index([conversationId])
+  @@index([reporterId])
+  @@index([accusedId])
+  @@index([status])
+  @@map("disputes")
 }
 
 enum Gender {
@@ -394,4 +540,70 @@ enum VerificationStatus {
   PENDING
   VERIFIED
   REJECTED
+}
+
+enum AgreementStatus {
+  DRAFT
+  WAITING_SECOND_PARTY
+  PENDING_CONFIRMATION
+  ACTIVE
+  CANCELLED
+  COMPLETED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentType {
+  DEPOSIT
+  MONTHLY_RENT
+  UTILITIES
+  OTHER
+}
+
+enum CardBindingStatus {
+  ACTIVE
+  REMOVED
+  EXPIRED
+}
+
+enum DisputeStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+  CLOSED
+}
+
+enum DisputeDecision {
+  NONE
+  ACCEPTED
+  REJECTED
+  NEED_MORE_INFO
+}
+
+enum DisputeAction {
+  NONE
+  WARNING
+  TEMPORARY_RESTRICTION
+  ACCOUNT_BAN
+  AGREEMENT_CANCELLED
+  PAYMENT_REQUIRED
+  PROFILE_FLAGGED
+}
+
+enum DisputeReason {
+  PAYMENT_NOT_PAID
+  AGREEMENT_VIOLATION
+  PROPERTY_DAMAGE
+  FAKE_INFORMATION
+  RUDE_BEHAVIOR
+  SAFETY_CONCERN
+  OTHER
 }

@@ -40,6 +40,7 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
     'chronotype': 'neutral',
     'personalityType': 'neutral',
     'occupationStatus': 'neutral',
+    'roommateGenderPreference': 'important',
   };
 
   bool get _isValid => _district != null && _term != null && _gender != null;
@@ -67,9 +68,9 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
       final search =
           (status.profile['search'] as Map?)?.cast<String, dynamic>() ??
               <String, dynamic>{};
-      final priorities =
-          (status.profile['matchingPriorities'] as Map?)?.cast<String, dynamic>() ??
-              <String, dynamic>{};
+      final priorities = (status.profile['matchingPriorities'] as Map?)
+              ?.cast<String, dynamic>() ??
+          <String, dynamic>{};
       if (!mounted) return;
       setState(() {
         final min = search['budgetMin'] as num?;
@@ -104,21 +105,22 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
     if (!_isValid || _isSubmitting) return;
     setState(() => _isSubmitting = true);
     try {
-      final nextStep =
-          await ref.read(onboardingRepositoryProvider).submitSearchStep(
-                SearchStepPayload(
-                  budgetMin: _budget.start.round(),
-                  budgetMax: _budget.end.round(),
-                  district: _district!,
-                  roommateGenderPreference: _gender == 'male'
-                      ? 'MALE'
-                      : _gender == 'female'
-                          ? 'FEMALE'
-                          : 'ANY',
-                  stayTerm: _term!,
-                  matchingPriorities: Map<String, String>.from(_matchingPriorities),
-                ),
-              );
+      final nextStep = await ref
+          .read(onboardingRepositoryProvider)
+          .submitSearchStep(
+            SearchStepPayload(
+              budgetMin: _budget.start.round(),
+              budgetMax: _budget.end.round(),
+              district: _district!,
+              roommateGenderPreference: _gender == 'male'
+                  ? 'MALE'
+                  : _gender == 'female'
+                      ? 'FEMALE'
+                      : 'ANY',
+              stayTerm: _term!,
+              matchingPriorities: Map<String, String>.from(_matchingPriorities),
+            ),
+          );
       if (!mounted) return;
       if (_fromEdit) {
         ref.invalidate(meProvider);
@@ -275,14 +277,14 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
                       _PriorityTile(
                         title: 'Бюджет',
                         level: _matchingPriorities['budget']!,
-                        onChanged: (value) =>
-                            setState(() => _matchingPriorities['budget'] = value),
+                        onChanged: (value) => setState(
+                            () => _matchingPriorities['budget'] = value),
                       ),
                       _PriorityTile(
                         title: 'Район',
                         level: _matchingPriorities['district']!,
-                        onChanged: (value) =>
-                            setState(() => _matchingPriorities['district'] = value),
+                        onChanged: (value) => setState(
+                            () => _matchingPriorities['district'] = value),
                       ),
                       _PriorityTile(
                         title: 'Шум',
@@ -295,20 +297,21 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
                         title: 'Курение',
                         level: _matchingPriorities['smokingPreference']!,
                         onChanged: (value) => setState(
-                          () => _matchingPriorities['smokingPreference'] = value,
+                          () =>
+                              _matchingPriorities['smokingPreference'] = value,
                         ),
                       ),
                       _PriorityTile(
                         title: 'Питомцы',
                         level: _matchingPriorities['petsPreference']!,
-                        onChanged: (value) =>
-                            setState(() => _matchingPriorities['petsPreference'] = value),
+                        onChanged: (value) => setState(() =>
+                            _matchingPriorities['petsPreference'] = value),
                       ),
                       _PriorityTile(
                         title: 'Режим сна',
                         level: _matchingPriorities['chronotype']!,
-                        onChanged: (value) =>
-                            setState(() => _matchingPriorities['chronotype'] = value),
+                        onChanged: (value) => setState(
+                            () => _matchingPriorities['chronotype'] = value),
                       ),
                       _PriorityTile(
                         title: 'Тип личности',
@@ -322,6 +325,16 @@ class _ProfileSearchPageState extends ConsumerState<ProfileSearchPage> {
                         level: _matchingPriorities['occupationStatus']!,
                         onChanged: (value) => setState(
                           () => _matchingPriorities['occupationStatus'] = value,
+                        ),
+                      ),
+                      _PriorityTile(
+                        title:
+                            '\u041f\u043e\u043b \u0441\u043e\u0441\u0435\u0434\u0430',
+                        level: _matchingPriorities['roommateGenderPreference']!,
+                        onChanged: (value) => setState(
+                          () =>
+                              _matchingPriorities['roommateGenderPreference'] =
+                                  value,
                         ),
                       ),
                       const SizedBox(height: 10),

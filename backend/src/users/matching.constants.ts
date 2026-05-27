@@ -7,6 +7,7 @@ export const MATCHING_CRITERIA = [
   'chronotype',
   'personalityType',
   'occupationStatus',
+  'roommateGenderPreference',
 ] as const;
 
 export type MatchingCriterion = (typeof MATCHING_CRITERIA)[number];
@@ -30,4 +31,5 @@ export const DEFAULT_MATCHING_PRIORITIES: Record<MatchingCriterion, MatchingPrio
     chronotype: 'neutral',
     personalityType: 'neutral',
     occupationStatus: 'neutral',
+    roommateGenderPreference: 'important',
   };

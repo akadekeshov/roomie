@@ -28,10 +28,66 @@ class RecommendedUserProfilePage extends ConsumerWidget {
           title: user.displayName,
           imageUrl: user.avatarUrl,
           online: true,
-          letter: user.displayName.isNotEmpty ? user.displayName.trim()[0] : '?',
+          letter:
+              user.displayName.isNotEmpty ? user.displayName.trim()[0] : '?',
         ),
       ),
     );
+  }
+
+  String _buildFitSummary(RecommendedUser user) {
+    final match = user.compatibilityPercent;
+    final budget = user.budgetMatchPercent;
+    final lifestyle = user.lifestyleMatchPercent;
+    final location = user.locationMatchPercent;
+    final roommateGender = user.roommateGenderMatchPercent;
+    final strengths = user.compatibilityReasons
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .take(3)
+        .toList(growable: false);
+
+    final buffer = StringBuffer();
+    if (strengths.isNotEmpty) {
+      buffer.write(
+        'Главные совпадения: ${_joinReadable(strengths)}. ',
+      );
+    } else if (match >= 70) {
+      buffer.write('У вас хорошее общее совпадение по анкете. ');
+    } else if (match >= 45) {
+      buffer.write('Вы частично подходите друг другу по анкете. ');
+    } else {
+      buffer
+          .write('Есть совпадения, но часть привычек лучше обсудить заранее. ');
+    }
+
+    buffer.write(
+      'Бюджет ${_percentWord(budget)}, образ жизни ${_percentWord(lifestyle)}, локация ${_percentWord(location)}.',
+    );
+
+    buffer.write(
+      ' \u041f\u043e\u043b \u0441\u043e\u0441\u0435\u0434\u0430 ${_percentWord(roommateGender)}.',
+    );
+
+    if (match < 70) {
+      buffer.write(
+        ' Перед заселением стоит спокойно обсудить режим, гостей и бытовые правила.',
+      );
+    }
+
+    return buffer.toString();
+  }
+
+  String _percentWord(int value) {
+    if (value >= 75) return 'хорошо совпадает';
+    if (value >= 45) return 'частично совпадает';
+    return 'совпадает слабо';
+  }
+
+  String _joinReadable(List<String> items) {
+    if (items.length <= 1) return items.join();
+    if (items.length == 2) return '${items[0]} и ${items[1]}';
+    return '${items.sublist(0, items.length - 1).join(', ')} и ${items.last}';
   }
 
   Future<void> _toggleSave(
@@ -68,7 +124,9 @@ class RecommendedUserProfilePage extends ConsumerWidget {
     final budgetPct = user.budgetMatchPercent;
     final lifestylePct = user.lifestyleMatchPercent;
     final locationPct = user.locationMatchPercent;
+    final roommateGenderPct = user.roommateGenderMatchPercent;
     final bio = (user.bio ?? '').trim();
+    final fitSummary = _buildFitSummary(user);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
@@ -134,7 +192,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                             child: Column(
                               children: [
                                 _ProgressRow(
-                                  title: 'Совместимость',
+                                  title: 'Совместимо',
                                   value: match,
                                   bigRight: true,
                                 ),
@@ -153,6 +211,12 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                                   title: 'Локация',
                                   value: locationPct,
                                 ),
+                                const SizedBox(height: 12),
+                                _ProgressRow(
+                                  title:
+                                      '\u041f\u043e\u043b \u0441\u043e\u0441\u0435\u0434\u0430',
+                                  value: roommateGenderPct,
+                                ),
                               ],
                             ),
                           ),
@@ -169,7 +233,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                             ),
                           if (user.quickBadges.isNotEmpty)
                             const SizedBox(height: 12),
-                          if ((user.aiReasoning ?? '').trim().isNotEmpty)
+                          if (fitSummary.isNotEmpty)
                             _Card(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +247,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    user.aiReasoning!,
+                                    fitSummary,
                                     style: const TextStyle(
                                       color: Color(0xFF111827),
                                       fontSize: 13,
@@ -194,8 +258,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                          if ((user.aiReasoning ?? '').trim().isNotEmpty)
-                            const SizedBox(height: 12),
+                          if (fitSummary.isNotEmpty) const SizedBox(height: 12),
                           if (user.aiStrengths.isNotEmpty)
                             _Card(
                               child: _BulletSection(
@@ -230,8 +293,7 @@ class RecommendedUserProfilePage extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 10),
                                 _InfoLine(
-                                  icon:
-                                      Icons.account_balance_wallet_outlined,
+                                  icon: Icons.account_balance_wallet_outlined,
                                   label: 'Бюджет',
                                   value: user.budgetText,
                                 ),

@@ -44,10 +44,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('Пользователь не найден');
     }
     if (user.isBanned) {
-      throw new UnauthorizedException('Account is banned');
+      throw new UnauthorizedException('Ваш аккаунт заблокирован.');
     }
 
     return user;

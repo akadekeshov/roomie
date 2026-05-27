@@ -1,0 +1,6 @@
+ALTER TABLE "roommate_agreements"
+  ADD COLUMN IF NOT EXISTS "sentForConfirmationAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "cancelledById" TEXT,
+  ADD COLUMN IF NOT EXISTS "housingFound" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "rejectedAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "rejectedById" TEXT;

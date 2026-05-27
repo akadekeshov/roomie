@@ -132,6 +132,7 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
                                 MaterialPageRoute(
                                   builder: (_) => ChatDetailPage(
                                     conversationId: conversation.id,
+                                    peerUserId: conversation.peerId,
                                     title: conversation.peerName,
                                     imageUrl: conversation.peerAvatarUrl,
                                     letter: _firstLetter(conversation.peerName),
