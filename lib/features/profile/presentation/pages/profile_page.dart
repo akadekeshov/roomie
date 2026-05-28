@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
@@ -25,14 +26,35 @@ class ProfilePage extends ConsumerStatefulWidget {
   ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends ConsumerState<ProfilePage> {
+class _ProfilePageState extends ConsumerState<ProfilePage>
+    with WidgetsBindingObserver {
+  Timer? _autoRefreshTimer;
   bool _completed = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     Future.microtask(() => ref.invalidate(meProvider));
     _loadStatus();
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (!mounted) return;
+      ref.invalidate(meProvider);
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(meProvider);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoRefreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadStatus() async {
@@ -41,33 +63,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       final profile = status.profile;
       final lifestyle =
           (profile['lifestyle'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      final search =
-          (profile['search'] as Map?)?.cast<String, dynamic>() ??
+              <String, dynamic>{};
+      final search = (profile['search'] as Map?)?.cast<String, dynamic>() ??
           <String, dynamic>{};
       final photos =
           (profile['photos'] as List?)?.whereType<String>().toList() ??
-          const <String>[];
+              const <String>[];
 
-      bool hasText(Object? value) =>
-          value is String && value.trim().isNotEmpty;
+      bool hasText(Object? value) => value is String && value.trim().isNotEmpty;
 
-      final lifestyleDone =
-          hasText(lifestyle['chronotype']) &&
+      final lifestyleDone = hasText(lifestyle['chronotype']) &&
           hasText(lifestyle['noisePreference']) &&
           hasText(lifestyle['personalityType']) &&
           hasText(lifestyle['smokingPreference']) &&
           hasText(lifestyle['petsPreference']);
 
-      final searchDone =
-          search['budgetMin'] != null &&
+      final searchDone = search['budgetMin'] != null &&
           search['budgetMax'] != null &&
           hasText(search['district']) &&
           hasText(search['roommateGenderPreference']) &&
           hasText(search['stayTerm']);
 
-      final profileDone =
-          hasText(profile['occupationStatus']) &&
+      final profileDone = hasText(profile['occupationStatus']) &&
           hasText(profile['university']) &&
           hasText(profile['bio']) &&
           lifestyleDone &&
@@ -95,7 +112,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
- String verificationLabel(String status) {
+  String verificationLabel(String status) {
     switch (status) {
       case "PENDING":
         return "На проверке";
@@ -162,7 +179,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     const _ProfileHeader(),
                     const SizedBox(height: 16),
                     if (_completed) ...[
-                       _ProfileDoneCard(),
+                      _ProfileDoneCard(),
                       const SizedBox(height: 12),
                     ] else ...[
                       const _ProfileProgress(),
@@ -174,22 +191,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                   _VerificationCard(
-                        onTap: () async {
-                       await Navigator.of(context)
-                       .pushNamed(AppRoutes.profileVerification);
+                    _VerificationCard(
+                      onTap: () async {
+                        await Navigator.of(context)
+                            .pushNamed(AppRoutes.profileVerification);
 
-                     ref.invalidate(meProvider); 
-                   },
-                  ),
+                        ref.invalidate(meProvider);
+                      },
+                    ),
                     const SizedBox(height: 12),
                     const _PaymentRemindersCard(),
                     const SizedBox(height: 18),
-                     _MenuItem(
+                    _MenuItem(
                       icon: Icons.edit_outlined,
-                     title: 'Редактировать профиль',
-  onTap: () => Navigator.of(context).pushNamed(AppRoutes.profileEdit),
-),
+                      title: 'Редактировать профиль',
+                      onTap: () => Navigator.of(context)
+                          .pushNamed(AppRoutes.profileEdit),
+                    ),
                     const SizedBox(height: 8),
                     _MenuItem(
                       icon: Icons.description_outlined,
@@ -309,7 +327,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
         ),
       ),
-      
     );
   }
 }
@@ -401,7 +418,6 @@ class _PaymentRemindersCard extends ConsumerWidget {
   }
 }
 
-
 class _ProfileHeader extends ConsumerWidget {
   const _ProfileHeader();
 
@@ -472,10 +488,9 @@ class _ProfileHeader extends ConsumerWidget {
           CircleAvatar(
             radius: 32,
             backgroundColor: const Color(0xFFD3D5DB),
-            backgroundImage:
-                (me.avatarUrl != null && me.avatarUrl!.isNotEmpty)
-                    ? NetworkImage(me.avatarUrl!)
-                    : null,
+            backgroundImage: (me.avatarUrl != null && me.avatarUrl!.isNotEmpty)
+                ? NetworkImage(me.avatarUrl!)
+                : null,
             child: (me.avatarUrl == null || me.avatarUrl!.isEmpty)
                 ? const Icon(Icons.person, color: Colors.white, size: 34)
                 : null,
@@ -667,7 +682,6 @@ class _CompleteProfileCardState extends State<_CompleteProfileCard> {
   }
 }
 
-
 class _VerificationCard extends ConsumerWidget {
   const _VerificationCard({required this.onTap});
 
@@ -683,7 +697,6 @@ class _VerificationCard extends ConsumerWidget {
       error: (_, __) => const SizedBox(),
       data: (me) {
         if (me.verificationStatus == "VERIFIED") {
-        
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -724,47 +737,48 @@ class _VerificationCard extends ConsumerWidget {
           );
         }
 
-if (me.verificationStatus == "PENDING") {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F2FF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.75),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.hourglass_top_rounded, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        if (me.verificationStatus == "PENDING") {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F2FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.75),
+              ),
+            ),
+            child: Row(
               children: [
-                Text(
-       'На проверке',
-                  style: textTheme.titleMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Ожидайте подтверждения от администратора',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF9AA1B9),
-                    fontWeight: FontWeight.w500,
+                const Icon(Icons.hourglass_top_rounded,
+                    color: AppColors.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'На проверке',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Ожидайте подтверждения от администратора',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF9AA1B9),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          );
+        }
 
         return InkWell(
           onTap: onTap,
@@ -781,8 +795,7 @@ if (me.verificationStatus == "PENDING") {
             ),
             child: Row(
               children: [
-                const Icon(Icons.shield_outlined,
-                    color: AppColors.primary),
+                const Icon(Icons.shield_outlined, color: AppColors.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

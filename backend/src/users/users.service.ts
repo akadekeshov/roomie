@@ -158,7 +158,6 @@ export class UsersService {
       onboardingCompleted: true,
       id: { not: currentUserId },
       OR: [{ emailVerified: true }, { phoneVerified: true }],
-      AND: this.buildCompletedProfileCandidateConditions(),
     };
   }
 

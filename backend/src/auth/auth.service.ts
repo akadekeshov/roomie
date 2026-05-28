@@ -11,6 +11,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -19,13 +20,25 @@ import { RegisterPhoneDto } from './dto/register-phone.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
-import { OTPChannel, OTPPurpose, UserRole } from '@prisma/client';
+import { AuthProvider, OTPChannel, OTPPurpose, UserRole } from '@prisma/client';
+import { OAuth2Client } from 'google-auth-library';
+import { SocialAuthDto, SocialProvider } from './dto/social-auth.dto';
+
+type SocialIdentity = {
+  provider: AuthProvider;
+  providerId: string;
+  email?: string;
+  name?: string;
+  avatarUrl?: string;
+  emailVerified: boolean;
+};
 
 @Injectable()
 export class AuthService {
   private readonly OTP_EXPIRY_MINUTES = 5;
   private readonly OTP_COOLDOWN_SECONDS = 30;
   private readonly MAX_OTP_ATTEMPTS = 5;
+  private readonly googleOAuthClient = new OAuth2Client();
 
   constructor(
     private prisma: PrismaService,
@@ -37,6 +50,8 @@ export class AuthService {
     id: true,
     email: true,
     phone: true,
+    authProvider: true,
+    avatarUrl: true,
     firstName: true,
     lastName: true,
     gender: true,
@@ -87,6 +102,171 @@ export class AuthService {
         return value * 24 * 60 * 60 * 1000;
       default:
         return 7 * 24 * 60 * 60 * 1000;
+    }
+  }
+
+  private parseEnvList(value?: string): string[] {
+    if (!value) return [];
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  private splitName(name?: string): { firstName: string | null; lastName: string | null } {
+    const normalized = name?.trim();
+    if (!normalized) {
+      return { firstName: null, lastName: null };
+    }
+
+    const parts = normalized.split(/\s+/);
+    const firstName = parts.shift() || null;
+    const lastName = parts.length > 0 ? parts.join(' ') : null;
+    return { firstName, lastName };
+  }
+
+  private ensureProviderMatchesRoute(
+    expectedProvider: SocialProvider,
+    dto: SocialAuthDto,
+  ): void {
+    if (dto.provider !== expectedProvider) {
+      throw new BadRequestException(
+        `Provider mismatch: expected ${expectedProvider}, got ${dto.provider}`,
+      );
+    }
+  }
+
+  private async verifyGoogleToken(dto: SocialAuthDto): Promise<SocialIdentity> {
+    const clientIds = this.parseEnvList(
+      this.configService.get<string>('GOOGLE_CLIENT_IDS'),
+    );
+    if (clientIds.length === 0) {
+      throw new HttpException(
+        'Google auth is not configured on server',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    if (!dto.idToken && !dto.accessToken) {
+      throw new BadRequestException('Google token is required');
+    }
+
+    let payload: any | null = null;
+
+    if (dto.idToken) {
+      try {
+        const ticket = await this.googleOAuthClient.verifyIdToken({
+          idToken: dto.idToken,
+          audience: clientIds,
+        });
+        payload = ticket.getPayload() ?? null;
+      } catch {
+        payload = null;
+      }
+    }
+
+    if (!payload && dto.accessToken) {
+      const userInfoResponse = await fetch(
+        'https://openidconnect.googleapis.com/v1/userinfo',
+        {
+          headers: {
+            Authorization: `Bearer ${dto.accessToken}`,
+          },
+        },
+      );
+      if (userInfoResponse.ok) {
+        payload = await userInfoResponse.json();
+      }
+    }
+
+    if (!payload?.sub) {
+      throw new UnauthorizedException('Invalid Google token payload');
+    }
+
+    return {
+      provider: AuthProvider.GOOGLE,
+      providerId: String(payload.sub),
+      email: payload.email ? this.normalizeEmail(String(payload.email)) : undefined,
+      name: payload.name ? String(payload.name) : dto.name,
+      avatarUrl: payload.picture ? String(payload.picture) : dto.avatarUrl,
+      emailVerified: Boolean(payload.email_verified),
+    };
+  }
+
+  private async verifyFacebookToken(dto: SocialAuthDto): Promise<SocialIdentity> {
+    const token = dto.accessToken ?? dto.idToken;
+    if (!token) {
+      throw new BadRequestException('Facebook accessToken is required');
+    }
+
+    const appId = this.configService.get<string>('FACEBOOK_APP_ID')?.trim();
+    const appSecret = this.configService
+      .get<string>('FACEBOOK_APP_SECRET')
+      ?.trim();
+
+    if (appId && appSecret) {
+      const debugUrl = new URL('https://graph.facebook.com/debug_token');
+      debugUrl.searchParams.set('input_token', token);
+      debugUrl.searchParams.set('access_token', `${appId}|${appSecret}`);
+
+      const debugResponse = await fetch(debugUrl.toString());
+      if (!debugResponse.ok) {
+        throw new UnauthorizedException('Failed to validate Facebook token');
+      }
+
+      const debugJson = (await debugResponse.json()) as {
+        data?: { is_valid?: boolean; app_id?: string };
+      };
+      if (!debugJson.data?.is_valid) {
+        throw new UnauthorizedException('Invalid Facebook token');
+      }
+      if (appId && debugJson.data.app_id && debugJson.data.app_id !== appId) {
+        throw new UnauthorizedException(
+          'Facebook token does not belong to this app',
+        );
+      }
+    }
+
+    const meUrl = new URL('https://graph.facebook.com/me');
+    meUrl.searchParams.set('fields', 'id,name,email,picture.type(large)');
+    meUrl.searchParams.set('access_token', token);
+
+    const meResponse = await fetch(meUrl.toString());
+    if (!meResponse.ok) {
+      throw new UnauthorizedException('Invalid Facebook token');
+    }
+
+    const meJson = (await meResponse.json()) as {
+      id?: string;
+      name?: string;
+      email?: string;
+      picture?: { data?: { url?: string } };
+    };
+    if (!meJson.id) {
+      throw new UnauthorizedException('Invalid Facebook user profile');
+    }
+
+    return {
+      provider: AuthProvider.FACEBOOK,
+      providerId: meJson.id,
+      email: meJson.email ? this.normalizeEmail(meJson.email) : undefined,
+      name: meJson.name ?? dto.name,
+      avatarUrl: meJson.picture?.data?.url ?? dto.avatarUrl,
+      emailVerified: Boolean(meJson.email),
+    };
+  }
+
+  private async verifySocialIdentity(
+    provider: SocialProvider,
+    dto: SocialAuthDto,
+  ): Promise<SocialIdentity> {
+    switch (provider) {
+      case SocialProvider.GOOGLE:
+        return this.verifyGoogleToken(dto);
+      case SocialProvider.FACEBOOK:
+        return this.verifyFacebookToken(dto);
+      default:
+        throw new BadRequestException('Unsupported social provider');
     }
   }
 
@@ -468,6 +648,103 @@ export class AuthService {
     }
 
     return { next: 'VERIFY_PHONE' };
+  }
+
+  // =========================
+  // SOCIAL AUTH
+  // =========================
+
+  async socialAuth(provider: SocialProvider, dto: SocialAuthDto) {
+    this.ensureProviderMatchesRoute(provider, dto);
+
+    const identity = await this.verifySocialIdentity(provider, dto);
+
+    let user = await this.prisma.user.findFirst({
+      where: {
+        authProvider: identity.provider,
+        providerId: identity.providerId,
+      },
+    });
+
+    if (!user && identity.email) {
+      user = await this.prisma.user.findUnique({
+        where: { email: identity.email },
+      });
+    }
+
+    const nameParts = this.splitName(identity.name);
+
+    if (user) {
+      if (user.isBanned) {
+        throw new ForbiddenException('Аккаунт заблокирован');
+      }
+
+      const shouldLinkProvider =
+        user.authProvider === AuthProvider.LOCAL || !user.providerId;
+      const shouldUpdateEmail =
+        !user.email && identity.email && identity.email.length > 0;
+      const shouldUpgradeEmailVerified =
+        identity.emailVerified && !user.emailVerified;
+      const shouldUpdateAvatar =
+        Boolean(identity.avatarUrl) && user.avatarUrl !== identity.avatarUrl;
+      const shouldUpdateFirstName = !user.firstName && Boolean(nameParts.firstName);
+      const shouldUpdateLastName = !user.lastName && Boolean(nameParts.lastName);
+
+      if (
+        shouldLinkProvider ||
+        shouldUpdateEmail ||
+        shouldUpgradeEmailVerified ||
+        shouldUpdateAvatar ||
+        shouldUpdateFirstName ||
+        shouldUpdateLastName
+      ) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            authProvider: shouldLinkProvider ? identity.provider : user.authProvider,
+            providerId: shouldLinkProvider ? identity.providerId : user.providerId,
+            email: shouldUpdateEmail ? identity.email : user.email,
+            emailVerified: shouldUpgradeEmailVerified
+              ? true
+              : user.emailVerified,
+            avatarUrl: shouldUpdateAvatar ? identity.avatarUrl : user.avatarUrl,
+            firstName: shouldUpdateFirstName ? nameParts.firstName : user.firstName,
+            lastName: shouldUpdateLastName ? nameParts.lastName : user.lastName,
+          },
+        });
+      }
+    } else {
+      const randomPassword = await bcrypt.hash(randomUUID(), 10);
+      user = await this.prisma.user.create({
+        data: {
+          role: UserRole.USER,
+          email: identity.email ?? null,
+          phone: null,
+          password: randomPassword,
+          authProvider: identity.provider,
+          providerId: identity.providerId,
+          avatarUrl: identity.avatarUrl ?? null,
+          emailVerified: identity.emailVerified,
+          phoneVerified: false,
+          firstName: nameParts.firstName,
+          lastName: nameParts.lastName,
+          onboardingStep: 'NAME_AGE',
+          onboardingCompleted: false,
+        },
+      });
+    }
+
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email || undefined,
+      user.phone || undefined,
+    );
+
+    return {
+      user: await this.buildAuthUser(user.id),
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 
   // =========================

@@ -1,15 +1,21 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/errors/app_exception.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
+import '../../../home/data/home_providers.dart';
+import '../../../people/data/favorites_users_providers.dart';
+import '../../../profile/data/me_repository.dart';
 import '../../data/auth_repository.dart';
+import '../../data/social_auth_service.dart';
 import '../state/registration_state.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class RegistrationPage extends ConsumerStatefulWidget {
   const RegistrationPage({super.key});
@@ -20,6 +26,7 @@ class RegistrationPage extends ConsumerStatefulWidget {
 
 class _RegistrationPageState extends ConsumerState<RegistrationPage> {
   bool _isSubmitting = false;
+  bool _isSocialSubmitting = false;
 
   Future<void> _submit() async {
     final state = ref.read(registrationProvider);
@@ -61,10 +68,9 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
       Navigator.of(context).pushReplacementNamed(AppRoutes.verifyEmail);
     } on AppException catch (e) {
       if (!mounted) return;
-      final message = e.message;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,6 +81,42 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _submitSocial(SocialProvider provider) async {
+    if (_isSubmitting || _isSocialSubmitting) return;
+    setState(() => _isSocialSubmitting = true);
+
+    try {
+      final result = await ref
+          .read(authRepositoryProvider)
+          .loginWithSocial(provider: provider, rememberMe: true);
+
+      ref.invalidate(meProvider);
+      ref.invalidate(homeAutoRecommendationsProvider);
+      ref.invalidate(recommendedUsersProvider);
+      ref.invalidate(favoriteUsersProvider);
+
+      if (!mounted) return;
+      final route = result.onboardingCompleted
+          ? AppRoutes.shell
+          : OnboardingRouteMapper.fromStep(result.onboardingStep);
+      Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ошибка сервера. Попробуйте позже.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialSubmitting = false);
       }
     }
   }
@@ -213,13 +255,19 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
                 label: _isSubmitting
                     ? 'Регистрация...'
                     : AppStrings.registerButton,
-                onPressed: _isSubmitting ? null : _submit,
+                onPressed: _isSubmitting || _isSocialSubmitting ? null : _submit,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 16,
                   height: 1,
                   fontWeight: FontWeight.w700,
                 ),
+              ),
+              const SizedBox(height: 16),
+              SocialAuthButtons(
+                isLoading: _isSocialSubmitting || _isSubmitting,
+                onGoogle: () => _submitSocial(SocialProvider.google),
+                onFacebook: () => _submitSocial(SocialProvider.facebook),
               ),
               const SizedBox(height: 20),
               Center(
@@ -316,3 +364,4 @@ class _RememberRow extends StatelessWidget {
     );
   }
 }
+

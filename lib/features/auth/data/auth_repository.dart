@@ -1,10 +1,11 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/app_exception.dart';
 import '../../../core/network/dio_error_mapper.dart';
 import '../../../core/network/network_providers.dart';
 import '../../../core/storage/auth_token_storage.dart';
+import 'social_auth_service.dart';
 
 class LoginResult {
   const LoginResult({
@@ -61,10 +62,11 @@ class AuthMeSnapshot {
 }
 
 class AuthRepository {
-  const AuthRepository(this._dio, this._tokenStorage);
+  const AuthRepository(this._dio, this._tokenStorage, this._socialAuthService);
 
   final Dio _dio;
   final AuthTokenStorage _tokenStorage;
+  final SocialAuthService _socialAuthService;
 
   String _normalizePhone(String raw) {
     final digits = raw.replaceAll(RegExp(r'[^0-9+]'), '');
@@ -244,6 +246,66 @@ class AuthRepository {
     }
   }
 
+  Future<LoginResult> loginWithSocial({
+    required SocialProvider provider,
+    bool rememberMe = true,
+  }) async {
+    try {
+      final payload = await _socialAuthService.signIn(provider);
+      final endpoint = switch (provider) {
+        SocialProvider.google => '/auth/social/google',
+        SocialProvider.facebook => '/auth/social/facebook',
+      };
+
+      final response = await _dio.post<Map<String, dynamic>>(
+        endpoint,
+        data: {
+          'provider': switch (provider) {
+            SocialProvider.google => 'GOOGLE',
+            SocialProvider.facebook => 'FACEBOOK',
+          },
+          if (payload.idToken != null) 'idToken': payload.idToken,
+          if (payload.accessToken != null) 'accessToken': payload.accessToken,
+          if (payload.email != null) 'email': payload.email,
+          if (payload.name != null) 'name': payload.name,
+          if (payload.avatarUrl != null) 'avatarUrl': payload.avatarUrl,
+        },
+      );
+
+      final data = response.data ?? <String, dynamic>{};
+      final accessToken = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
+      final user = (data['user'] as Map?)?.cast<String, dynamic>();
+
+      if (accessToken == null || refreshToken == null) {
+        throw const AppException(
+          code: AppErrorCode.unknown,
+          message: 'Ответ сервера не содержит токены.',
+        );
+      }
+
+      await _tokenStorage.setAccessToken(accessToken);
+      await _tokenStorage.saveRefreshToken(
+        refreshToken: refreshToken,
+        rememberMe: rememberMe,
+      );
+
+      return LoginResult(
+        onboardingStep: user?['onboardingStep'] as String?,
+        onboardingCompleted: user?['onboardingCompleted'] as bool? ?? false,
+      );
+    } on AppException {
+      rethrow;
+    } on DioException catch (e) {
+      throw mapDioErrorToAppException(e);
+    } catch (_) {
+      throw const AppException(
+        code: AppErrorCode.unknown,
+        message: 'Ошибка сервера. Попробуйте позже.',
+      );
+    }
+  }
+
   Future<LoginResult?> tryLoginWithRefreshToken() async {
     final refreshToken = await _tokenStorage.getRefreshToken();
     if (refreshToken == null) return null;
@@ -330,5 +392,6 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
     ref.read(dioProvider),
     ref.read(authTokenStorageProvider),
+    SocialAuthService(),
   );
 });

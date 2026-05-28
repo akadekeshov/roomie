@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">roommate_app</string>
+    <string name="facebook_app_id">2180812159125698</string>
+    <string name="facebook_client_token">cf97d7d8b267984c18702bcd699fe817</string>
+    <string name="fb_login_protocol_scheme">fb2180812159125698</string>
+</resources>
+

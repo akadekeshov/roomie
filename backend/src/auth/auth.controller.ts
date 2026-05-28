@@ -20,6 +20,7 @@ import { RegisterPhoneDto } from './dto/register-phone.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
+import { SocialAuthDto, SocialProvider } from './dto/social-auth.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 
@@ -99,6 +100,24 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Post('social/google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login/register with Google' })
+  @ApiResponse({ status: 200, description: 'Authentication successful' })
+  async socialGoogle(@Body() dto: SocialAuthDto) {
+    return this.authService.socialAuth(SocialProvider.GOOGLE, dto);
+  }
+
+  @Public()
+  @Post('social/facebook')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login/register with Facebook' })
+  @ApiResponse({ status: 200, description: 'Authentication successful' })
+  async socialFacebook(@Body() dto: SocialAuthDto) {
+    return this.authService.socialAuth(SocialProvider.FACEBOOK, dto);
   }
 
   @Public()

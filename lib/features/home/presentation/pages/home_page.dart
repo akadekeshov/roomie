@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../chat/chat_detail_page.dart';
 import '../../../people/data/favorites_users_providers.dart';
 import '../../../people/data/hidden_users_provider.dart';
+import '../../../profile/data/me_repository.dart';
 import '../../../people/ui/recommended_user_profile_page.dart';
 import '../../data/filter_providers.dart' as filter;
 import '../../data/home_providers.dart' as home;
@@ -19,7 +22,36 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
+class _HomePageState extends ConsumerState<HomePage>
+    with WidgetsBindingObserver {
+  Timer? _autoRefreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (!mounted) return;
+      _invalidateHomeData();
+      ref.invalidate(meProvider);
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _invalidateHomeData();
+      ref.invalidate(meProvider);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
+
   void _invalidateHomeData() {
     ref.invalidate(home.homeAutoRecommendationsProvider);
     ref.invalidate(home.recommendedUsersProvider);

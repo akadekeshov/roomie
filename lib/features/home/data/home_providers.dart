@@ -31,9 +31,7 @@ final homeAutoRecommendationsProvider =
   MeUser? me;
 
   try {
-    me = await ref
-        .read(meProvider.future)
-        .timeout(const Duration(seconds: 6));
+    me = await ref.read(meProvider.future).timeout(const Duration(seconds: 6));
   } catch (_) {
     me = null;
   }
@@ -53,7 +51,7 @@ final homeAutoRecommendationsProvider =
     }
   }
 
-  if (users.isEmpty && (me?.onboardingCompleted != true || personalizedError == null)) {
+  if (users.isEmpty) {
     try {
       users = await repo.discoverUsers().timeout(const Duration(seconds: 8));
     } catch (error) {

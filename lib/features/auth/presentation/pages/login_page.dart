@@ -3,17 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
-import '../../../../core/errors/app_exception.dart';
-import '../../data/auth_repository.dart';
-import '../state/login_state.dart';
 import '../../../home/data/home_providers.dart';
 import '../../../people/data/favorites_users_providers.dart';
 import '../../../profile/data/me_repository.dart';
+import '../../data/auth_repository.dart';
+import '../../data/social_auth_service.dart';
+import '../state/login_state.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -24,6 +26,7 @@ class LoginPage extends ConsumerStatefulWidget {
 
 class _LoginPageState extends ConsumerState<LoginPage> {
   bool _isSubmitting = false;
+  bool _isSocialSubmitting = false;
 
   Future<void> _submit() async {
     final controller = ref.read(loginProvider.notifier);
@@ -67,6 +70,42 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _submitSocial(SocialProvider provider) async {
+    if (_isSubmitting || _isSocialSubmitting) return;
+    setState(() => _isSocialSubmitting = true);
+
+    try {
+      final result = await ref
+          .read(authRepositoryProvider)
+          .loginWithSocial(provider: provider, rememberMe: true);
+
+      ref.invalidate(meProvider);
+      ref.invalidate(homeAutoRecommendationsProvider);
+      ref.invalidate(recommendedUsersProvider);
+      ref.invalidate(favoriteUsersProvider);
+
+      if (!mounted) return;
+      final route = result.onboardingCompleted
+          ? AppRoutes.shell
+          : OnboardingRouteMapper.fromStep(result.onboardingStep);
+      Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ошибка сервера. Попробуйте позже.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialSubmitting = false);
       }
     }
   }
@@ -190,7 +229,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               const SizedBox(height: 20),
               AppPrimaryButton(
                 label: _isSubmitting ? 'Вход...' : AppStrings.loginButton,
-                onPressed: _isSubmitting ? null : _submit,
+                onPressed: _isSubmitting || _isSocialSubmitting ? null : _submit,
+              ),
+              const SizedBox(height: 16),
+              SocialAuthButtons(
+                isLoading: _isSocialSubmitting || _isSubmitting,
+                onGoogle: () => _submitSocial(SocialProvider.google),
+                onFacebook: () => _submitSocial(SocialProvider.facebook),
               ),
               const SizedBox(height: 20),
               Center(
@@ -283,3 +328,4 @@ class _RememberRow extends StatelessWidget {
     );
   }
 }
+
