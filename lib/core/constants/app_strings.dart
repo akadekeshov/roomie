@@ -18,12 +18,13 @@ class AppStrings {
   static const String authEmailHint = 'you@gmail.com';
   static const String authContinue = 'Продолжить';
   static const String authTerms =
-      'Продолжая, вы соглашаетесь с условиями сервиса\nи политикой конфиденциальности';
+      'Продолжая, вы соглашаетесь с условиями сервиса\n'
+      'и политикой конфиденциальности';
 
   static const String otpTitle = 'Введите код подтверждения';
   static const String otpSubtitle = 'Мы отправили вам код';
   static const String otpVerify = 'Подтвердить';
-  static const String otpResend = 'Отправить код ещё раз';
+  static const String otpResend = 'Отправить код еще раз';
 
   static const String profileIntroTitle = 'Как вас зовут?';
   static const String profileIntroSubtitle = 'Расскажите немного о себе';
@@ -62,9 +63,9 @@ class AppStrings {
   static const String verifySubtitle =
       'Введите код из письма, которое мы отправили на вашу почту:';
   static const String verifyInvalidCode = 'Неверный код';
-  static const String verifyResendNow = 'Отправить код ещё раз';
+  static const String verifyResendNow = 'Отправить код еще раз';
   static const String verifyResendInPrefix = 'Получить новый код через ';
-  static const String verifyResendInSuffix = ' с';
+  static const String verifyResendInSuffix = ' c';
   static const String verifyChangeEmail = 'Изменить почту';
   static const String verifyConfirm = 'Подтвердить';
 

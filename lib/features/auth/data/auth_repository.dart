@@ -253,17 +253,13 @@ class AuthRepository {
     try {
       final payload = await _socialAuthService.signIn(provider);
       final endpoint = switch (provider) {
-        SocialProvider.google => '/auth/social/google',
-        SocialProvider.facebook => '/auth/social/facebook',
+        SocialProvider.google => '/auth/google',
+        SocialProvider.facebook => '/auth/facebook',
       };
 
       final response = await _dio.post<Map<String, dynamic>>(
         endpoint,
         data: {
-          'provider': switch (provider) {
-            SocialProvider.google => 'GOOGLE',
-            SocialProvider.facebook => 'FACEBOOK',
-          },
           if (payload.idToken != null) 'idToken': payload.idToken,
           if (payload.accessToken != null) 'accessToken': payload.accessToken,
           if (payload.email != null) 'email': payload.email,
@@ -333,8 +329,7 @@ class AuthRepository {
       return LoginResult(
         onboardingStep:
             user?['onboardingStep'] as String? ?? snapshot?.onboardingStep,
-        onboardingCompleted:
-            user?['onboardingCompleted'] as bool? ??
+        onboardingCompleted: user?['onboardingCompleted'] as bool? ??
             snapshot?.onboardingCompleted ??
             false,
       );

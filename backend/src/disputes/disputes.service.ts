@@ -16,7 +16,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { DisputeAdminQueryDto } from './dto/dispute-admin-query.dto';
-import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
+import {
+  ResolveDisputeDto,
+  type AdminActionTypeValue,
+  type AdminDecisionValue,
+} from './dto/resolve-dispute.dto';
 import { UpdateDisputeStatusDto } from './dto/update-dispute-status.dto';
 
 type CurrentUserPayload = {
@@ -69,6 +73,13 @@ type DisputeWithRelations = Prisma.DisputeGetPayload<{
 }>;
 
 type DisputeDirection = 'OUTGOING' | 'INCOMING';
+
+type NormalizedResolvePayload = {
+  decision: DisputeDecision;
+  action: DisputeAction;
+  adminComment: string | null;
+  restrictionDays?: number;
+};
 
 @Injectable()
 export class DisputesService {
@@ -140,7 +151,9 @@ export class DisputesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return disputes.map((dispute) => this.decorateDisputeForViewer(dispute, userId));
+    return disputes.map((dispute) =>
+      this.decorateDisputeForViewer(dispute, userId),
+    );
   }
 
   async getDisputeById(id: string, currentUser: CurrentUserPayload) {
@@ -160,7 +173,9 @@ export class DisputesService {
       currentUser.role === UserRole.MODERATOR;
 
     if (!hasAccess) {
-      throw new ForbiddenException('У вас нет прав для выполнения этого действия.');
+      throw new ForbiddenException(
+        'У вас нет прав для выполнения этого действия.',
+      );
     }
 
     return this.decorateDisputeForViewer(dispute, currentUser.id);
@@ -175,6 +190,69 @@ export class DisputesService {
       include: disputeInclude,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  private mapAdminDecision(value?: AdminDecisionValue, status?: DisputeStatus) {
+    if (value) {
+      switch (value) {
+        case 'CONFIRMED':
+          return DisputeDecision.ACCEPTED;
+        case 'REJECTED':
+          return DisputeDecision.REJECTED;
+        case 'NEEDS_REVIEW':
+          return DisputeDecision.NEED_MORE_INFO;
+      }
+    }
+
+    switch (status) {
+      case DisputeStatus.RESOLVED:
+        return DisputeDecision.ACCEPTED;
+      case DisputeStatus.REJECTED:
+        return DisputeDecision.REJECTED;
+      case DisputeStatus.IN_REVIEW:
+        return DisputeDecision.NEED_MORE_INFO;
+      default:
+        return undefined;
+    }
+  }
+
+  private mapAdminActionType(value?: AdminActionTypeValue) {
+    switch (value) {
+      case 'NONE':
+        return DisputeAction.NONE;
+      case 'WARNING':
+        return DisputeAction.WARNING;
+      case 'TEMP_BAN':
+        return DisputeAction.TEMPORARY_RESTRICTION;
+      case 'PERMANENT_BAN':
+        return DisputeAction.ACCOUNT_BAN;
+      default:
+        return undefined;
+    }
+  }
+
+  private normalizeResolvePayload(
+    dto: ResolveDisputeDto,
+  ): NormalizedResolvePayload {
+    const decision =
+      dto.decision ?? this.mapAdminDecision(dto.adminDecision, dto.status);
+
+    if (!decision) {
+      throw new BadRequestException('Выберите решение по жалобе.');
+    }
+
+    const action =
+      dto.action ??
+      this.mapAdminActionType(dto.actionType) ??
+      DisputeAction.NONE;
+    const adminComment = dto.adminComment?.trim() || null;
+
+    return {
+      decision,
+      action,
+      adminComment,
+      restrictionDays: dto.restrictionDays,
+    };
   }
 
   async resolveDispute(
@@ -198,38 +276,47 @@ export class DisputesService {
       throw new NotFoundException('Жалоба не найдена.');
     }
 
-    const trimmedComment = dto.adminComment?.trim() || null;
+    const normalized = this.normalizeResolvePayload(dto);
+    const {
+      decision,
+      action,
+      adminComment: trimmedComment,
+      restrictionDays,
+    } = normalized;
 
-    if (
-      (dto.decision === DisputeDecision.ACCEPTED ||
-        dto.decision === DisputeDecision.REJECTED) &&
-      !trimmedComment
-    ) {
+    const needsComment =
+      decision === DisputeDecision.REJECTED ||
+      action === DisputeAction.TEMPORARY_RESTRICTION ||
+      action === DisputeAction.ACCOUNT_BAN;
+
+    if (needsComment && !trimmedComment) {
       throw new BadRequestException(
         'Комментарий модератора обязателен для этого решения.',
       );
     }
 
-    if (dto.decision === DisputeDecision.ACCEPTED && !dto.action) {
-      throw new BadRequestException(
-        'Выберите действие для подтвержденной жалобы.',
-      );
-    }
-
     if (
-      dto.decision !== DisputeDecision.ACCEPTED &&
-      dto.action &&
-      dto.action !== DisputeAction.NONE
+      decision !== DisputeDecision.ACCEPTED &&
+      action !== DisputeAction.NONE
     ) {
       throw new BadRequestException(
         'Нельзя применить действие без подтверждения жалобы.',
       );
     }
 
+    if (
+      action === DisputeAction.TEMPORARY_RESTRICTION &&
+      (!restrictionDays || restrictionDays < 1 || restrictionDays > 30)
+    ) {
+      throw new BadRequestException(
+        'Укажите срок временного ограничения от 1 до 30 дней.',
+      );
+    }
+
     const now = new Date();
 
     const resolved = await this.prisma.$transaction(async (tx) => {
-      switch (dto.decision) {
+      switch (decision) {
         case DisputeDecision.REJECTED:
           return tx.dispute.update({
             where: { id },
@@ -271,13 +358,15 @@ export class DisputesService {
           return this.applyAcceptedDecision(
             tx,
             dispute,
-            dto,
+            normalized,
             trimmedComment,
             currentUser.id,
             now,
           );
         default:
-          throw new BadRequestException('Нельзя применить действие без подтверждения жалобы.');
+          throw new BadRequestException(
+            'Нельзя применить действие без подтверждения жалобы.',
+          );
       }
     });
 
@@ -351,18 +440,12 @@ export class DisputesService {
   private async applyAcceptedDecision(
     tx: Prisma.TransactionClient,
     dispute: DisputeWithRelations,
-    dto: ResolveDisputeDto,
+    dto: NormalizedResolvePayload,
     adminComment: string | null,
     reviewerId: string,
     now: Date,
   ) {
-    const action = dto.action ?? DisputeAction.NONE;
-
-    if (action === DisputeAction.NONE) {
-      throw new BadRequestException(
-        'Выберите действие для подтвержденной жалобы.',
-      );
-    }
+    const action = dto.action;
 
     if (!dispute.accusedId) {
       throw new BadRequestException(
@@ -374,6 +457,10 @@ export class DisputesService {
     let actionExpiresAt: Date | null = null;
 
     switch (action) {
+      case DisputeAction.NONE:
+        resultText =
+          'Жалоба подтверждена. Ограничения к пользователю не применялись.';
+        break;
       case DisputeAction.WARNING:
         await tx.user.update({
           where: { id: dispute.accusedId },
@@ -410,8 +497,7 @@ export class DisputesService {
             banReason: adminComment,
           },
         });
-        resultText =
-          'Жалоба подтверждена. Аккаунт пользователя заблокирован.';
+        resultText = 'Жалоба подтверждена. Аккаунт пользователя заблокирован.';
         break;
       case DisputeAction.AGREEMENT_CANCELLED:
         if (!dispute.agreementId) {
@@ -473,7 +559,7 @@ export class DisputesService {
         resultText,
         reviewedById: reviewerId,
         reviewedAt: now,
-        actionAppliedAt: now,
+        actionAppliedAt: action === DisputeAction.NONE ? null : now,
         actionExpiresAt,
         accusedNotifiedAt: now,
         reporterNotifiedAt: now,
@@ -603,13 +689,12 @@ export class DisputesService {
       ...dispute,
       direction,
       directionLabel:
-        direction === 'OUTGOING'
-          ? 'Вы подали жалобу'
-          : 'На вас подали жалобу',
+        direction === 'OUTGOING' ? 'Вы подали жалобу' : 'На вас подали жалобу',
       counterparty,
       canAppeal: false,
       isActionApplied:
-        dispute.action !== DisputeAction.NONE && dispute.actionAppliedAt != null,
+        dispute.action !== DisputeAction.NONE &&
+        dispute.actionAppliedAt != null,
       viewerResultText: this.getViewerResultText(dispute, direction),
     };
   }

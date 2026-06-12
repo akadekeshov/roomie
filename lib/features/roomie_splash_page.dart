@@ -109,7 +109,7 @@ class _RoomieSplashPageState extends ConsumerState<RoomieSplashPage>
     if (!mounted) return;
 
     final targetRoute = loginResult == null
-        ? AppRoutes.register
+        ? AppRoutes.login
         : loginResult.onboardingCompleted
             ? AppRoutes.shell
             : OnboardingRouteMapper.fromStep(loginResult.onboardingStep);
@@ -208,7 +208,7 @@ class _RoomieLogoPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
 
     final whiteFill = Paint()
-      ..color = Colors.white.withOpacity(peopleOpacity)
+      ..color = Colors.white.withValues(alpha: peopleOpacity)
       ..style = PaintingStyle.fill;
 
     final housePath = Path()

@@ -20,6 +20,8 @@ import { RegisterPhoneDto } from './dto/register-phone.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
+import { GoogleAuthDto } from './dto/google-auth.dto';
+import { FacebookAuthDto } from './dto/facebook-auth.dto';
 import { SocialAuthDto, SocialProvider } from './dto/social-auth.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -103,9 +105,27 @@ export class AuthController {
   }
 
   @Public()
-  @Post('social/google')
+  @Post('google')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login/register with Google' })
+  @ApiResponse({ status: 200, description: 'Authentication successful' })
+  async google(@Body() dto: GoogleAuthDto) {
+    return this.authService.googleAuth(dto);
+  }
+
+  @Public()
+  @Post('facebook')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login/register with Facebook' })
+  @ApiResponse({ status: 200, description: 'Authentication successful' })
+  async facebook(@Body() dto: FacebookAuthDto) {
+    return this.authService.facebookAuth(dto);
+  }
+
+  @Public()
+  @Post('social/google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Legacy alias for Google social auth' })
   @ApiResponse({ status: 200, description: 'Authentication successful' })
   async socialGoogle(@Body() dto: SocialAuthDto) {
     return this.authService.socialAuth(SocialProvider.GOOGLE, dto);
@@ -114,7 +134,7 @@ export class AuthController {
   @Public()
   @Post('social/facebook')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login/register with Facebook' })
+  @ApiOperation({ summary: 'Legacy alias for Facebook social auth' })
   @ApiResponse({ status: 200, description: 'Authentication successful' })
   async socialFacebook(@Body() dto: SocialAuthDto) {
     return this.authService.socialAuth(SocialProvider.FACEBOOK, dto);

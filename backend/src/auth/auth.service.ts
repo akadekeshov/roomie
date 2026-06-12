@@ -22,12 +22,23 @@ import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { AuthProvider, OTPChannel, OTPPurpose, UserRole } from '@prisma/client';
 import { OAuth2Client } from 'google-auth-library';
+import { GoogleAuthDto } from './dto/google-auth.dto';
+import { FacebookAuthDto } from './dto/facebook-auth.dto';
 import { SocialAuthDto, SocialProvider } from './dto/social-auth.dto';
+
+type SocialAuthPayload = {
+  idToken?: string;
+  accessToken?: string;
+  email?: string;
+  name?: string;
+  avatarUrl?: string;
+};
 
 type SocialIdentity = {
   provider: AuthProvider;
+  providerField: 'googleId' | 'facebookId';
   providerId: string;
-  email?: string;
+  email: string;
   name?: string;
   avatarUrl?: string;
   emailVerified: boolean;
@@ -113,7 +124,20 @@ export class AuthService {
       .filter(Boolean);
   }
 
-  private splitName(name?: string): { firstName: string | null; lastName: string | null } {
+  private getGoogleClientIds(): string[] {
+    const singleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    const multipleClientIds =
+      this.configService.get<string>('GOOGLE_CLIENT_IDS');
+    return [
+      ...this.parseEnvList(singleClientId),
+      ...this.parseEnvList(multipleClientIds),
+    ];
+  }
+
+  private splitName(name?: string): {
+    firstName: string | null;
+    lastName: string | null;
+  } {
     const normalized = name?.trim();
     if (!normalized) {
       return { firstName: null, lastName: null };
@@ -136,10 +160,10 @@ export class AuthService {
     }
   }
 
-  private async verifyGoogleToken(dto: SocialAuthDto): Promise<SocialIdentity> {
-    const clientIds = this.parseEnvList(
-      this.configService.get<string>('GOOGLE_CLIENT_IDS'),
-    );
+  private async verifyGoogleToken(
+    dto: SocialAuthPayload,
+  ): Promise<SocialIdentity> {
+    const clientIds = this.getGoogleClientIds();
     if (clientIds.length === 0) {
       throw new HttpException(
         'Google auth is not configured on server',
@@ -183,17 +207,30 @@ export class AuthService {
       throw new UnauthorizedException('Invalid Google token payload');
     }
 
+    const email = payload.email
+      ? this.normalizeEmail(String(payload.email))
+      : dto.email
+        ? this.normalizeEmail(dto.email)
+        : null;
+
+    if (!email) {
+      throw new BadRequestException('Google account did not provide an email');
+    }
+
     return {
       provider: AuthProvider.GOOGLE,
+      providerField: 'googleId',
       providerId: String(payload.sub),
-      email: payload.email ? this.normalizeEmail(String(payload.email)) : undefined,
+      email,
       name: payload.name ? String(payload.name) : dto.name,
       avatarUrl: payload.picture ? String(payload.picture) : dto.avatarUrl,
-      emailVerified: Boolean(payload.email_verified),
+      emailVerified: true,
     };
   }
 
-  private async verifyFacebookToken(dto: SocialAuthDto): Promise<SocialIdentity> {
+  private async verifyFacebookToken(
+    dto: SocialAuthPayload,
+  ): Promise<SocialIdentity> {
     const token = dto.accessToken ?? dto.idToken;
     if (!token) {
       throw new BadRequestException('Facebook accessToken is required');
@@ -246,19 +283,32 @@ export class AuthService {
       throw new UnauthorizedException('Invalid Facebook user profile');
     }
 
+    const email = meJson.email
+      ? this.normalizeEmail(meJson.email)
+      : dto.email
+        ? this.normalizeEmail(dto.email)
+        : null;
+
+    if (!email) {
+      throw new BadRequestException(
+        'Facebook account did not provide an email',
+      );
+    }
+
     return {
       provider: AuthProvider.FACEBOOK,
+      providerField: 'facebookId',
       providerId: meJson.id,
-      email: meJson.email ? this.normalizeEmail(meJson.email) : undefined,
+      email,
       name: meJson.name ?? dto.name,
       avatarUrl: meJson.picture?.data?.url ?? dto.avatarUrl,
-      emailVerified: Boolean(meJson.email),
+      emailVerified: true,
     };
   }
 
   private async verifySocialIdentity(
     provider: SocialProvider,
-    dto: SocialAuthDto,
+    dto: SocialAuthPayload,
   ): Promise<SocialIdentity> {
     switch (provider) {
       case SocialProvider.GOOGLE:
@@ -654,6 +704,20 @@ export class AuthService {
   // SOCIAL AUTH
   // =========================
 
+  async googleAuth(dto: GoogleAuthDto) {
+    return this.socialAuth(SocialProvider.GOOGLE, {
+      ...dto,
+      provider: SocialProvider.GOOGLE,
+    });
+  }
+
+  async facebookAuth(dto: FacebookAuthDto) {
+    return this.socialAuth(SocialProvider.FACEBOOK, {
+      ...dto,
+      provider: SocialProvider.FACEBOOK,
+    });
+  }
+
   async socialAuth(provider: SocialProvider, dto: SocialAuthDto) {
     this.ensureProviderMatchesRoute(provider, dto);
 
@@ -661,12 +725,17 @@ export class AuthService {
 
     let user = await this.prisma.user.findFirst({
       where: {
-        authProvider: identity.provider,
-        providerId: identity.providerId,
-      },
+        OR: [
+          { [identity.providerField]: identity.providerId } as any,
+          {
+            authProvider: identity.provider,
+            providerId: identity.providerId,
+          },
+        ],
+      } as any,
     });
 
-    if (!user && identity.email) {
+    if (!user) {
       user = await this.prisma.user.findUnique({
         where: { email: identity.email },
       });
@@ -679,38 +748,59 @@ export class AuthService {
         throw new ForbiddenException('Аккаунт заблокирован');
       }
 
-      const shouldLinkProvider =
+      const existingProviderId =
+        identity.providerField === 'googleId' ? user.googleId : user.facebookId;
+      if (existingProviderId && existingProviderId !== identity.providerId) {
+        throw new ConflictException(
+          'This social account is already linked to another credential',
+        );
+      }
+
+      const shouldLinkCurrentProvider = !existingProviderId;
+      const shouldRefreshLegacyProvider =
         user.authProvider === AuthProvider.LOCAL || !user.providerId;
-      const shouldUpdateEmail =
-        !user.email && identity.email && identity.email.length > 0;
+      const shouldUpdateEmail = !user.email;
       const shouldUpgradeEmailVerified =
         identity.emailVerified && !user.emailVerified;
       const shouldUpdateAvatar =
         Boolean(identity.avatarUrl) && user.avatarUrl !== identity.avatarUrl;
-      const shouldUpdateFirstName = !user.firstName && Boolean(nameParts.firstName);
-      const shouldUpdateLastName = !user.lastName && Boolean(nameParts.lastName);
+      const shouldUpdateFirstName =
+        !user.firstName && Boolean(nameParts.firstName);
+      const shouldUpdateLastName =
+        !user.lastName && Boolean(nameParts.lastName);
 
       if (
-        shouldLinkProvider ||
+        shouldLinkCurrentProvider ||
+        shouldRefreshLegacyProvider ||
         shouldUpdateEmail ||
         shouldUpgradeEmailVerified ||
         shouldUpdateAvatar ||
         shouldUpdateFirstName ||
         shouldUpdateLastName
       ) {
+        const linkedProviderData = shouldLinkCurrentProvider
+          ? { [identity.providerField]: identity.providerId }
+          : {};
         user = await this.prisma.user.update({
           where: { id: user.id },
           data: {
-            authProvider: shouldLinkProvider ? identity.provider : user.authProvider,
-            providerId: shouldLinkProvider ? identity.providerId : user.providerId,
+            ...linkedProviderData,
+            authProvider: shouldRefreshLegacyProvider
+              ? identity.provider
+              : user.authProvider,
+            providerId: shouldRefreshLegacyProvider
+              ? identity.providerId
+              : user.providerId,
             email: shouldUpdateEmail ? identity.email : user.email,
             emailVerified: shouldUpgradeEmailVerified
               ? true
               : user.emailVerified,
             avatarUrl: shouldUpdateAvatar ? identity.avatarUrl : user.avatarUrl,
-            firstName: shouldUpdateFirstName ? nameParts.firstName : user.firstName,
+            firstName: shouldUpdateFirstName
+              ? nameParts.firstName
+              : user.firstName,
             lastName: shouldUpdateLastName ? nameParts.lastName : user.lastName,
-          },
+          } as any,
         });
       }
     } else {
@@ -718,19 +808,20 @@ export class AuthService {
       user = await this.prisma.user.create({
         data: {
           role: UserRole.USER,
-          email: identity.email ?? null,
+          email: identity.email,
           phone: null,
           password: randomPassword,
           authProvider: identity.provider,
           providerId: identity.providerId,
+          [identity.providerField]: identity.providerId,
           avatarUrl: identity.avatarUrl ?? null,
-          emailVerified: identity.emailVerified,
+          emailVerified: true,
           phoneVerified: false,
           firstName: nameParts.firstName,
           lastName: nameParts.lastName,
           onboardingStep: 'NAME_AGE',
           onboardingCompleted: false,
-        },
+        } as any,
       });
     }
 
@@ -773,7 +864,9 @@ export class AuthService {
 
     const user = normalizedEmail
       ? await this.prisma.user.findUnique({ where: { email: normalizedEmail } })
-      : await this.prisma.user.findUnique({ where: { phone: normalizedPhone } });
+      : await this.prisma.user.findUnique({
+          where: { phone: normalizedPhone },
+        });
 
     if (!user) {
       throw new NotFoundException(
@@ -782,7 +875,10 @@ export class AuthService {
     }
     if (user.isBanned) throw new ForbiddenException('Аккаунт заблокирован');
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordValid)
       throw new UnauthorizedException('Неверные данные для входа');
 
@@ -823,16 +919,13 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!tokenRecord)
-      throw new UnauthorizedException('Неверный refresh token');
+    if (!tokenRecord) throw new UnauthorizedException('Неверный refresh token');
 
     if (tokenRecord.expiresAt < new Date()) {
       await this.prisma.refreshToken
         .delete({ where: { token: refreshDto.refreshToken } })
         .catch(() => {});
-      throw new UnauthorizedException(
-        'Refresh token недействителен или истёк',
-      );
+      throw new UnauthorizedException('Refresh token недействителен или истёк');
     }
 
     if (tokenRecord.userId !== payload.sub) {
@@ -888,8 +981,10 @@ export class AuthService {
     const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET')!;
     const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET')!;
 
-    const accessTtl = this.configService.get<string>('ACCESS_TOKEN_TTL') ?? '15m';
-    const refreshTtl = this.configService.get<string>('REFRESH_TOKEN_TTL') ?? '7d';
+    const accessTtl =
+      this.configService.get<string>('ACCESS_TOKEN_TTL') ?? '15m';
+    const refreshTtl =
+      this.configService.get<string>('REFRESH_TOKEN_TTL') ?? '7d';
 
     const accessToken = this.jwtService.sign(payload as any, {
       secret: accessSecret,

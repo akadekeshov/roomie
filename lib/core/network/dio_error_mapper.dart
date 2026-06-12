@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 
 import '../errors/app_exception.dart';
 
@@ -116,9 +116,11 @@ AppException mapDioErrorToAppException(DioException error) {
   }
 
   if (status != null && status >= 500) {
-    return const AppException(
+    return AppException(
       code: AppErrorCode.network,
-      message: 'Ошибка сервера. Попробуйте позже.',
+      message: rawMessage?.isNotEmpty == true
+          ? rawMessage!
+          : 'Ошибка сервера. Попробуйте позже.',
     );
   }
 

@@ -6,25 +6,26 @@
     <title>Roomie Admin</title>
     <style>
       :root {
-        --bg: #f4f7fc;
-        --bg-soft: #eef3ff;
-        --card: #ffffff;
-        --card-soft: #f8faff;
-        --text: #10204c;
-        --muted: #66708f;
-        --accent: #0a5be1;
-        --accent-soft: rgba(10, 91, 225, 0.1);
-        --danger: #c22626;
-        --danger-soft: rgba(194, 38, 38, 0.08);
-        --ok: #177245;
-        --ok-soft: rgba(23, 114, 69, 0.1);
-        --warn: #b26a00;
-        --warn-soft: rgba(178, 106, 0, 0.1);
-        --border: #d7dced;
-        --shadow: 0 14px 36px rgba(15, 26, 60, 0.06);
-        --radius-lg: 18px;
-        --radius-md: 14px;
-        --radius-sm: 10px;
+        --bg: #f7f4ff;
+        --bg-soft: #f1edff;
+        --card: rgba(255, 255, 255, 0.94);
+        --card-soft: #faf7ff;
+        --text: #1f1441;
+        --muted: #766f92;
+        --accent: #7c3aed;
+        --accent-strong: #6d28d9;
+        --accent-soft: rgba(124, 58, 237, 0.12);
+        --danger: #cf3d64;
+        --danger-soft: rgba(207, 61, 100, 0.12);
+        --ok: #1f9d6a;
+        --ok-soft: rgba(31, 157, 106, 0.12);
+        --warn: #c67d16;
+        --warn-soft: rgba(198, 125, 22, 0.14);
+        --border: #e8defc;
+        --shadow: 0 18px 46px rgba(76, 29, 149, 0.1);
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --radius-sm: 14px;
       }
 
       * {
@@ -33,24 +34,30 @@
 
       body {
         margin: 0;
-        font-family: Segoe UI, Arial, sans-serif;
+        font-family:
+          Aptos,
+          'Segoe UI Variable',
+          'Trebuchet MS',
+          sans-serif;
         color: var(--text);
         background:
-          radial-gradient(circle at top left, rgba(10, 91, 225, 0.08), transparent 28%),
-          linear-gradient(180deg, #eef3ff, var(--bg));
+          radial-gradient(circle at top left, rgba(124, 58, 237, 0.18), transparent 24%),
+          radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 22%),
+          linear-gradient(180deg, #f8f4ff 0%, #f3f6ff 52%, #f8f5ff 100%);
       }
 
       .wrap {
-        max-width: 1380px;
-        margin: 24px auto 40px;
-        padding: 0 16px;
+        max-width: 1420px;
+        margin: 28px auto 48px;
+        padding: 0 20px;
       }
 
       .card {
         background: var(--card);
-        border: 1px solid var(--border);
+        border: 1px solid rgba(255, 255, 255, 0.72);
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
       }
 
       .panel-card {
@@ -58,45 +65,73 @@
       }
 
       .hero {
+        position: relative;
+        overflow: hidden;
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
+        min-height: 156px;
         gap: 16px;
-        padding: 22px;
-        margin-bottom: 16px;
+        padding: 28px 30px;
+        margin-bottom: 20px;
+        background:
+          linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(255, 255, 255, 0) 46%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 247, 255, 0.9));
+      }
+
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 6px;
+        background: linear-gradient(180deg, #8b5cf6, #3b82f6);
+      }
+
+      .hero::after {
+        content: '';
+        position: absolute;
+        right: -54px;
+        top: -62px;
+        width: 220px;
+        height: 220px;
+        border-radius: 999px;
+        background:
+          radial-gradient(circle, rgba(124, 58, 237, 0.22) 0%, rgba(124, 58, 237, 0.04) 50%, transparent 72%);
+        pointer-events: none;
+      }
+
+      .hero > div:first-child,
+      .hero-copy {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+        background: rgba(124, 58, 237, 0.1);
+        color: var(--accent-strong);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       .hero-title {
+        position: relative;
+        z-index: 1;
         margin: 0;
-        font-size: 30px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
+        font-size: 42px;
+        line-height: 1.02;
+        font-weight: 900;
+        letter-spacing: -0.04em;
       }
 
-      .hero-subtitle {
-        margin: 8px 0 0;
-        color: var(--muted);
-        font-size: 14px;
-      }
-
+      .hero-subtitle,
       .hero-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 14px;
-        border-radius: 999px;
-        background: var(--accent-soft);
-        color: var(--accent);
-        font-weight: 700;
-        font-size: 13px;
-      }
-
-      .hero-badge::before {
-        content: '';
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: var(--accent);
+        display: none !important;
       }
 
       .login-card {
@@ -137,11 +172,12 @@
       select,
       textarea {
         width: 100%;
-        padding: 12px 14px;
+        padding: 13px 15px;
         border-radius: var(--radius-sm);
         border: 1px solid var(--border);
-        background: #fff;
+        background: rgba(255, 255, 255, 0.96);
         color: var(--text);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
       }
 
       textarea {
@@ -160,9 +196,13 @@
         border: none;
         cursor: pointer;
         border-radius: var(--radius-sm);
-        padding: 11px 16px;
+        padding: 12px 18px;
         font-weight: 700;
-        transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease,
+          opacity 0.12s ease,
+          background 0.12s ease;
       }
 
       button:hover {
@@ -176,14 +216,15 @@
       }
 
       .btn-primary {
-        background: var(--accent);
+        background: linear-gradient(135deg, var(--accent), #8b5cf6);
         color: #fff;
+        box-shadow: 0 14px 28px rgba(124, 58, 237, 0.22);
       }
 
       .btn-secondary {
-        background: var(--card-soft);
-        color: #21448f;
-        border: 1px solid rgba(10, 91, 225, 0.08);
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--accent-strong);
+        border: 1px solid rgba(124, 58, 237, 0.12);
       }
 
       .btn-ok {
@@ -211,42 +252,85 @@
         justify-content: space-between;
         gap: 16px;
         align-items: center;
-        padding: 16px 18px;
+        padding: 18px 22px;
+        background:
+          linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0) 44%),
+          rgba(255, 255, 255, 0.88);
+      }
+
+      .topbar strong,
+      .topbar-title {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
       }
 
       .status-line {
-        color: var(--muted);
-        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(124, 58, 237, 0.08);
+        color: var(--accent-strong);
+        font-size: 13px;
+        font-weight: 700;
       }
 
       .status-line.error {
+        background: rgba(207, 61, 100, 0.1);
         color: var(--danger);
       }
 
       .summary-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 14px;
+        gap: 16px;
       }
 
       .summary-card {
-        padding: 18px;
-        background: var(--card);
-        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+        padding: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 241, 255, 0.96));
+        border: 1px solid rgba(255, 255, 255, 0.78);
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow);
+        transition:
+          transform 0.14s ease,
+          box-shadow 0.14s ease;
+      }
+
+      .summary-card::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 4px;
+        background: linear-gradient(90deg, #7c3aed, #60a5fa);
+      }
+
+      .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 24px 52px rgba(76, 29, 149, 0.14);
       }
 
       .summary-label {
-        margin: 0 0 8px;
+        margin: 0 0 10px;
         color: var(--muted);
-        font-size: 13px;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
       }
 
       .summary-value {
         margin: 0;
-        font-size: 28px;
-        font-weight: 800;
+        font-size: 36px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
       }
 
       .summary-hint {
@@ -260,24 +344,26 @@
         gap: 10px;
         flex-wrap: wrap;
         padding: 8px;
-        background: rgba(255, 255, 255, 0.65);
-        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.74);
         border-radius: 999px;
         width: fit-content;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
       }
 
       .tab-btn {
         background: transparent;
         color: var(--muted);
-        padding: 10px 16px;
+        padding: 12px 18px;
         border-radius: 999px;
-        font-weight: 700;
+        font-weight: 800;
       }
 
       .tab-btn.active {
-        background: var(--accent);
+        background: linear-gradient(135deg, var(--accent), #8b5cf6);
         color: #fff;
-        box-shadow: 0 8px 20px rgba(10, 91, 225, 0.22);
+        box-shadow: 0 12px 24px rgba(124, 58, 237, 0.24);
       }
 
       .section {
@@ -289,7 +375,7 @@
       }
 
       .section-card {
-        padding: 20px;
+        padding: 24px;
       }
 
       .section-heading {
@@ -316,7 +402,11 @@
         gap: 12px;
         align-items: center;
         flex-wrap: wrap;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
+        padding: 14px;
+        border-radius: var(--radius-md);
+        background: rgba(124, 58, 237, 0.05);
+        border: 1px solid rgba(124, 58, 237, 0.08);
       }
 
       .toolbar .grow {
@@ -324,10 +414,11 @@
       }
 
       .table-wrap {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
+        border: 1px solid rgba(124, 58, 237, 0.08);
+        border-radius: 20px;
         overflow: hidden;
-        background: #fff;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
       }
 
       .scroll {
@@ -359,7 +450,7 @@
       }
 
       tbody tr:hover {
-        background: rgba(10, 91, 225, 0.02);
+        background: rgba(124, 58, 237, 0.04);
       }
 
       .user-main {
@@ -424,10 +515,30 @@
       }
 
       .dispute-card {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        background: #fff;
-        padding: 16px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(124, 58, 237, 0.08);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 247, 255, 0.94));
+        padding: 18px;
+        box-shadow: 0 16px 34px rgba(76, 29, 149, 0.08);
+        transition:
+          transform 0.14s ease,
+          box-shadow 0.14s ease;
+      }
+
+      .dispute-card::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: linear-gradient(180deg, #7c3aed, #60a5fa);
+      }
+
+      .dispute-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 22px 44px rgba(76, 29, 149, 0.12);
       }
 
       .dispute-head {
@@ -438,24 +549,18 @@
         margin-bottom: 12px;
       }
 
-      .dispute-route {
-        margin: 4px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
       .dispute-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
       }
 
       .meta-card {
-        background: var(--card-soft);
-        border: 1px solid rgba(10, 91, 225, 0.08);
-        border-radius: var(--radius-sm);
-        padding: 12px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(124, 58, 237, 0.08);
+        border-radius: 16px;
+        padding: 14px;
       }
 
       .meta-label {
@@ -471,17 +576,146 @@
       }
 
       .dispute-description {
-        margin: 0 0 10px;
+        margin: 0 0 12px;
         color: var(--text);
         line-height: 1.5;
       }
 
+      .dispute-date {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
       .comment-box {
-        margin-top: 10px;
-        padding: 12px 14px;
-        border-radius: var(--radius-sm);
+        margin-top: 14px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(124, 58, 237, 0.05);
+        border: 1px solid rgba(124, 58, 237, 0.08);
+      }
+
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: rgba(16, 32, 76, 0.45);
+        backdrop-filter: blur(6px);
+      }
+
+      .modal-card {
+        width: min(860px, 100%);
+        max-height: calc(100vh - 48px);
+        overflow: auto;
+        padding: 22px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        box-shadow: 0 24px 48px rgba(15, 26, 60, 0.24);
+      }
+
+      .modal-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+      }
+
+      .modal-head h3 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .modal-close {
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 999px;
+        background: var(--card-soft);
+        color: var(--muted);
+      }
+
+      .modal-subtitle {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .modal-section {
+        margin-bottom: 18px;
+        padding: 16px;
         background: var(--card-soft);
         border: 1px solid rgba(10, 91, 225, 0.08);
+        border-radius: var(--radius-md);
+      }
+
+      .modal-section h4 {
+        margin: 0 0 14px;
+        font-size: 16px;
+      }
+
+      .modal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .modal-grid > div:nth-child(5) {
+        display: none;
+      }
+
+      .field-stack {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .field-stack label {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .field-hint {
+        margin-top: -2px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .field-error {
+        min-height: 18px;
+        color: var(--danger);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .toast {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 60;
+        max-width: min(420px, calc(100vw - 32px));
+        padding: 14px 16px;
+        border-radius: 14px;
+        color: #fff;
+        background: var(--accent);
+        box-shadow: 0 18px 38px rgba(15, 26, 60, 0.28);
+      }
+
+      .toast.error {
+        background: var(--danger);
       }
 
       .empty-state {
@@ -500,6 +734,10 @@
         }
 
         .dispute-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .modal-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -526,9 +764,10 @@
     <div class="wrap">
       <div class="card hero">
         <div>
-          <h1 class="hero-title">Roomie Admin Panel</h1>
+          <h1 class="hero-title">Roomie Admin</h1>
           <p class="hero-subtitle">
-            Управление пользователями, заявками на верификацию и жалобами в одном месте.
+            Управление пользователями, заявками на верификацию и жалобами в
+            одном месте.
           </p>
         </div>
         <div class="hero-badge">Только для ADMIN и MODERATOR</div>
@@ -541,10 +780,10 @@
         </p>
         <div class="row">
           <div class="grow">
-            <input id="email" placeholder="Email" />
+            <input id="email" placeholder="Email" autocomplete="off" />
           </div>
           <div class="grow">
-            <input id="password" type="password" placeholder="Password" />
+            <input id="password" type="password" placeholder="Password" autocomplete="off" />
           </div>
           <button class="btn-primary" id="loginBtn">Войти</button>
         </div>
@@ -586,9 +825,13 @@
           </div>
         </div>
 
-        <div class="tabs card" style="padding: 8px">
-          <button class="tab-btn active" data-tab="usersSection">Пользователи</button>
-          <button class="tab-btn" data-tab="verificationsSection">Верификация</button>
+        <div class="tabs card">
+          <button class="tab-btn active" data-tab="usersSection">
+            Пользователи
+          </button>
+          <button class="tab-btn" data-tab="verificationsSection">
+            Верификация
+          </button>
           <button class="tab-btn" data-tab="disputesSection">Жалобы</button>
         </div>
 
@@ -597,12 +840,19 @@
             <div class="section-heading">
               <div>
                 <h2>Пользователи</h2>
-                <p>Поиск по email, телефону и имени. Здесь же меняется роль и бан.</p>
+                <p>
+                  Поиск по email, телефону и имени. Здесь же меняется роль и
+                  бан.
+                </p>
               </div>
             </div>
             <div class="toolbar">
               <div class="grow">
-                <input id="userSearch" placeholder="Поиск: email / phone / name" />
+                <input
+                  id="userSearch"
+                  autocomplete="off"
+                  placeholder="Поиск: email / phone / name"
+                />
               </div>
               <button class="btn-secondary" id="searchBtn">Найти</button>
             </div>
@@ -629,7 +879,10 @@
             <div class="section-heading">
               <div>
                 <h2>Заявки на верификацию</h2>
-                <p>Проверка документов и селфи пользователей перед подтверждением.</p>
+                <p>
+                  Проверка документов и селфи пользователей перед
+                  подтверждением.
+                </p>
               </div>
             </div>
             <div class="table-wrap">
@@ -655,7 +908,9 @@
             <div class="section-heading">
               <div>
                 <h2>Жалобы пользователей</h2>
-                <p>Смотрите, кто на кого пожаловался, и меняйте статус жалобы.</p>
+                <p>
+                  Смотрите, кто на кого пожаловался, и меняйте статус жалобы.
+                </p>
               </div>
             </div>
             <div class="toolbar">
@@ -673,7 +928,9 @@
                 <select id="disputeReasonFilter">
                   <option value="">Все причины</option>
                   <option value="PAYMENT_NOT_PAID">Не оплатил(а)</option>
-                  <option value="AGREEMENT_VIOLATION">Нарушение договора</option>
+                  <option value="AGREEMENT_VIOLATION">
+                    Нарушение договора
+                  </option>
                   <option value="PROPERTY_DAMAGE">Порча имущества</option>
                   <option value="FAKE_INFORMATION">Ложная информация</option>
                   <option value="RUDE_BEHAVIOR">Грубое поведение</option>
@@ -681,7 +938,9 @@
                   <option value="OTHER">Другое</option>
                 </select>
               </div>
-              <button class="btn-secondary" id="disputeFilterBtn">Применить</button>
+              <button class="btn-secondary" id="disputeFilterBtn">
+                Применить
+              </button>
             </div>
             <div class="dispute-list" id="disputesBody"></div>
           </div>
@@ -689,12 +948,31 @@
       </div>
     </div>
 
+    <div id="adminModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div>
+            <h3 id="adminModalTitle"></h3>
+            <p id="adminModalSubtitle" class="modal-subtitle"></p>
+          </div>
+          <button id="adminModalClose" class="modal-close" type="button">
+            ×
+          </button>
+        </div>
+        <div id="adminModalContent"></div>
+        <div id="adminModalFooter" class="modal-footer"></div>
+      </div>
+    </div>
+
+    <div id="adminToast" class="toast hidden"></div>
+
     <script>
       const apiBase =
         (window.ROOMIE_API_BASE && String(window.ROOMIE_API_BASE)) ||
         `${window.location.protocol}//${window.location.hostname}:3001/api`;
 
       let accessToken = localStorage.getItem('admin_access_token') || '';
+      let currentAdminId = '';
 
       const loginCard = document.getElementById('loginCard');
       const panel = document.getElementById('panel');
@@ -709,10 +987,73 @@
       const bannedCountEl = document.getElementById('bannedCount');
       const verificationCountEl = document.getElementById('verificationCount');
       const disputeCountEl = document.getElementById('disputeCount');
+      const adminModal = document.getElementById('adminModal');
+      const adminModalTitle = document.getElementById('adminModalTitle');
+      const adminModalSubtitle = document.getElementById('adminModalSubtitle');
+      const adminModalContent = document.getElementById('adminModalContent');
+      const adminModalFooter = document.getElementById('adminModalFooter');
+      const adminModalClose = document.getElementById('adminModalClose');
+      const adminToast = document.getElementById('adminToast');
+
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+      document.getElementById('userSearch').value = '';
+
+      let activeModalCleanup = null;
+      let toastTimer = null;
+      let latestDisputes = [];
 
       function setState(text, isError = false) {
         stateMsg.textContent = text || '';
         stateMsg.className = isError ? 'status-line error' : 'status-line';
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function showToast(message, isError = false) {
+        adminToast.textContent = message;
+        adminToast.className = isError ? 'toast error' : 'toast';
+        adminToast.classList.remove('hidden');
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => {
+          adminToast.classList.add('hidden');
+        }, 3200);
+      }
+
+      function closeModal() {
+        if (typeof activeModalCleanup === 'function') {
+          activeModalCleanup();
+        }
+        activeModalCleanup = null;
+        adminModal.classList.add('hidden');
+        adminModalContent.innerHTML = '';
+        adminModalFooter.innerHTML = '';
+        adminModalTitle.textContent = '';
+        adminModalSubtitle.textContent = '';
+      }
+
+      function openModal({ title, subtitle = '', content, actions, onReady }) {
+        adminModalTitle.textContent = title;
+        adminModalSubtitle.textContent = subtitle;
+        adminModalContent.innerHTML = content;
+        adminModalFooter.innerHTML = '';
+        actions.forEach((action) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = action.className;
+          btn.textContent = action.label;
+          btn.onclick = action.onClick;
+          adminModalFooter.appendChild(btn);
+        });
+        activeModalCleanup = onReady?.() ?? null;
+        adminModal.classList.remove('hidden');
       }
 
       async function api(path, options = {}) {
@@ -832,11 +1173,20 @@
       function showPanel() {
         loginCard.classList.add('hidden');
         panel.classList.remove('hidden');
+        const userSearch = document.getElementById('userSearch');
+        if (userSearch) userSearch.value = '';
       }
 
       function showLogin() {
         panel.classList.add('hidden');
         loginCard.classList.remove('hidden');
+        currentAdminId = '';
+        const userSearch = document.getElementById('userSearch');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        if (userSearch) userSearch.value = '';
+        if (emailInput) emailInput.value = '';
+        if (passwordInput) passwordInput.value = '';
       }
 
       function switchTab(tabId) {
@@ -850,6 +1200,7 @@
 
       async function ensureAdminRole() {
         const me = await api('/auth/me');
+        currentAdminId = String(me?.id || '');
         const role = String(me?.role || '').toUpperCase();
         if (role !== 'ADMIN' && role !== 'MODERATOR') {
           throw new Error('Доступ только для ADMIN/MODERATOR');
@@ -896,12 +1247,7 @@
         await api(`/admin/verifications/${userId}/approve`, { method: 'PATCH' });
       }
 
-      async function reject(userId) {
-        const reason = prompt(
-          'Причина отклонения (минимум 10 символов):',
-          'Документы не прошли проверку',
-        );
-        if (!reason) return;
+      async function reject(userId, reason) {
         await api(`/admin/verifications/${userId}/reject`, {
           method: 'PATCH',
           body: JSON.stringify({ reason }),
@@ -915,87 +1261,331 @@
         });
       }
 
-      async function openDisputeResolution(dispute) {
-        const decisionChoice = prompt(
-          'Выберите решение:\n1 - Подтвердить жалобу\n2 - Отклонить жалобу\n3 - Запросить дополнительную информацию',
-          '1',
-        );
-        if (!decisionChoice) return;
+      function decisionOptions(selected) {
+        return [
+          ['CONFIRMED', 'Подтвердить жалобу'],
+          ['REJECTED', 'Отклонить жалобу'],
+          ['NEEDS_REVIEW', 'Нужно дополнительное рассмотрение'],
+        ]
+          .map(
+            ([value, label]) =>
+              `<option value="${value}" ${selected === value ? 'selected' : ''}>${label}</option>`,
+          )
+          .join('');
+      }
 
-        let decision = 'ACCEPTED';
-        if (decisionChoice === '2') decision = 'REJECTED';
-        if (decisionChoice === '3') decision = 'NEED_MORE_INFO';
+      function actionOptions(selected) {
+        return [
+          ['NONE', 'Без ограничений'],
+          ['WARNING', 'Предупреждение'],
+          ['TEMP_BAN', 'Временный бан'],
+          ['PERMANENT_BAN', 'Постоянный бан'],
+        ]
+          .map(
+            ([value, label]) =>
+              `<option value="${value}" ${selected === value ? 'selected' : ''}>${label}</option>`,
+          )
+          .join('');
+      }
 
-        let action = 'NONE';
-        let restrictionDays;
-
-        if (decision === 'ACCEPTED') {
-          const actionChoice = prompt(
-            'Выберите действие:\n1 - Предупреждение\n2 - Временное ограничение\n3 - Блокировка аккаунта\n4 - Отменить договор\n5 - Требуется оплата\n6 - Пометить профиль',
-            '1',
-          );
-          if (!actionChoice) return;
-
-          const actionMap = {
-            '1': 'WARNING',
-            '2': 'TEMPORARY_RESTRICTION',
-            '3': 'ACCOUNT_BAN',
-            '4': 'AGREEMENT_CANCELLED',
-            '5': 'PAYMENT_REQUIRED',
-            '6': 'PROFILE_FLAGGED',
-          };
-
-          action = actionMap[actionChoice];
-          if (!action) {
-            throw new Error('Выберите корректное действие.');
-          }
-
-          if (action === 'AGREEMENT_CANCELLED' && !dispute.agreementId) {
-            throw new Error('Эта жалоба не связана с договором.');
-          }
-
-          if (action === 'TEMPORARY_RESTRICTION') {
-            const daysInput = prompt('Укажите срок ограничения в днях:', '7');
-            if (!daysInput) return;
-            restrictionDays = Number(daysInput);
-            if (!Number.isFinite(restrictionDays) || restrictionDays <= 0) {
-              throw new Error('Укажите корректный срок ограничения.');
-            }
-          }
+      function getDisputePreset(status) {
+        switch (status) {
+          case 'REJECTED':
+            return { adminDecision: 'REJECTED', actionType: 'NONE' };
+          case 'IN_REVIEW':
+            return { adminDecision: 'NEEDS_REVIEW', actionType: 'NONE' };
+          case 'RESOLVED':
+          default:
+            return { adminDecision: 'CONFIRMED', actionType: 'NONE' };
         }
+      }
 
-        const adminComment = prompt(
-          decision === 'NEED_MORE_INFO'
-            ? 'Комментарий модератора (необязательно):'
-            : 'Комментарий модератора:',
-          decision === 'ACCEPTED'
-            ? 'Нарушение подтверждено.'
-            : decision === 'REJECTED'
-              ? 'Доказательств недостаточно.'
-              : 'Нужно добавить дополнительные доказательства.',
-        );
+      function openVerificationRejectModal(userId) {
+        openModal({
+          title: 'Отклонить верификацию',
+          subtitle: 'Укажите причину отклонения. Минимум 10 символов.',
+          content: `
+            <div class="field-stack">
+              <label for="verificationRejectReason">Причина отклонения</label>
+              <textarea id="verificationRejectReason" placeholder="Документы не прошли проверку"></textarea>
+              <div id="verificationRejectError" class="field-error"></div>
+            </div>
+          `,
+          actions: [
+            {
+              label: 'Отмена',
+              className: 'btn-secondary',
+              onClick: () => closeModal(),
+            },
+            {
+              label: 'Отклонить',
+              className: 'btn-danger',
+              onClick: async () => {
+                const reasonInput = document.getElementById('verificationRejectReason');
+                const errorNode = document.getElementById('verificationRejectError');
+                const reason = reasonInput.value.trim();
 
-        if (
-          (decision === 'ACCEPTED' || decision === 'REJECTED') &&
-          (!adminComment || !adminComment.trim())
-        ) {
-          throw new Error('Комментарий модератора обязателен для этого решения.');
-        }
+                errorNode.textContent = '';
+                if (reason.length < 10) {
+                  errorNode.textContent = 'Введите причину не короче 10 символов.';
+                  reasonInput.focus();
+                  return;
+                }
 
-        await resolveDisputeAdmin(dispute.id, {
-          decision,
-          action,
-          ...(adminComment && adminComment.trim()
-            ? { adminComment: adminComment.trim() }
-            : {}),
-          ...(restrictionDays ? { restrictionDays } : {}),
+                const footerButtons = adminModalFooter.querySelectorAll('button');
+                footerButtons.forEach((button) => {
+                  button.disabled = true;
+                });
+
+                try {
+                  setState('Отклоняю заявку...');
+                  await reject(userId, reason);
+                  closeModal();
+                  showToast('Заявка отклонена');
+                  setState('Заявка отклонена');
+                  await loadVerifications();
+                  await loadUsers();
+                } catch (error) {
+                  errorNode.textContent = error.message;
+                  setState(error.message, true);
+                } finally {
+                  footerButtons.forEach((button) => {
+                    button.disabled = false;
+                  });
+                }
+              },
+            },
+          ],
+          onReady: () => {
+            const reasonInput = document.getElementById('verificationRejectReason');
+            reasonInput.value = 'Документы не прошли проверку';
+            reasonInput.focus();
+            return () => {};
+          },
+        });
+      }
+
+      function openDisputeResolution(dispute, initialStatus = 'RESOLVED') {
+        const preset = getDisputePreset(initialStatus);
+        const description = escapeHtml(dispute.description || 'Описание не указано.');
+        const title = escapeHtml(dispute.title || 'Жалоба без заголовка');
+        const reporter = escapeHtml(userName(dispute.reporter));
+        const accused = escapeHtml(userName(dispute.accused));
+        const reason = escapeHtml(disputeReasonLabel(dispute.reason));
+        const createdAt = escapeHtml(formatDate(dispute.createdAt));
+        const currentStatus = escapeHtml(disputeStatusLabel(dispute.status));
+
+        openModal({
+          title: 'Решение по жалобе',
+          subtitle: 'Заполните решение модератора и сохраните его без перезагрузки страницы.',
+          content: `
+            <div class="modal-section">
+              <h4>${title}</h4>
+              <div class="modal-grid">
+                <div>
+                  <div class="field-hint">Кто подал</div>
+                  <div class="user-main">${reporter}</div>
+                </div>
+                <div>
+                  <div class="field-hint">На кого</div>
+                  <div class="user-main">${accused}</div>
+                </div>
+                <div>
+                  <div class="field-hint">Причина</div>
+                  <div>${reason}</div>
+                </div>
+                <div>
+                  <div class="field-hint">Статус сейчас</div>
+                  <div>${currentStatus}</div>
+                </div>
+                <div>
+                  <div class="field-hint">Контекст</div>
+                  <div>${context}</div>
+                </div>
+                <div>
+                  <div class="field-hint">Создана</div>
+                  <div>${createdAt}</div>
+                </div>
+              </div>
+              <p style="margin: 14px 0 0;">${description}</p>
+            </div>
+
+            <div class="field-stack">
+              <label for="disputeDecision">Решение</label>
+              <select id="disputeDecision">${decisionOptions(preset.adminDecision)}</select>
+              <div id="disputeDecisionError" class="field-error"></div>
+            </div>
+
+            <div class="field-stack">
+              <label for="disputeActionType">Действие</label>
+              <select id="disputeActionType">${actionOptions(preset.actionType)}</select>
+              <div class="field-hint">Для отклонения или повторной проверки действие автоматически сбрасывается в "Без ограничений".</div>
+              <div id="disputeActionError" class="field-error"></div>
+            </div>
+
+            <div id="restrictionDaysWrap" class="field-stack hidden">
+              <label for="restrictionDays">Срок ограничения, дней</label>
+              <input id="restrictionDays" type="number" min="1" max="30" value="7" />
+              <div class="field-hint">Допустимый диапазон: от 1 до 30 дней.</div>
+              <div id="restrictionDaysError" class="field-error"></div>
+            </div>
+
+            <div class="field-stack">
+              <label for="disputeAdminComment">Комментарий модератора</label>
+              <textarea id="disputeAdminComment" placeholder="Опишите итог рассмотрения"></textarea>
+              <div class="field-hint">Обязателен при отклонении жалобы и при временном или постоянном бане.</div>
+              <div id="disputeAdminCommentError" class="field-error"></div>
+            </div>
+          `,
+          actions: [
+            {
+              label: 'Отмена',
+              className: 'btn-secondary',
+              onClick: () => closeModal(),
+            },
+            {
+              label: 'Сохранить',
+              className: 'btn-primary',
+              onClick: async () => {
+                const decisionField = document.getElementById('disputeDecision');
+                const actionField = document.getElementById('disputeActionType');
+                const daysField = document.getElementById('restrictionDays');
+                const commentField = document.getElementById('disputeAdminComment');
+                const decisionError = document.getElementById('disputeDecisionError');
+                const actionError = document.getElementById('disputeActionError');
+                const daysError = document.getElementById('restrictionDaysError');
+                const commentError = document.getElementById(
+                  'disputeAdminCommentError',
+                );
+
+                decisionError.textContent = '';
+                actionError.textContent = '';
+                daysError.textContent = '';
+                commentError.textContent = '';
+
+                const adminDecision = decisionField.value;
+                const actionType =
+                  adminDecision === 'CONFIRMED' ? actionField.value : 'NONE';
+                const adminComment = commentField.value.trim();
+                const needsComment =
+                  adminDecision === 'REJECTED' ||
+                  actionType === 'TEMP_BAN' ||
+                  actionType === 'PERMANENT_BAN';
+
+                let hasError = false;
+                let restrictionDays = null;
+
+                if (!adminDecision) {
+                  decisionError.textContent = 'Выберите решение.';
+                  hasError = true;
+                }
+
+                if (!actionType) {
+                  actionError.textContent = 'Выберите действие.';
+                  hasError = true;
+                }
+
+                if (actionType === 'TEMP_BAN') {
+                  restrictionDays = Number(daysField.value);
+                  if (
+                    !Number.isInteger(restrictionDays) ||
+                    restrictionDays < 1 ||
+                    restrictionDays > 30
+                  ) {
+                    daysError.textContent =
+                      'Укажите целое число от 1 до 30 дней.';
+                    hasError = true;
+                  }
+                }
+
+                if (needsComment && !adminComment) {
+                  commentError.textContent =
+                    'Комментарий обязателен для выбранного решения.';
+                  hasError = true;
+                }
+
+                if (hasError) {
+                  return;
+                }
+
+                const statusMap = {
+                  CONFIRMED: 'RESOLVED',
+                  REJECTED: 'REJECTED',
+                  NEEDS_REVIEW: 'IN_REVIEW',
+                };
+
+                const payload = {
+                  status: statusMap[adminDecision],
+                  adminDecision,
+                  actionType,
+                  ...(restrictionDays ? { restrictionDays } : {}),
+                  ...(adminComment ? { adminComment } : {}),
+                };
+
+                const footerButtons = adminModalFooter.querySelectorAll('button');
+                footerButtons.forEach((button) => {
+                  button.disabled = true;
+                });
+
+                try {
+                  setState('Сохраняю решение по жалобе...');
+                  await resolveDisputeAdmin(dispute.id, payload);
+                  closeModal();
+                  showToast('Решение по жалобе сохранено');
+                  setState('Решение по жалобе сохранено');
+                  await loadDisputes();
+                } catch (error) {
+                  commentError.textContent = error.message;
+                  setState(error.message, true);
+                } finally {
+                  footerButtons.forEach((button) => {
+                    button.disabled = false;
+                  });
+                }
+              },
+            },
+          ],
+          onReady: () => {
+            const decisionField = document.getElementById('disputeDecision');
+            const actionField = document.getElementById('disputeActionType');
+            const daysWrap = document.getElementById('restrictionDaysWrap');
+            const commentField = document.getElementById('disputeAdminComment');
+
+            const syncFormState = () => {
+              const isConfirmed = decisionField.value === 'CONFIRMED';
+              actionField.disabled = !isConfirmed;
+              if (!isConfirmed) {
+                actionField.value = 'NONE';
+              }
+              daysWrap.classList.toggle(
+                'hidden',
+                !isConfirmed || actionField.value !== 'TEMP_BAN',
+              );
+            };
+
+            decisionField.onchange = syncFormState;
+            actionField.onchange = syncFormState;
+            commentField.value =
+              preset.adminDecision === 'CONFIRMED'
+                ? 'Жалоба рассмотрена и подтверждена.'
+                : preset.adminDecision === 'REJECTED'
+                  ? 'Доказательств недостаточно.'
+                  : '';
+            syncFormState();
+            commentField.focus();
+
+            return () => {
+              decisionField.onchange = null;
+              actionField.onchange = null;
+            };
+          },
         });
       }
 
       async function updateDisputeStatus(id, status, adminComment) {
         if (status === 'RESOLVED') {
           const dispute = await api(`/disputes/${id}`);
-          await openDisputeResolution(dispute);
+          openDisputeResolution(dispute, status);
           return;
         }
 
@@ -1026,11 +1616,13 @@
         }
 
         users.forEach((user) => {
+          const isCurrentAdmin = currentAdminId && String(user.id) === currentAdminId;
           const tr = document.createElement('tr');
+          tr.dataset.userId = String(user.id);
           tr.innerHTML = `
             <td>${userLabel(user)}</td>
             <td>
-              <select data-role="${user.id}">
+              <select data-role="${user.id}" ${isCurrentAdmin ? 'disabled' : ''}>
                 <option ${user.role === 'USER' ? 'selected' : ''} value="USER">USER</option>
                 <option ${user.role === 'MODERATOR' ? 'selected' : ''} value="MODERATOR">MODERATOR</option>
                 <option ${user.role === 'ADMIN' ? 'selected' : ''} value="ADMIN">ADMIN</option>
@@ -1051,6 +1643,18 @@
             </td>
           `;
           usersBody.appendChild(tr);
+          if (isCurrentAdmin) {
+            const roleSelect = tr.querySelector(`select[data-role="${user.id}"]`);
+            const actionsCell = tr.lastElementChild;
+            if (roleSelect) roleSelect.disabled = true;
+            if (actionsCell) actionsCell.innerHTML = '<span class="muted">Current admin</span>';
+            if (actionsCell) actionsCell.setAttribute('data-self-admin', 'true');
+            if (actionsCell) actionsCell.innerHTML = '<span class="muted">РўРµРєСѓС‰РёР№ ADMIN</span>';
+          }
+        });
+
+        usersBody.querySelectorAll('[data-self-admin="true"]').forEach((cell) => {
+          cell.innerHTML = '<span class="muted">Current admin</span>';
         });
 
         usersBody.querySelectorAll('[data-save-role]').forEach((btn) => {
@@ -1137,17 +1741,9 @@
         });
 
         verBody.querySelectorAll('[data-reject]').forEach((btn) => {
-          btn.onclick = async () => {
+          btn.onclick = () => {
             const id = btn.getAttribute('data-reject');
-            try {
-              setState('Отклоняю заявку...');
-              await reject(id);
-              setState('Заявка отклонена');
-              await loadVerifications();
-              await loadUsers();
-            } catch (error) {
-              setState(error.message, true);
-            }
+            openVerificationRejectModal(id);
           };
         });
       }
@@ -1159,6 +1755,7 @@
 
         const suffix = params.toString() ? `?${params.toString()}` : '';
         const disputes = await api(`/disputes/admin/all${suffix}`);
+        latestDisputes = disputes;
         disputesBody.innerHTML = '';
         disputeCountEl.textContent = String(disputes.length);
 
@@ -1175,7 +1772,6 @@
             <div class="dispute-head">
               <div>
                 <div class="user-main">${dispute.title || 'Жалоба без заголовка'}</div>
-                <div class="dispute-route">${contextLabel(dispute)}</div>
               </div>
               <span class="status-pill ${disputeStatusTone(dispute.status)}">
                 ${disputeStatusLabel(dispute.status)}
@@ -1225,23 +1821,23 @@
           btn.onclick = async () => {
             const id = btn.getAttribute('data-dispute-action');
             const status = btn.getAttribute('data-status');
-            let comment = '';
-
-            if (status === 'RESOLVED') {
-              comment = prompt(
-                'Комментарий модератора обязателен для решения жалобы:',
-                'Жалоба рассмотрена и подтверждена.',
-              );
-              if (!comment || !comment.trim()) return;
-            } else {
-              comment = prompt('Комментарий модератора (необязательно):', '') || '';
-            }
+            const dispute = latestDisputes.find((item) => item.id === id);
 
             try {
-              setState('Обновляю статус жалобы...');
-              await updateDisputeStatus(id, status, comment);
-              setState('Статус жалобы обновлен');
-              await loadDisputes();
+              if (status === 'CLOSED') {
+                setState('Закрываю жалобу...');
+                await updateDisputeStatus(id, status, '');
+                showToast('Жалоба закрыта');
+                setState('Жалоба закрыта');
+                await loadDisputes();
+                return;
+              }
+
+              if (!dispute) {
+                throw new Error('Жалоба не найдена.');
+              }
+
+              openDisputeResolution(dispute, status);
             } catch (error) {
               setState(error.message, true);
             }
@@ -1276,6 +1872,17 @@
       document.getElementById('refreshBtn').onclick = refreshAll;
       document.getElementById('searchBtn').onclick = loadUsers;
       document.getElementById('disputeFilterBtn').onclick = loadDisputes;
+      adminModalClose.onclick = closeModal;
+      adminModal.onclick = (event) => {
+        if (event.target === adminModal) {
+          closeModal();
+        }
+      };
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !adminModal.classList.contains('hidden')) {
+          closeModal();
+        }
+      });
       document.getElementById('logoutBtn').onclick = () => {
         localStorage.removeItem('admin_access_token');
         accessToken = '';

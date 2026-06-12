@@ -32,12 +32,14 @@ A NestJS backend API for a roommate matching application.
 ### Using Docker Compose (Recommended)
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd roomie-backend
 ```
 
 2. Create a `.env` file in the root directory:
+
 ```env
 PORT=3000
 DATABASE_URL=postgresql://postgres:postgres@db:5432/roomie?schema=public
@@ -45,9 +47,13 @@ JWT_ACCESS_SECRET=your_access_secret_key
 JWT_REFRESH_SECRET=your_refresh_secret_key
 ACCESS_TOKEN_TTL=15m
 REFRESH_TOKEN_TTL=7d
+GOOGLE_CLIENT_ID=your_google_web_client_id
+FACEBOOK_APP_ID=your_facebook_app_id
+FACEBOOK_APP_SECRET=your_facebook_app_secret
 ```
 
 3. Start the application:
+
 ```bash
 docker-compose up --build
 ```
@@ -58,11 +64,13 @@ Swagger documentation will be available at `http://localhost:3000/api`
 ### Local Development
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Set up environment variables (create `.env` file):
+
 ```env
 PORT=3000
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/roomie?schema=public
@@ -70,19 +78,25 @@ JWT_ACCESS_SECRET=your_access_secret_key
 JWT_REFRESH_SECRET=your_refresh_secret_key
 ACCESS_TOKEN_TTL=15m
 REFRESH_TOKEN_TTL=7d
+GOOGLE_CLIENT_ID=your_google_web_client_id
+FACEBOOK_APP_ID=your_facebook_app_id
+FACEBOOK_APP_SECRET=your_facebook_app_secret
 ```
 
 3. Generate Prisma client:
+
 ```bash
 npm run prisma:generate
 ```
 
 4. Run database migrations:
+
 ```bash
 npm run prisma:migrate
 ```
 
 5. Start the development server:
+
 ```bash
 npm run start:dev
 ```
@@ -90,17 +104,23 @@ npm run start:dev
 ## API Endpoints
 
 ### Authentication (`/api/auth`)
+
 - `POST /api/auth/register/email` - Register with email
 - `POST /api/auth/register/phone` - Register with phone
 - `POST /api/auth/verify/email` - Verify email OTP
 - `POST /api/auth/verify/phone` - Verify phone OTP
 - `POST /api/auth/otp/resend` - Resend OTP
 - `POST /api/auth/login` - Login user
+- `POST /api/auth/google` - Login/register with Google
+- `POST /api/auth/facebook` - Login/register with Facebook
+- `POST /api/auth/social/google` - Legacy alias for Google login/register
+- `POST /api/auth/social/facebook` - Legacy alias for Facebook login/register
 - `POST /api/auth/refresh` - Refresh access token
 - `POST /api/auth/logout` - Logout user
 - `GET /api/auth/me` - Get current user (protected)
 
 ### Onboarding (`/api/onboarding`)
+
 - `PATCH /api/onboarding/name-age`
 - `PATCH /api/onboarding/gender`
 - `PATCH /api/onboarding/city`
@@ -113,11 +133,13 @@ npm run start:dev
 - `GET /api/onboarding/status`
 
 ### Users (`/api/users`)
+
 - `GET /api/users/:id` - Get user by ID (protected)
 - `PATCH /api/users/me` - Update current user (protected)
 - `PATCH /api/users/me/password` - Update password (protected)
 
 ### Listings (`/api/listings`)
+
 - `POST /api/listings` - Create a new listing (protected)
 - `GET /api/listings` - Get all listings with filters and pagination (protected)
 - `GET /api/listings/:id` - Get listing by ID (protected)
@@ -125,6 +147,7 @@ npm run start:dev
 - `DELETE /api/listings/:id` - Delete listing (owner only, protected)
 
 ### Saved Listings (`/api/saved`)
+
 - `POST /api/saved/:listingId` - Save a listing (protected)
 - `DELETE /api/saved/:listingId` - Unsave a listing (protected)
 - `GET /api/saved` - Get all saved listings (protected)
@@ -132,12 +155,14 @@ npm run start:dev
 ## Database Schema
 
 ### Models
+
 - **User**: User accounts with profile information
 - **RefreshToken**: Refresh tokens for JWT authentication
 - **Listing**: Room listings with details
 - **SavedListing**: User's saved listings
 
 ### Enums
+
 - **Gender**: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY
 - **RoomType**: SINGLE, DOUBLE, SHARED, ENTIRE_PLACE
 
@@ -150,13 +175,22 @@ Authorization: Bearer <access_token>
 ```
 
 To get an access token:
+
 1. Register a new user or login
 2. Use the `accessToken` from the response
 3. Use the `refreshToken` to get a new access token when it expires
 
+## Social Auth Config
+
+- `GOOGLE_CLIENT_ID` should contain the Google OAuth Web Client ID used to verify `idToken`.
+- `GOOGLE_CLIENT_IDS` is also supported when you need to allow multiple Google client IDs, separated by commas.
+- `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` are used to validate Facebook access tokens through Graph API.
+- Flutter should pass `--dart-define=GOOGLE_SERVER_CLIENT_ID=...` when Google Sign-In needs a server client ID for `idToken` issuance.
+
 ## Swagger Documentation
 
 Once the server is running, visit `http://localhost:3000/api` to access the Swagger UI where you can:
+
 - View all available endpoints
 - Test endpoints directly
 - See request/response schemas

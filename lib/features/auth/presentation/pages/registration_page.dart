@@ -5,6 +5,7 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/ui/app_snackbar.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
@@ -42,9 +43,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
     if (password != confirm) {
       controller.showValidationErrors();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Пароли не совпадают')));
+      showAppSnackBar(context, 'Пароли не совпадают', isError: true);
       return;
     }
 
@@ -68,15 +67,13 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
       Navigator.of(context).pushReplacementNamed(AppRoutes.verifyEmail);
     } on AppException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      showAppSnackBar(context, e.message, isError: true);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Не удалось зарегистрироваться. Попробуйте снова.'),
-        ),
+      showAppSnackBar(
+        context,
+        'Не удалось зарегистрироваться. Попробуйте снова.',
+        isError: true,
       );
     } finally {
       if (mounted) {
@@ -106,13 +103,13 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
       Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
     } on AppException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showAppSnackBar(context, e.message, isError: true);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ошибка сервера. Попробуйте позже.')),
+      showAppSnackBar(
+        context,
+        'Ошибка сервера. Попробуйте позже.',
+        isError: true,
       );
     } finally {
       if (mounted) {
@@ -364,4 +361,3 @@ class _RememberRow extends StatelessWidget {
     );
   }
 }
-

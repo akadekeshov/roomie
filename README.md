@@ -2,6 +2,25 @@
 
 A new Flutter project.
 
+## Backend Commands
+
+The backend lives in the `backend` folder. To run Prisma and NestJS commands from the project root, use:
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+npm run start:dev
+```
+
+If backend dependencies are not installed yet, run:
+
+```bash
+npm run backend:install
+```
+
+Note: `npx prisma generate` from the Flutter root can pull a different Prisma CLI version than the backend uses. Prefer `npm run prisma:generate` from the root or run commands directly inside `backend`.
+The root `prisma:generate` command uses the backend safe script and stops conflicting local Prisma/Node processes before regenerating the client.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

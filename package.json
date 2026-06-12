@@ -1,0 +1,13 @@
+{
+  "name": "roomie-app",
+  "private": true,
+  "scripts": {
+    "backend:install": "npm --prefix backend install",
+    "start:dev": "npm --prefix backend run start:dev",
+    "start:debug": "npm --prefix backend run start:debug",
+    "start:prod": "npm --prefix backend run start:prod",
+    "prisma:generate": "powershell -ExecutionPolicy Bypass -File ./backend/prisma-generate-safe.ps1",
+    "prisma:migrate": "npm --prefix backend run prisma:migrate",
+    "prisma:studio": "npm --prefix backend run prisma:studio"
+  }
+}
