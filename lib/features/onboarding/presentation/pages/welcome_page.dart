@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_routes.dart';
-import '../../../../core/constants/app_strings.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -9,6 +9,7 @@ class WelcomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -19,14 +20,14 @@ class WelcomePage extends StatelessWidget {
             children: [
               const Spacer(),
               Text(
-                AppStrings.welcomeTitle,
+                l10n.welcomeTitle,
                 style: textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                AppStrings.welcomeSubtitle,
+                l10n.welcomeSubtitle,
                 style: textTheme.bodyLarge,
               ),
               const Spacer(),
@@ -35,7 +36,7 @@ class WelcomePage extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () =>
                       Navigator.of(context).pushNamed(AppRoutes.home),
-                  child: const Text(AppStrings.getStarted),
+                  child: Text(l10n.getStarted),
                 ),
               ),
             ],

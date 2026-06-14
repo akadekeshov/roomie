@@ -21,6 +21,7 @@ class AppRoutes {
   static const profileEdit = '/profile-edit';
   static const String shell = '/shell';
   static const String aiSearch = '/ai-search';
+  static const String settings = '/settings';
   static const splash = '/splash';
 
   const AppRoutes._();

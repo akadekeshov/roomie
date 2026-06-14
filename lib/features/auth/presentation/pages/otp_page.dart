@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/constants/app_strings.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../app/app_routes.dart';
@@ -66,6 +66,7 @@ class _OtpPageState extends State<OtpPage> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -82,14 +83,14 @@ class _OtpPageState extends State<OtpPage> {
             children: [
               const SizedBox(height: 140),
               Text(
-                AppStrings.otpTitle,
+                l10n.otpTitle,
                 style: textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
-                AppStrings.otpSubtitle,
+                l10n.otpSubtitle,
                 style: textTheme.bodyMedium?.copyWith(
                   color: AppColors.mutedText,
                 ),
@@ -121,14 +122,14 @@ class _OtpPageState extends State<OtpPage> {
                   onPressed: () => Navigator.of(
                     context,
                   ).pushReplacementNamed(AppRoutes.profileIntro),
-                  child: const Text(AppStrings.otpVerify),
+                  child: Text(l10n.otpVerify),
                 ),
               ),
               const SizedBox(height: 12),
               Center(
                 child: TextButton(
                   onPressed: () {},
-                  child: const Text(AppStrings.otpResend),
+                  child: Text(l10n.otpResend),
                 ),
               ),
             ],

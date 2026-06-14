@@ -39,7 +39,7 @@ class CurrentUser {
     final fn = (firstName ?? '').trim();
     final ln = (lastName ?? '').trim();
     final full = '$fn $ln'.trim();
-    return full.isEmpty ? 'Пользователь' : full;
+    return full.isEmpty ? 'User' : full;
   }
 
   String get contact {
@@ -107,12 +107,12 @@ class AuthRepository {
       );
 
       return AuthFlowResult(next: response.data?['next'] as String?);
-    } on DioException catch (e) {
-      throw mapDioErrorToAppException(e);
+    } on DioException catch (error) {
+      throw mapDioErrorToAppException(error);
     } catch (_) {
       throw const AppException(
         code: AppErrorCode.unknown,
-        message: 'Не удалось зарегистрироваться. Попробуйте позже.',
+        message: 'auth_register_failed',
       );
     }
   }
@@ -146,7 +146,7 @@ class AuthRepository {
       if (accessToken == null || refreshToken == null) {
         throw const AppException(
           code: AppErrorCode.unknown,
-          message: 'Ответ сервера не содержит токены.',
+          message: 'unknown',
         );
       }
 
@@ -162,12 +162,12 @@ class AuthRepository {
       );
     } on AppException {
       rethrow;
-    } on DioException catch (e) {
-      throw mapDioErrorToAppException(e);
+    } on DioException catch (error) {
+      throw mapDioErrorToAppException(error);
     } catch (_) {
       throw const AppException(
         code: AppErrorCode.unknown,
-        message: 'Не удалось подтвердить код. Попробуйте еще раз.',
+        message: 'otp_confirm_failed',
       );
     }
   }
@@ -187,12 +187,12 @@ class AuthRepository {
               : _normalizePhone(identity.trim()),
         },
       );
-    } on DioException catch (e) {
-      throw mapDioErrorToAppException(e);
+    } on DioException catch (error) {
+      throw mapDioErrorToAppException(error);
     } catch (_) {
       throw const AppException(
         code: AppErrorCode.unknown,
-        message: 'Не удалось отправить код. Попробуйте позже.',
+        message: 'otp_resend_failed',
       );
     }
   }
@@ -220,7 +220,7 @@ class AuthRepository {
       if (accessToken == null || refreshToken == null) {
         throw const AppException(
           code: AppErrorCode.unknown,
-          message: 'Ответ сервера не содержит токены.',
+          message: 'unknown',
         );
       }
 
@@ -236,12 +236,12 @@ class AuthRepository {
       );
     } on AppException {
       rethrow;
-    } on DioException catch (e) {
-      throw mapDioErrorToAppException(e);
+    } on DioException catch (error) {
+      throw mapDioErrorToAppException(error);
     } catch (_) {
       throw const AppException(
         code: AppErrorCode.unknown,
-        message: 'Не удалось войти. Попробуйте позже.',
+        message: 'auth_login_failed',
       );
     }
   }
@@ -276,7 +276,7 @@ class AuthRepository {
       if (accessToken == null || refreshToken == null) {
         throw const AppException(
           code: AppErrorCode.unknown,
-          message: 'Ответ сервера не содержит токены.',
+          message: 'unknown',
         );
       }
 
@@ -292,12 +292,12 @@ class AuthRepository {
       );
     } on AppException {
       rethrow;
-    } on DioException catch (e) {
-      throw mapDioErrorToAppException(e);
+    } on DioException catch (error) {
+      throw mapDioErrorToAppException(error);
     } catch (_) {
       throw const AppException(
         code: AppErrorCode.unknown,
-        message: 'Ошибка сервера. Попробуйте позже.',
+        message: 'server_error',
       );
     }
   }
@@ -333,9 +333,9 @@ class AuthRepository {
             snapshot?.onboardingCompleted ??
             false,
       );
-    } on DioException catch (e) {
-      final appEx = mapDioErrorToAppException(e);
-      if (appEx.code == AppErrorCode.invalidOrExpiredToken) {
+    } on DioException catch (error) {
+      final appError = mapDioErrorToAppException(error);
+      if (appError.code == AppErrorCode.invalidOrExpiredToken) {
         await _tokenStorage.clear();
       }
       return null;
@@ -355,7 +355,7 @@ class AuthRepository {
             : <String, dynamic>{'refreshToken': refreshToken},
       );
     } on DioException {
-      // Clearing local auth state is still the safest fallback for the client.
+      // Keep client logout resilient even if backend request fails.
     } finally {
       await _tokenStorage.clear();
     }
@@ -372,12 +372,12 @@ class AuthRepository {
         email: data['email'] as String?,
         phone: data['phone'] as String?,
       );
-    } on DioException catch (e) {
-      throw mapDioErrorToAppException(e);
+    } on DioException catch (error) {
+      throw mapDioErrorToAppException(error);
     } catch (_) {
       throw const AppException(
         code: AppErrorCode.unknown,
-        message: 'Не удалось загрузить профиль. Попробуйте позже.',
+        message: 'profile_load_failed',
       );
     }
   }

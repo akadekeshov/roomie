@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/app_text_localizer.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../data/dispute_models.dart';
 import '../../data/dispute_service.dart';
 import 'dispute_detail_page.dart';
@@ -12,32 +13,33 @@ class MyDisputesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final disputesAsync = ref.watch(myDisputesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Мои жалобы')),
+      appBar: AppBar(title: Text(l10n.disputesTitle)),
       body: disputesAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: Text(
-            'Загрузка жалоб...',
-            style: TextStyle(color: AppColors.mutedText),
+            l10n.disputesLoading,
+            style: const TextStyle(color: AppColors.mutedText),
           ),
         ),
-        error: (error, _) => Center(
+        error: (_, __) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Text(
-              'Не удалось загрузить жалобы.\n$error',
+              l10n.disputesLoadError,
               textAlign: TextAlign.center,
             ),
           ),
         ),
         data: (disputes) {
           if (disputes.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'У вас пока нет жалоб',
-                style: TextStyle(color: AppColors.mutedText),
+                l10n.disputesEmpty,
+                style: const TextStyle(color: AppColors.mutedText),
               ),
             );
           }
@@ -67,6 +69,8 @@ class _DisputeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return InkWell(
       onTap: () {
         Navigator.of(context).push(
@@ -96,7 +100,7 @@ class _DisputeCard extends StatelessWidget {
                       _DirectionBadge(dispute: dispute),
                       const SizedBox(height: 10),
                       Text(
-                        dispute.counterpartySubtitle,
+                        localizeDisputeCounterpartySubtitle(context, dispute),
                         style: const TextStyle(
                           color: AppColors.mutedText,
                           fontWeight: FontWeight.w600,
@@ -110,7 +114,7 @@ class _DisputeCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              dispute.reason.label,
+              dispute.reason.localizedLabel(l10n),
               style: const TextStyle(
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF001561),
@@ -118,13 +122,15 @@ class _DisputeCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Создана: ${formatDateRu(dispute.createdAt)}',
+              l10n.disputeCreatedAt(formatLocalizedDate(context, dispute.createdAt)),
               style: const TextStyle(color: AppColors.mutedText),
             ),
             if (dispute.reviewedAt != null) ...[
               const SizedBox(height: 4),
               Text(
-                'Рассмотрена: ${formatDateRu(dispute.reviewedAt)}',
+                l10n.disputeReviewedAt(
+                  formatLocalizedDate(context, dispute.reviewedAt),
+                ),
                 style: const TextStyle(color: AppColors.mutedText),
               ),
             ],
@@ -133,15 +139,15 @@ class _DisputeCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _SoftChip(label: dispute.decision.label),
+                _SoftChip(label: dispute.decision.localizedLabel(l10n)),
                 if (dispute.action != DisputeAction.none)
-                  _SoftChip(label: dispute.action.label),
+                  _SoftChip(label: dispute.action.localizedLabel(l10n)),
               ],
             ),
-            if ((dispute.summaryResult ?? '').isNotEmpty) ...[
+            if ((localizeDisputeSummary(context, dispute) ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                dispute.summaryResult!,
+                localizeDisputeSummary(context, dispute)!,
                 style: const TextStyle(
                   color: Color(0xFF001561),
                   fontWeight: FontWeight.w600,
@@ -151,7 +157,7 @@ class _DisputeCard extends StatelessWidget {
             if ((dispute.adminComment ?? '').trim().isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                'Комментарий модератора: ${dispute.adminComment}',
+                l10n.disputeAdminComment(dispute.adminComment!.trim()),
                 style: const TextStyle(color: AppColors.mutedText),
               ),
             ],
@@ -177,7 +183,7 @@ class _DirectionBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        dispute.directionTitle,
+        localizeDisputeDirectionTitle(context, dispute),
         style: TextStyle(
           color: incoming ? const Color(0xFFC62828) : AppColors.primary,
           fontWeight: FontWeight.w700,
@@ -195,6 +201,7 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     Color background;
     Color foreground;
 
@@ -222,7 +229,7 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        status.label,
+        status.localizedLabel(l10n),
         style: TextStyle(
           color: foreground,
           fontWeight: FontWeight.w700,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../chat/chat_detail_page.dart';
 import '../../../people/ui/recommended_user_profile_page.dart';
@@ -64,12 +65,13 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final state = ref.watch(aiSearchControllerProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
-        title: const Text('ИИ-поиск соседей'),
+        title: Text(l10n.aiSearchTitle),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF001561),
         elevation: 0,
@@ -92,17 +94,16 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage> {
                   runSpacing: 8,
                   children: [
                     _SuggestionChip(
-                      label: 'Спокойная соседка без животных',
+                      label: l10n.aiSuggestionQuietNoPets,
                       onTap: () {
-                        _controller.text = 'Спокойная соседка без животных';
+                        _controller.text = l10n.aiSuggestionQuietNoPets;
                         _submit();
                       },
                     ),
                     _SuggestionChip(
-                      label: 'Сосед без курения и с тихим режимом',
+                      label: l10n.aiSuggestionNoSmokingQuiet,
                       onTap: () {
-                        _controller.text =
-                            'Сосед без курения и с тихим режимом';
+                        _controller.text = l10n.aiSuggestionNoSmokingQuiet;
                         _submit();
                       },
                     ),
@@ -112,26 +113,24 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage> {
               const SizedBox(height: 16),
               Expanded(
                 child: switch (state.status) {
-                  AiSearchStatus.initial => const _PlaceholderState(
+                  AiSearchStatus.initial => _PlaceholderState(
                       icon: Icons.auto_awesome_outlined,
-                      title: 'Опишите идеального соседа',
-                      subtitle:
-                          'Например: спокойный, не курит, любит чистоту и ищет жилье в центре.',
+                      title: l10n.aiSearchPlaceholderTitle,
+                      subtitle: l10n.aiSearchPlaceholderSubtitle,
                     ),
                   AiSearchStatus.loading => const Center(
                       child: CircularProgressIndicator(),
                     ),
                   AiSearchStatus.error => _PlaceholderState(
                       icon: Icons.error_outline,
-                      title: 'Не удалось выполнить поиск',
-                      subtitle: state.errorMessage ??
-                          'Попробуйте отправить запрос еще раз.',
-                    ),
-                  AiSearchStatus.empty => const _PlaceholderState(
-                      icon: Icons.search_off_rounded,
-                      title: 'Ничего не найдено',
+                      title: l10n.aiSearchErrorTitle,
                       subtitle:
-                          'Попробуйте изменить формулировку запроса или сделать его короче.',
+                          state.errorMessage ?? l10n.aiSearchErrorSubtitle,
+                    ),
+                  AiSearchStatus.empty => _PlaceholderState(
+                      icon: Icons.search_off_rounded,
+                      title: l10n.aiSearchEmptyTitle,
+                      subtitle: l10n.aiSearchEmptySubtitle,
                     ),
                   AiSearchStatus.loaded => ListView.separated(
                       itemCount: state.results.length,
@@ -168,6 +167,8 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -183,9 +184,9 @@ class _SearchBar extends StatelessWidget {
               controller: controller,
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => onSubmit(),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Например: тихая соседка, не курит, любит порядок',
+                hintText: l10n.aiSearchInputHint,
               ),
             ),
           ),
@@ -195,7 +196,7 @@ class _SearchBar extends StatelessWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Искать'),
+            child: Text(l10n.aiSearchButton),
           ),
         ],
       ),
@@ -249,6 +250,7 @@ class _AiSearchResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final avatarUrl = result.user.avatarUrl;
 
     return Container(
@@ -294,7 +296,7 @@ class _AiSearchResultCard extends StatelessWidget {
                     Text(
                       result.user.city?.trim().isNotEmpty == true
                           ? result.user.city!
-                          : 'Город не указан',
+                          : l10n.cityNotSpecified,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: const Color(0xFF64748B),
                           ),
@@ -332,12 +334,12 @@ class _AiSearchResultCard extends StatelessWidget {
             ),
           const SizedBox(height: 12),
           _ExplanationBlock(
-            title: 'Образ жизни',
+            title: l10n.lifestyleTitle,
             value: localizeAiSearchText(result.explanation.lifestyle),
           ),
           const SizedBox(height: 8),
           _ExplanationBlock(
-            title: 'Предпочтения',
+            title: l10n.preferencesTitle,
             value: localizeAiSearchText(result.explanation.preferences),
           ),
           if (result.explanation.matchedFields.isNotEmpty) ...[
@@ -374,7 +376,7 @@ class _AiSearchResultCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: onOpenProfile,
-                  child: const Text('Профиль'),
+                  child: Text(l10n.profileButton),
                 ),
               ),
               const SizedBox(width: 10),
@@ -385,7 +387,7 @@ class _AiSearchResultCard extends StatelessWidget {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Написать'),
+                  child: Text(l10n.writeMessage),
                 ),
               ),
             ],
@@ -407,6 +409,8 @@ class _ExplanationBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -419,7 +423,7 @@ class _ExplanationBlock extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          value.trim().isEmpty ? 'Нет деталей' : value,
+          value.trim().isEmpty ? l10n.noDetails : value,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF0F172A),
                 height: 1.35,

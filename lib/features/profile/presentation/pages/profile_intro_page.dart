@@ -1,11 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/birth_date_utils.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
@@ -20,16 +21,18 @@ class ProfileIntroPage extends ConsumerStatefulWidget {
 
 class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
   static const _birthDateDraftKey = 'profile_birth_date_draft';
+
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _birthDateController = TextEditingController();
   final FocusNode _nameFocusNode = FocusNode();
-  final FocusNode _ageFocusNode = FocusNode();
+  final FocusNode _birthDateFocusNode = FocusNode();
+
   bool _showError = false;
   bool _isSubmitting = false;
 
   bool get _isValid =>
       _nameController.text.trim().isNotEmpty &&
-      BirthDateUtils.isCompleteDateInput(_ageController.text);
+      BirthDateUtils.isCompleteDateInput(_birthDateController.text);
 
   @override
   void initState() {
@@ -46,32 +49,33 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
     final prefs = await SharedPreferences.getInstance();
     final value = prefs.getString(_birthDateDraftKey);
     if (value == null || value.isEmpty || !mounted) return;
-    _ageController.text = value;
+    _birthDateController.text = value;
     setState(() {});
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _ageController.dispose();
+    _birthDateController.dispose();
     _nameFocusNode.dispose();
-    _ageFocusNode.dispose();
+    _birthDateFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _onContinue() async {
+    final l10n = context.l10n;
+
     if (!_isValid || _isSubmitting) {
       setState(() => _showError = true);
       return;
     }
-    final age = BirthDateUtils.ageFromInput(_ageController.text);
+
+    final age = BirthDateUtils.ageFromInput(_birthDateController.text);
     if (age == null) {
       setState(() => _showError = true);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Введите корректный возраст или дату рождения'),
-        ),
+        SnackBar(content: Text(l10n.errorInvalidBirthDate)),
       );
       return;
     }
@@ -80,30 +84,25 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
       _showError = false;
       _isSubmitting = true;
     });
+
     try {
       final result = await ref.read(onboardingRepositoryProvider).submitNameAge(
             NameAgePayload(firstName: _nameController.text.trim(), age: age),
           );
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_birthDateDraftKey, _ageController.text.trim());
+      await prefs.setString(_birthDateDraftKey, _birthDateController.text.trim());
       if (!mounted) return;
       final route = OnboardingRouteMapper.fromStep(result.nextStep);
       Navigator.of(context).pushReplacementNamed(route);
-    } on DioException catch (e) {
+    } on DioException {
       if (!mounted) return;
-      final serverMessage = e.response?.data is Map<String, dynamic>
-          ? (e.response?.data['message']?.toString())
-          : null;
-      final message = (serverMessage != null && serverMessage.isNotEmpty)
-          ? serverMessage
-          : 'Ошибка сохранения. Попробуйте снова.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorSaveStepFailed)),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось сохранить данные')),
+        SnackBar(content: Text(l10n.errorSaveStepFailed)),
       );
     } finally {
       if (mounted) {
@@ -114,6 +113,7 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -139,9 +139,8 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
                             Align(
                               alignment: Alignment.centerLeft,
                               child: IconButton(
-                                onPressed: () => Navigator.of(
-                                  context,
-                                ).pushReplacementNamed(AppRoutes.verifyEmail),
+                                onPressed: () => Navigator.of(context)
+                                    .pushReplacementNamed(AppRoutes.verifyEmail),
                                 icon: const Icon(Icons.arrow_back_ios_new),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
@@ -171,7 +170,8 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
                           children: [
                             Center(
                               child: Text(
-                                AppStrings.profileRuTitle,
+                                l10n.profileIntroTitle,
+                                textAlign: TextAlign.center,
                                 style: textTheme.headlineSmall?.copyWith(
                                   fontFamily: 'Gilroy',
                                   fontWeight: FontWeight.w600,
@@ -182,7 +182,8 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
                             const SizedBox(height: 20),
                             Center(
                               child: Text(
-                                AppStrings.profileRuSubtitle,
+                                l10n.profileIntroSubtitle,
+                                textAlign: TextAlign.center,
                                 style: textTheme.bodyLarge?.copyWith(
                                   fontFamily: 'Gilroy',
                                   fontWeight: FontWeight.w400,
@@ -191,14 +192,12 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
                               ),
                             ),
                             const SizedBox(height: 25),
-                            const _FieldLabel(
-                              text: AppStrings.profileRuNameLabel,
-                            ),
+                            _FieldLabel(text: l10n.profileNameLabel),
                             const SizedBox(height: 8),
                             _Input(
                               controller: _nameController,
                               focusNode: _nameFocusNode,
-                              hint: AppStrings.profileRuNameHint,
+                              hint: l10n.profileNameHint,
                               onChanged: (_) {
                                 if (_showError) {
                                   setState(() => _showError = false);
@@ -206,14 +205,12 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
                               },
                             ),
                             const SizedBox(height: 20),
-                            const _FieldLabel(
-                              text: AppStrings.profileRuAgeLabel,
-                            ),
+                            _FieldLabel(text: l10n.profileBirthDateLabel),
                             const SizedBox(height: 8),
                             _Input(
-                              controller: _ageController,
-                              focusNode: _ageFocusNode,
-                              hint: AppStrings.profileRuAgeHint,
+                              controller: _birthDateController,
+                              focusNode: _birthDateFocusNode,
+                              hint: l10n.profileBirthDateHint,
                               keyboardType: TextInputType.number,
                               inputFormatters: const [
                                 BirthDateInputFormatter(),
@@ -234,12 +231,14 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
                                     size: 16,
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(
-                                    AppStrings.profileRuFillAll,
-                                    style: textTheme.bodySmall?.copyWith(
-                                      fontFamily: 'Gilroy',
-                                      fontWeight: FontWeight.w400,
-                                      color: const Color(0xFFFF0D0D),
+                                  Expanded(
+                                    child: Text(
+                                      l10n.errorFillAllFields,
+                                      style: textTheme.bodySmall?.copyWith(
+                                        fontFamily: 'Gilroy',
+                                        fontWeight: FontWeight.w400,
+                                        color: const Color(0xFFFF0D0D),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -274,9 +273,9 @@ class _ProfileIntroPageState extends ConsumerState<ProfileIntroPage> {
                               ),
                             ),
                             onPressed: _isSubmitting ? null : _onContinue,
-                            child: const Text(
-                              AppStrings.profileContinue,
-                              style: TextStyle(
+                            child: Text(
+                              l10n.profileContinue,
+                              style: const TextStyle(
                                 fontFamily: 'Gilroy',
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,

@@ -1,10 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../core/localization/app_text_localizer.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../../admin/presentation/pages/admin_disputes_page.dart';
 import '../../../agreements/presentation/pages/my_agreements_page.dart';
 import '../../../auth/data/auth_repository.dart';
@@ -30,6 +32,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     with WidgetsBindingObserver {
   Timer? _autoRefreshTimer;
   bool _completed = false;
+  bool _redirectingToLogin = false;
 
   @override
   void initState() {
@@ -40,6 +43,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       if (!mounted) return;
       ref.invalidate(meProvider);
+    });
+  }
+
+  void _handleProfileLoadFailure() {
+    if (_redirectingToLogin || !mounted) return;
+    _redirectingToLogin = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _resetSessionAndOpenLogin();
     });
   }
 
@@ -96,7 +109,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     } catch (_) {}
   }
 
-  Future<void> _logout() async {
+  Future<void> _resetSessionAndOpenLogin() async {
     await ref.read(authRepositoryProvider).logout();
     ref.read(hiddenUserIdsProvider.notifier).clear();
     ref.read(filterStateProvider.notifier).clear();
@@ -107,41 +120,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     ref.invalidate(favoriteUsersProvider);
 
     if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 
-  String verificationLabel(String status) {
-    switch (status) {
-      case "PENDING":
-        return "На проверке";
-      case "VERIFIED":
-        return "Подтвержден";
-      case "REJECTED":
-        return "Отклонено";
-      default:
-        return "Не отправлено";
-    }
-  }
-
-  Color verificationColor(String status) {
-    switch (status) {
-      case "PENDING":
-        return Colors.purple;
-      case "VERIFIED":
-        return Colors.green;
-      case "REJECTED":
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
+  Future<void> _logout() => _resetSessionAndOpenLogin();
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
     final meAsync = ref.watch(meProvider);
+
+    ref.listen<AsyncValue<MeUser>>(meProvider, (previous, next) {
+      next.whenOrNull(
+        error: (_, __) => _handleProfileLoadFailure(),
+      );
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
@@ -155,17 +152,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   const SizedBox(width: 24),
                   Expanded(
                     child: Text(
-                      '\u041f\u0440\u043e\u0444\u0438\u043b\u044c',
+                      l10n.profileTitle,
                       textAlign: TextAlign.center,
                       style: textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                        fontSize: 34 / 2,
+                        fontSize: 17,
                         color: const Color(0xFF001561),
                       ),
                     ),
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.settings),
                     icon: const Icon(Icons.settings, color: Color(0xFF001561)),
                   ),
                 ],
@@ -179,15 +177,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     const _ProfileHeader(),
                     const SizedBox(height: 16),
                     if (_completed) ...[
-                      _ProfileDoneCard(),
+                      const _ProfileDoneCard(),
                       const SizedBox(height: 12),
                     ] else ...[
                       const _ProfileProgress(),
                       const SizedBox(height: 18),
                       _CompleteProfileCard(
-                        onTap: () => Navigator.of(
-                          context,
-                        ).pushNamed(AppRoutes.profileAbout),
+                        onTap: () => Navigator.of(context)
+                            .pushNamed(AppRoutes.profileAbout),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -195,7 +192,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       onTap: () async {
                         await Navigator.of(context)
                             .pushNamed(AppRoutes.profileVerification);
-
                         ref.invalidate(meProvider);
                       },
                     ),
@@ -204,14 +200,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     const SizedBox(height: 18),
                     _MenuItem(
                       icon: Icons.edit_outlined,
-                      title: 'Редактировать профиль',
-                      onTap: () => Navigator.of(context)
-                          .pushNamed(AppRoutes.profileEdit),
+                      title: l10n.editProfile,
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(AppRoutes.profileEdit),
                     ),
                     const SizedBox(height: 8),
                     _MenuItem(
                       icon: Icons.description_outlined,
-                      title: 'Мои договоры',
+                      title: l10n.myAgreements,
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -223,7 +219,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     const SizedBox(height: 8),
                     _MenuItem(
                       icon: Icons.credit_card_outlined,
-                      title: 'Мои карты',
+                      title: l10n.myCards,
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -235,7 +231,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     const SizedBox(height: 8),
                     _MenuItem(
                       icon: Icons.report_gmailerrorred_outlined,
-                      title: 'Мои жалобы',
+                      title: l10n.myDisputes,
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -249,7 +245,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       const SizedBox(height: 8),
                       _MenuItem(
                         icon: Icons.admin_panel_settings_outlined,
-                        title: 'Жалобы пользователей',
+                        title: l10n.userDisputes,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -260,36 +256,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       ),
                     ],
                     const SizedBox(height: 8),
-                    const _MenuItem(
+                    _MenuItem(
                       icon: Icons.notifications_none,
-                      title:
-                          '\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
+                      title: l10n.notifications,
                     ),
                     const SizedBox(height: 8),
-                    const _MenuItem(
+                    _MenuItem(
                       icon: Icons.remove_red_eye_outlined,
-                      title:
-                          '\u041a\u043e\u043d\u0444\u0438\u0434\u0435\u043d\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0441\u0442\u044c',
+                      title: l10n.privacy,
                     ),
                     const SizedBox(height: 8),
-                    const _MenuItem(
+                    _MenuItem(
                       icon: Icons.lock_outline,
-                      title:
-                          '\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c',
+                      title: l10n.security,
                     ),
                     const SizedBox(height: 8),
-                    const _MenuItem(
+                    _MenuItem(
                       icon: Icons.support_agent,
-                      title:
-                          '\u041f\u043e\u043c\u043e\u0449\u044c \u0438 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430',
+                      title: l10n.support,
                     ),
                     const SizedBox(height: 8),
-                    const _MenuItem(
+                    _MenuItem(
                       icon: Icons.info_outline,
-                      title:
-                          '\u041e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0438',
+                      title: l10n.aboutApp,
                     ),
-                    const SizedBox(height: 8),
                     const SizedBox(height: 22),
                     InkWell(
                       onTap: _logout,
@@ -311,7 +301,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            '\u0412\u044b\u0445\u043e\u0434',
+                            l10n.logout,
                             style: textTheme.titleMedium?.copyWith(
                               color: const Color(0xFFFF3B30),
                               fontWeight: FontWeight.w500,
@@ -336,6 +326,7 @@ class _PaymentRemindersCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final remindersAsync = ref.watch(paymentRemindersProvider);
 
     return remindersAsync.when(
@@ -351,18 +342,18 @@ class _PaymentRemindersCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Напоминания об оплате',
-                  style: TextStyle(
+                  l10n.paymentRemindersTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF001561),
                   ),
                 ),
-                SizedBox(height: 6),
-                Text('Сейчас у вас нет ожидающих оплат.'),
+                const SizedBox(height: 6),
+                Text(l10n.paymentRemindersEmpty),
               ],
             ),
           );
@@ -380,9 +371,9 @@ class _PaymentRemindersCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Напоминания об оплате',
-                style: TextStyle(
+              Text(
+                l10n.paymentRemindersTitle,
+                style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF001561),
                 ),
@@ -396,7 +387,9 @@ class _PaymentRemindersCard extends ConsumerWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   subtitle: Text(
-                    'Срок оплаты: ${formatDateRu(payment.dueDate)}',
+                    l10n.paymentDueDate(
+                      formatLocalizedDate(context, payment.dueDate),
+                    ),
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
@@ -423,6 +416,7 @@ class _ProfileHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
     final meAsync = ref.watch(meProvider);
 
@@ -438,17 +432,27 @@ class _ProfileHeader extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(height: 14, width: 140, color: const Color(0xFFE5E7EB)),
-              const SizedBox(height: 8),
-              Container(height: 12, width: 180, color: const Color(0xFFE5E7EB)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 14,
+                  width: 140,
+                  color: const Color(0xFFE5E7EB),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 12,
+                  width: 180,
+                  color: const Color(0xFFE5E7EB),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      error: (e, _) => Row(
+      error: (_, __) => Row(
         children: [
           Container(
             height: 64,
@@ -460,26 +464,32 @@ class _ProfileHeader extends ConsumerWidget {
             child: const Icon(Icons.person, color: Colors.white, size: 34),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Пользователь',
-                style: textTheme.headlineSmall?.copyWith(
-                  color: const Color(0xFF001561),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 34 / 2,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.userFallback,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.headlineSmall?.copyWith(
+                    color: const Color(0xFF001561),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Не удалось загрузить данные',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF8A93B1),
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: 2),
+                Text(
+                  l10n.errorProfileLoadFailed,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF8A93B1),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -496,26 +506,32 @@ class _ProfileHeader extends ConsumerWidget {
                 : null,
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                me.displayName,
-                style: textTheme.headlineSmall?.copyWith(
-                  color: const Color(0xFF001561),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 34 / 2,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  me.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.headlineSmall?.copyWith(
+                    color: const Color(0xFF001561),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                me.subtitle,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF8A93B1),
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: 2),
+                Text(
+                  me.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF8A93B1),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -528,6 +544,7 @@ class _ProfileDoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
@@ -551,7 +568,7 @@ class _ProfileDoneCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Профиль заполнен на 100%',
+                  l10n.profileCompleted,
                   style: textTheme.titleMedium?.copyWith(
                     color: const Color(0xFF001561),
                     fontWeight: FontWeight.w700,
@@ -559,7 +576,7 @@ class _ProfileDoneCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Теперь вас могут находить другие пользователи',
+                  l10n.profileCompletedSubtitle,
                   style: textTheme.bodyMedium?.copyWith(
                     color: const Color(0x99001561),
                     fontWeight: FontWeight.w500,
@@ -579,21 +596,23 @@ class _ProfileProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
       children: [
         Row(
           children: [
-            Text(
-              '\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d \u043d\u0430 40%',
-              style: textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF4E5884),
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
+            Expanded(
+              child: Text(
+                '${l10n.profileTitle} 40%',
+                style: textTheme.titleMedium?.copyWith(
+                  color: const Color(0xFF4E5884),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
               ),
             ),
-            const Spacer(),
             Text(
               '40/100',
               style: textTheme.titleMedium?.copyWith(
@@ -633,6 +652,7 @@ class _CompleteProfileCardState extends State<_CompleteProfileCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
@@ -660,16 +680,16 @@ class _CompleteProfileCardState extends State<_CompleteProfileCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u0444\u0438\u043b\u044f',
+              l10n.profileContinueCompletion,
               style: textTheme.titleLarge?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
-                fontSize: 30 / 2,
+                fontSize: 15,
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              '\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u043f\u0440\u043e\u0444\u0438\u043b\u044c, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439',
+              l10n.profileContinueCompletionSubtitle,
               style: textTheme.bodyMedium?.copyWith(
                 color: const Color(0xDFFFFFFF),
                 height: 1.35,
@@ -689,6 +709,7 @@ class _VerificationCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
     final meAsync = ref.watch(meProvider);
 
@@ -696,7 +717,7 @@ class _VerificationCard extends ConsumerWidget {
       loading: () => const SizedBox(),
       error: (_, __) => const SizedBox(),
       data: (me) {
-        if (me.verificationStatus == "VERIFIED") {
+        if (me.verificationStatus == 'VERIFIED') {
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -707,15 +728,18 @@ class _VerificationCard extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.verified_user_rounded,
-                    color: Color(0xFF2ECC71), size: 22),
+                const Icon(
+                  Icons.verified_user_rounded,
+                  color: Color(0xFF2ECC71),
+                  size: 22,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Личность подтверждена',
+                        l10n.verificationIdentityVerified,
                         style: textTheme.titleMedium?.copyWith(
                           color: const Color(0xFF001561),
                           fontWeight: FontWeight.w800,
@@ -723,7 +747,7 @@ class _VerificationCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Повышает доверие к вашему профилю',
+                        l10n.verificationTrustSubtitle,
                         style: textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF8AA59A),
                           fontWeight: FontWeight.w600,
@@ -737,7 +761,7 @@ class _VerificationCard extends ConsumerWidget {
           );
         }
 
-        if (me.verificationStatus == "PENDING") {
+        if (me.verificationStatus == 'PENDING') {
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -750,15 +774,17 @@ class _VerificationCard extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.hourglass_top_rounded,
-                    color: AppColors.primary),
+                const Icon(
+                  Icons.hourglass_top_rounded,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'На проверке',
+                        l10n.verificationStatusPending,
                         style: textTheme.titleMedium?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w800,
@@ -766,7 +792,7 @@ class _VerificationCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Ожидайте подтверждения от администратора',
+                        l10n.verificationPendingSubtitle,
                         style: textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF9AA1B9),
                           fontWeight: FontWeight.w500,
@@ -802,7 +828,7 @@ class _VerificationCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Подтвердить личность',
+                        l10n.verificationConfirmIdentity,
                         style: textTheme.titleMedium?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w800,
@@ -810,7 +836,7 @@ class _VerificationCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Повышает доверие к вашему профилю',
+                        l10n.verificationTrustSubtitle,
                         style: textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF9AA1B9),
                           fontWeight: FontWeight.w500,
@@ -868,6 +894,8 @@ class _MenuItem extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const Icon(Icons.chevron_right, color: Color(0xFFA7AEBD), size: 22),

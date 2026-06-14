@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 
@@ -9,6 +10,7 @@ class ProfileCompletedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -34,7 +36,7 @@ class ProfileCompletedPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'Профиль заполнен на 100%',
+                l10n.profileCompleted,
                 textAlign: TextAlign.center,
                 style: textTheme.headlineSmall?.copyWith(
                   color: const Color(0xFF001561),
@@ -46,7 +48,7 @@ class ProfileCompletedPage extends StatelessWidget {
               const Text('🎉', style: TextStyle(fontSize: 22)),
               const SizedBox(height: 20),
               Text(
-                'Теперь у вас больше шансов найти\nидеального сожителя',
+                l10n.profileCompletedSubtitle,
                 textAlign: TextAlign.center,
                 style: textTheme.bodyLarge?.copyWith(
                   color: const Color(0xFF8E93A4),
@@ -55,7 +57,7 @@ class ProfileCompletedPage extends StatelessWidget {
               ),
               const Spacer(),
               AppPrimaryButton(
-                label: 'Перейти к поиску',
+                label: l10n.profileCompletedSearchCTA,
                 onPressed: () => Navigator.of(context)
                     .pushNamedAndRemoveUntil(AppRoutes.home, (route) => false),
                 textStyle: const TextStyle(
@@ -76,11 +78,11 @@ class ProfileCompletedPage extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  onPressed: () => Navigator.of(context)
-                      .pushNamed(AppRoutes.profileVerification),
-                  child: const Text(
-                    'Подтвердить личность (необязательно)',
-                    style: TextStyle(
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.profileVerification),
+                  child: Text(
+                    l10n.profileVerificationOptionalCTA,
+                    style: const TextStyle(
                       fontFamily: 'Gilroy',
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

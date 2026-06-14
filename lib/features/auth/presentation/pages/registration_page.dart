@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
-import '../../../../core/constants/app_strings.dart';
+import '../../../../core/localization/app_error_localizer.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/ui/app_snackbar.dart';
@@ -30,6 +31,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
   bool _isSocialSubmitting = false;
 
   Future<void> _submit() async {
+    final l10n = context.l10n;
     final state = ref.read(registrationProvider);
     final controller = ref.read(registrationProvider.notifier);
 
@@ -43,7 +45,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
     if (password != confirm) {
       controller.showValidationErrors();
       if (!mounted) return;
-      showAppSnackBar(context, 'Пароли не совпадают', isError: true);
+      showAppSnackBar(context, l10n.registerConfirmError, isError: true);
       return;
     }
 
@@ -65,16 +67,12 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
       }
 
       Navigator.of(context).pushReplacementNamed(AppRoutes.verifyEmail);
-    } on AppException catch (e) {
+    } on AppException catch (error) {
       if (!mounted) return;
-      showAppSnackBar(context, e.message, isError: true);
+      showAppSnackBar(context, error.localized(context), isError: true);
     } catch (_) {
       if (!mounted) return;
-      showAppSnackBar(
-        context,
-        'Не удалось зарегистрироваться. Попробуйте снова.',
-        isError: true,
-      );
+      showAppSnackBar(context, l10n.errorAuthRegisterFailed, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -101,16 +99,12 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
           ? AppRoutes.shell
           : OnboardingRouteMapper.fromStep(result.onboardingStep);
       Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
-    } on AppException catch (e) {
+    } on AppException catch (error) {
       if (!mounted) return;
-      showAppSnackBar(context, e.message, isError: true);
+      showAppSnackBar(context, error.localized(context), isError: true);
     } catch (_) {
       if (!mounted) return;
-      showAppSnackBar(
-        context,
-        'Ошибка сервера. Попробуйте позже.',
-        isError: true,
-      );
+      showAppSnackBar(context, context.l10n.errorServer, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSocialSubmitting = false);
@@ -120,6 +114,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(registrationProvider);
     final controller = ref.read(registrationProvider.notifier);
@@ -135,7 +130,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
               Align(
                 alignment: Alignment.center,
                 child: Text(
-                  AppStrings.registerTitle,
+                  l10n.registerTitle,
                   textAlign: TextAlign.center,
                   style: textTheme.titleLarge?.copyWith(
                     fontFamily: 'Gilroy',
@@ -154,8 +149,8 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
                   child: AppSegmentedControl(
                     isLeftSelected: state.useEmail,
                     onChanged: controller.toggleMode,
-                    leftLabel: AppStrings.registerEmailTab,
-                    rightLabel: AppStrings.registerPhoneTab,
+                    leftLabel: l10n.registerEmailTab,
+                    rightLabel: l10n.registerPhoneTab,
                     leftIcon: Icons.mail_outline,
                     rightIcon: Icons.phone_outlined,
                   ),
@@ -163,21 +158,18 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
               ),
               const SizedBox(height: 20),
               _FieldLabel(
-                text: state.useEmail
-                    ? AppStrings.registerEmailLabel
-                    : AppStrings.registerPhoneTab,
+                text:
+                    state.useEmail ? l10n.registerEmailLabel : l10n.registerPhoneTab,
               ),
               const SizedBox(height: 8),
               AppInputField(
                 key: ValueKey<String>('register-identity-${state.useEmail}'),
-                hint: state.useEmail
-                    ? AppStrings.registerEmailHint
-                    : '+7 777 123 45 67',
+                hint: state.useEmail ? l10n.registerEmailHint : l10n.authPhoneHint,
                 keyboardType: state.useEmail
                     ? TextInputType.emailAddress
                     : TextInputType.phone,
                 showError: state.emailError,
-                errorText: AppStrings.registerEmailError,
+                errorText: l10n.registerEmailError,
                 onChanged: controller.setEmail,
                 inputTextStyle: const TextStyle(
                   fontFamily: 'Gilroy',
@@ -195,13 +187,13 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              _FieldLabel(text: AppStrings.registerPasswordLabel),
+              _FieldLabel(text: l10n.registerPasswordLabel),
               const SizedBox(height: 8),
               AppInputField(
-                hint: AppStrings.registerPasswordHint,
+                hint: l10n.registerPasswordHint,
                 obscureText: true,
                 showError: state.passwordError,
-                errorText: AppStrings.registerPasswordError,
+                errorText: l10n.registerPasswordError,
                 onChanged: controller.setPassword,
                 inputTextStyle: const TextStyle(
                   fontFamily: 'Gilroy',
@@ -219,13 +211,13 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              _FieldLabel(text: AppStrings.registerConfirmLabel),
+              _FieldLabel(text: l10n.registerConfirmLabel),
               const SizedBox(height: 8),
               AppInputField(
-                hint: AppStrings.registerConfirmHint,
+                hint: l10n.registerConfirmHint,
                 obscureText: true,
                 showError: state.confirmError,
-                errorText: AppStrings.registerConfirmError,
+                errorText: l10n.registerConfirmError,
                 onChanged: controller.setConfirm,
                 inputTextStyle: const TextStyle(
                   fontFamily: 'Gilroy',
@@ -244,14 +236,15 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
               ),
               const SizedBox(height: 20),
               _RememberRow(
+                label: l10n.registerRemember,
                 value: state.rememberMe,
                 onChanged: (value) => controller.setRememberMe(value ?? false),
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
                 label: _isSubmitting
-                    ? 'Регистрация...'
-                    : AppStrings.registerButton,
+                    ? l10n.registerButtonLoading
+                    : l10n.registerButton,
                 onPressed: _isSubmitting || _isSocialSubmitting ? null : _submit,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
@@ -269,12 +262,11 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
               const SizedBox(height: 20),
               Center(
                 child: InkWell(
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushReplacementNamed(AppRoutes.login),
+                  onTap: () =>
+                      Navigator.of(context).pushReplacementNamed(AppRoutes.login),
                   child: Text.rich(
                     TextSpan(
-                      text: AppStrings.registerLoginPrefix,
+                      text: l10n.registerLoginPrefix,
                       style: const TextStyle(
                         fontFamily: 'Gilroy',
                         fontSize: 12,
@@ -284,7 +276,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
                       ),
                       children: [
                         TextSpan(
-                          text: AppStrings.registerLoginLink,
+                          text: l10n.registerLoginLink,
                           style: const TextStyle(
                             color: Color(0xFF6C4BFF),
                             fontWeight: FontWeight.w700,
@@ -324,8 +316,13 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _RememberRow extends StatelessWidget {
-  const _RememberRow({required this.value, required this.onChanged});
+  const _RememberRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
+  final String label;
   final bool value;
   final ValueChanged<bool?> onChanged;
 
@@ -347,9 +344,9 @@ class _RememberRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        const Text(
-          AppStrings.registerRemember,
-          style: TextStyle(
+        Text(
+          label,
+          style: const TextStyle(
             fontFamily: 'Gilroy',
             fontSize: 14,
             height: 20 / 14,

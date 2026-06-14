@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
-import '../../../../core/constants/app_strings.dart';
+import '../../../../core/localization/app_error_localizer.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/ui/app_snackbar.dart';
@@ -30,10 +31,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _isSocialSubmitting = false;
 
   Future<void> _submit() async {
+    final l10n = context.l10n;
     final controller = ref.read(loginProvider.notifier);
     var state = ref.read(loginProvider);
 
-    final ok = controller.validate();
+    final ok = controller.validate(l10n);
     state = ref.read(loginProvider);
     if (!ok) return;
 
@@ -59,15 +61,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           : OnboardingRouteMapper.fromStep(result.onboardingStep);
 
       Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
-    } on AppException catch (e) {
-      controller.applyBackendError(e);
+    } on AppException catch (error) {
+      controller.applyBackendError(error, l10n);
     } catch (_) {
       if (!mounted) return;
-      showAppSnackBar(
-        context,
-        'Не удалось войти. Попробуйте снова.',
-        isError: true,
-      );
+      showAppSnackBar(context, l10n.errorAuthLoginFailed, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -94,16 +92,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ? AppRoutes.shell
           : OnboardingRouteMapper.fromStep(result.onboardingStep);
       Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
-    } on AppException catch (e) {
+    } on AppException catch (error) {
       if (!mounted) return;
-      showAppSnackBar(context, e.message, isError: true);
+      showAppSnackBar(context, error.localized(context), isError: true);
     } catch (_) {
       if (!mounted) return;
-      showAppSnackBar(
-        context,
-        'Ошибка сервера. Попробуйте позже.',
-        isError: true,
-      );
+      showAppSnackBar(context, context.l10n.errorServer, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSocialSubmitting = false);
@@ -113,6 +107,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
     final state = ref.watch(loginProvider);
     final controller = ref.read(loginProvider.notifier);
@@ -128,7 +123,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               Align(
                 alignment: Alignment.center,
                 child: Text(
-                  AppStrings.loginTitle,
+                  l10n.loginTitle,
                   style: textTheme.titleLarge?.copyWith(
                     fontFamily: 'Gilroy',
                     fontSize: 25,
@@ -146,8 +141,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   child: AppSegmentedControl(
                     isLeftSelected: state.useEmail,
                     onChanged: controller.toggleMode,
-                    leftLabel: AppStrings.registerEmailTab,
-                    rightLabel: AppStrings.registerPhoneTab,
+                    leftLabel: l10n.registerEmailTab,
+                    rightLabel: l10n.registerPhoneTab,
                     leftIcon: Icons.mail_outline,
                     rightIcon: Icons.phone_outlined,
                   ),
@@ -155,16 +150,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
               const SizedBox(height: 20),
               _FieldLabel(
-                text: state.useEmail
-                    ? AppStrings.registerEmailLabel
-                    : AppStrings.registerPhoneTab,
+                text:
+                    state.useEmail ? l10n.registerEmailLabel : l10n.registerPhoneTab,
               ),
               const SizedBox(height: 8),
               AppInputField(
                 key: ValueKey('login-identity-${state.useEmail}'),
-                hint: state.useEmail
-                    ? AppStrings.registerEmailHint
-                    : '+7 777 123 45 67',
+                hint: state.useEmail ? l10n.registerEmailHint : l10n.authPhoneHint,
                 keyboardType: state.useEmail
                     ? TextInputType.emailAddress
                     : TextInputType.phone,
@@ -187,10 +179,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              const _FieldLabel(text: AppStrings.registerPasswordLabel),
+              _FieldLabel(text: l10n.registerPasswordLabel),
               const SizedBox(height: 8),
               AppInputField(
-                hint: AppStrings.registerPasswordHint,
+                hint: l10n.registerPasswordHint,
                 obscureText: true,
                 showError: state.passwordErrorMessage != null,
                 errorText: state.passwordErrorMessage ?? '',
@@ -212,6 +204,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
               const SizedBox(height: 20),
               _RememberRow(
+                label: l10n.registerRemember,
                 value: state.rememberMe,
                 onChanged: (value) => controller.setRememberMe(value ?? false),
               ),
@@ -229,7 +222,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
               const SizedBox(height: 20),
               AppPrimaryButton(
-                label: _isSubmitting ? 'Вход...' : AppStrings.loginButton,
+                label: _isSubmitting ? l10n.loginButtonLoading : l10n.loginButton,
                 onPressed: _isSubmitting || _isSocialSubmitting ? null : _submit,
               ),
               const SizedBox(height: 16),
@@ -241,20 +234,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               const SizedBox(height: 20),
               Center(
                 child: InkWell(
-                  onTap: () => Navigator.of(context)
-                      .pushReplacementNamed(AppRoutes.register),
+                  onTap: () =>
+                      Navigator.of(context).pushReplacementNamed(AppRoutes.register),
                   child: Text.rich(
                     TextSpan(
-                      text: AppStrings.loginRegisterPrefix,
+                      text: l10n.loginRegisterPrefix,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: Color(0xCC001561),
                       ),
-                      children: const [
+                      children: [
                         TextSpan(
-                          text: AppStrings.loginRegisterLink,
-                          style: TextStyle(
+                          text: l10n.loginRegisterLink,
+                          style: const TextStyle(
                             color: Color(0xFF6C4BFF),
                             fontWeight: FontWeight.w700,
                           ),
@@ -292,8 +285,13 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _RememberRow extends StatelessWidget {
-  const _RememberRow({required this.value, required this.onChanged});
+  const _RememberRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
+  final String label;
   final bool value;
   final ValueChanged<bool?> onChanged;
 
@@ -315,9 +313,9 @@ class _RememberRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        const Text(
-          AppStrings.registerRemember,
-          style: TextStyle(
+        Text(
+          label,
+          style: const TextStyle(
             fontFamily: 'Gilroy',
             fontSize: 14,
             height: 20 / 14,

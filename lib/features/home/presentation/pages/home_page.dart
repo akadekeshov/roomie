@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../chat/chat_detail_page.dart';
 import '../../../people/data/favorites_users_providers.dart';
 import '../../../people/data/hidden_users_provider.dart';
-import '../../../profile/data/me_repository.dart';
 import '../../../people/ui/recommended_user_profile_page.dart';
+import '../../../profile/data/me_repository.dart';
 import '../../data/filter_providers.dart' as filter;
 import '../../data/home_providers.dart' as home;
 import '../../data/recommended_user_model.dart';
@@ -61,15 +62,14 @@ class _HomePageState extends ConsumerState<HomePage>
 
   void _showMessage(String text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   Future<void> _hideUser(
     RecommendedUser user, {
     required bool isSaved,
   }) async {
+    final l10n = context.l10n;
     final repository = ref.read(home.homeRepositoryProvider);
 
     try {
@@ -79,9 +79,9 @@ class _HomePageState extends ConsumerState<HomePage>
 
       ref.read(hiddenUserIdsProvider.notifier).hide(user.id);
       _invalidateHomeData();
-      _showMessage('Пользователь скрыт');
-    } catch (error) {
-      _showMessage('Ошибка: $error');
+      _showMessage(l10n.homeUserHidden);
+    } catch (_) {
+      _showMessage(l10n.errorGeneric);
     }
   }
 
@@ -89,20 +89,21 @@ class _HomePageState extends ConsumerState<HomePage>
     RecommendedUser user, {
     required bool isSaved,
   }) async {
+    final l10n = context.l10n;
     final repository = ref.read(home.homeRepositoryProvider);
 
     try {
       if (isSaved) {
         await repository.unsaveUser(user.id);
-        _showMessage('Удалено из сохранённых');
+        _showMessage(l10n.homeSavedRemoved);
       } else {
         await repository.saveUser(user.id);
-        _showMessage('Сохранено');
+        _showMessage(l10n.homeSavedAdded);
       }
 
       _invalidateHomeData();
-    } catch (error) {
-      _showMessage('Ошибка: $error');
+    } catch (_) {
+      _showMessage(l10n.errorGeneric);
     }
   }
 
@@ -137,7 +138,6 @@ class _HomePageState extends ConsumerState<HomePage>
       context,
       MaterialPageRoute(builder: (_) => const FilterPage()),
     );
-
     _invalidateHomeData();
   }
 
@@ -147,6 +147,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
     final filterState = ref.watch(filter.filterStateProvider);
     final hasFilters = filterState.hasAnyFilter;
@@ -171,7 +172,7 @@ class _HomePageState extends ConsumerState<HomePage>
               Row(
                 children: [
                   Text(
-                    'Поиск соседей',
+                    l10n.homeTitle,
                     style: textTheme.headlineSmall?.copyWith(
                       color: const Color(0xFF001561),
                       fontWeight: FontWeight.w700,
@@ -181,7 +182,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   const Spacer(),
                   IconButton(
                     onPressed: _openAiSearch,
-                    tooltip: 'AI-поиск',
+                    tooltip: l10n.homeAiSearchTooltip,
                     icon: const Icon(
                       Icons.auto_awesome_rounded,
                       color: Color(0xFF001561),
@@ -212,9 +213,9 @@ class _HomePageState extends ConsumerState<HomePage>
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFE2E5ED)),
                   ),
-                  child: const Text(
-                    'Показаны пользователи по выбранным фильтрам',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.homeFilteredBanner,
+                    style: const TextStyle(
                       color: Color(0xFF001561),
                       fontWeight: FontWeight.w600,
                     ),
@@ -225,8 +226,8 @@ class _HomePageState extends ConsumerState<HomePage>
                   loading: () => const Center(
                     child: CircularProgressIndicator(),
                   ),
-                  error: (error, _) => Center(
-                    child: Text('Ошибка: $error'),
+                  error: (_, __) => Center(
+                    child: Text(l10n.errorGeneric),
                   ),
                   data: (autoData) {
                     final hiddenIds = ref.watch(hiddenUserIdsProvider);
@@ -249,8 +250,8 @@ class _HomePageState extends ConsumerState<HomePage>
                               child: Center(
                                 child: Text(
                                   hasFilters
-                                      ? 'По этим фильтрам пользователи не найдены'
-                                      : 'Пока нет видимых пользователей',
+                                      ? l10n.homeNoUsersByFilters
+                                      : l10n.homeNoVisibleUsers,
                                   textAlign: TextAlign.center,
                                 ),
                               ),
@@ -304,6 +305,7 @@ class _HomeStateBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     late final String title;
     late final String subtitle;
     late final Color background;
@@ -313,36 +315,32 @@ class _HomeStateBanner extends StatelessWidget {
 
     switch (state) {
       case home.HomeAutoState.profileIncomplete:
-        title = 'Заполните профиль для лучших совпадений';
-        subtitle =
-            'Пользователи всё равно показываются, но рекомендации станут точнее после завершения анкеты.';
+        title = l10n.homeStateProfileIncompleteTitle;
+        subtitle = l10n.homeStateProfileIncompleteSubtitle;
         background = const Color(0xFFFFF7ED);
         border = const Color(0xFFFED7AA);
         accent = const Color(0xFFC2410C);
         icon = Icons.person_search_outlined;
         break;
       case home.HomeAutoState.verificationPending:
-        title = 'Проверка ещё идёт';
-        subtitle =
-            'Ваш профиль остаётся активным, пока модерация не завершена.';
+        title = l10n.homeStateVerificationPendingTitle;
+        subtitle = l10n.homeStateVerificationPendingSubtitle;
         background = const Color(0xFFF4F2FF);
         border = const Color(0xFFD8CBFF);
         accent = AppColors.primary;
         icon = Icons.hourglass_top_rounded;
         break;
       case home.HomeAutoState.verificationRejected:
-        title = 'Проверка требует внимания';
-        subtitle =
-            'Вы всё ещё можете смотреть пользователей. Обновите данные для верификации, чтобы вернуть значок доверия.';
+        title = l10n.homeStateVerificationRejectedTitle;
+        subtitle = l10n.homeStateVerificationRejectedSubtitle;
         background = const Color(0xFFFFF1F2);
         border = const Color(0xFFFDA4AF);
         accent = const Color(0xFFE11D48);
         icon = Icons.error_outline;
         break;
       case home.HomeAutoState.noRecommendations:
-        title = 'Пока нет сильных совпадений';
-        subtitle =
-            'Пока собираются новые сигналы для рекомендаций, показывается более широкий список пользователей.';
+        title = l10n.homeStateNoRecommendationsTitle;
+        subtitle = l10n.homeStateNoRecommendationsSubtitle;
         background = const Color(0xFFEFF6FF);
         border = const Color(0xFFBFDBFE);
         accent = const Color(0xFF1D4ED8);
@@ -412,6 +410,7 @@ class _RoommateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
     final photo = user.avatarUrl;
 
@@ -472,18 +471,18 @@ class _RoommateCard extends StatelessWidget {
                             color: const Color(0x801C1C1D),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.check_circle,
                                 size: 14,
                                 color: Color(0xFF00C853),
                               ),
-                              SizedBox(width: 5),
+                              const SizedBox(width: 5),
                               Text(
-                                'Подтверждён',
-                                style: TextStyle(
+                                l10n.homeVerified,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -511,7 +510,7 @@ class _RoommateCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Совместимо: ${user.compatibilityPercent}%',
+                    l10n.homeCompatibility(user.compatibilityPercent),
                     style: textTheme.bodyMedium?.copyWith(
                       color: const Color(0xFF4C1D95),
                       fontWeight: FontWeight.w700,
@@ -530,19 +529,19 @@ class _RoommateCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.map_outlined,
-                    label: 'Локация',
+                    label: l10n.locationLabel,
                     value: user.locationText,
                   ),
                   const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.person_outline,
-                    label: 'Статус',
+                    label: l10n.statusLabel,
                     value: user.statusText,
                   ),
                   const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.account_balance_wallet_outlined,
-                    label: 'Бюджет',
+                    label: l10n.budgetLabel,
                     value: user.budgetText,
                   ),
                   const SizedBox(height: 12),
@@ -551,7 +550,7 @@ class _RoommateCard extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: onChat,
                       icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                      label: const Text('Написать'),
+                      label: Text(l10n.writeMessage),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -568,7 +567,7 @@ class _RoommateCard extends StatelessWidget {
                       Expanded(
                         child: _ActionOutlinedButton(
                           icon: Icons.block,
-                          label: 'Скрыть',
+                          label: l10n.hide,
                           onTap: onHide,
                         ),
                       ),
@@ -577,7 +576,7 @@ class _RoommateCard extends StatelessWidget {
                         child: _ActionOutlinedButton(
                           icon:
                               isSaved ? Icons.favorite : Icons.favorite_border,
-                          label: isSaved ? 'Сохранено' : 'Сохранить',
+                          label: isSaved ? l10n.saved : l10n.saveAction,
                           onTap: onSave,
                           isActive: isSaved,
                         ),
@@ -678,12 +677,15 @@ class _ActionOutlinedButton extends StatelessWidget {
               size: 20,
             ),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: isActive ? Colors.white : const Color(0xFF707070),
-                    fontWeight: FontWeight.w600,
-                  ),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: isActive ? Colors.white : const Color(0xFF707070),
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
             ),
           ],
         ),

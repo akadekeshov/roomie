@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/app_strings.dart';
+import '../core/localization/app_locale.dart';
+import '../core/localization/locale_provider.dart';
+import '../l10n/app_localizations.dart';
 import '../features/auth/presentation/pages/bio_auth_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/otp_page.dart';
@@ -23,26 +27,30 @@ import '../features/profile/presentation/pages/profile_search_page.dart';
 import '../features/profile/presentation/pages/profile_verification_page.dart';
 import '../features/profile/presentation/pages/profile_verification_upload_page.dart';
 import '../features/roomie_splash_page.dart';
+import '../features/settings/presentation/pages/settings_page.dart';
 
 import 'app_routes.dart';
 import 'app_theme.dart';
 
-class RoommateApp extends StatelessWidget {
+class RoommateApp extends ConsumerWidget {
   const RoommateApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(appLocaleProvider);
+
     return MaterialApp(
       title: AppStrings.appName,
       theme: AppTheme.light(),
       debugShowCheckedModeBanner: false,
-      locale: const Locale('ru'),
-      supportedLocales: const [
-        Locale('ru'),
-        Locale('kk'),
-        Locale('en'),
+      locale: locale,
+      supportedLocales: supportedAppLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
       ],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       initialRoute: AppRoutes.splash,
       routes: {
         AppRoutes.splash: (context) => const RoomieSplashPage(),
@@ -69,6 +77,7 @@ class RoommateApp extends StatelessWidget {
         AppRoutes.profileVerificationUpload: (context) =>
             const ProfileVerificationUploadPage(),
         AppRoutes.aiSearch: (context) => const AiSearchPage(),
+        AppRoutes.settings: (context) => const SettingsPage(),
       },
     );
   }

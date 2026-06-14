@@ -1,9 +1,10 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/dashed_border_container.dart';
@@ -24,7 +25,6 @@ class _ProfileVerificationUploadPageState
 
   String? _documentPath;
   String? _selfiePath;
-
   bool _isSubmitting = false;
 
   bool get _canSubmit =>
@@ -53,6 +53,7 @@ class _ProfileVerificationUploadPageState
   }
 
   Future<void> _submit() async {
+    final l10n = context.l10n;
     if (!_canSubmit) return;
 
     setState(() => _isSubmitting = true);
@@ -92,19 +93,19 @@ class _ProfileVerificationUploadPageState
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Документы отправлены!',
+                  Text(
+                    l10n.profileVerificationSuccessTitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Мы проверим данные в течение 24 часов.',
+                  Text(
+                    l10n.profileVerificationSuccessSubtitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.black87,
                     ),
@@ -121,9 +122,9 @@ class _ProfileVerificationUploadPageState
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Готово',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.done,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
@@ -138,15 +139,11 @@ class _ProfileVerificationUploadPageState
       );
 
       if (!mounted) return;
-      Navigator.of(context).pop(); // back to profile
-    } catch (e) {
+      Navigator.of(context).pop();
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Не удалось отправить документы. Попробуйте снова.\n$e',
-          ),
-        ),
+        SnackBar(content: Text(l10n.errorGeneric)),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -155,6 +152,7 @@ class _ProfileVerificationUploadPageState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -164,7 +162,7 @@ class _ProfileVerificationUploadPageState
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
             children: [
-              const ProfileFlowHeader(title: 'Профиль'),
+              ProfileFlowHeader(title: l10n.profileTitle),
               const SizedBox(height: 14),
               Expanded(
                 child: SingleChildScrollView(
@@ -172,7 +170,7 @@ class _ProfileVerificationUploadPageState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Загрузите свой документ',
+                        l10n.profileVerificationUploadTitle,
                         style: textTheme.headlineSmall?.copyWith(
                           color: const Color(0xFF001561),
                           fontWeight: FontWeight.w700,
@@ -181,25 +179,21 @@ class _ProfileVerificationUploadPageState
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        'Документ используется только для\nпроверки и не отображается другим',
+                        l10n.profileVerificationUploadSubtitle,
                         style: textTheme.bodyLarge?.copyWith(
                           color: const Color(0xFFA0A6B7),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 14),
-
-                      // DOCUMENT
                       _UploadBox(
                         path: _documentPath,
                         onTap: _pickDocument,
-                        label: 'Загрузить фото документа',
+                        label: l10n.profileVerificationUploadDocumentLabel,
                       ),
                       const SizedBox(height: 18),
-
-                      // SELFIE
                       Text(
-                        'Сделайте селфи',
+                        l10n.profileVerificationUploadSelfieTitle,
                         style: textTheme.headlineSmall?.copyWith(
                           color: const Color(0xFF001561),
                           fontWeight: FontWeight.w700,
@@ -210,10 +204,9 @@ class _ProfileVerificationUploadPageState
                       _UploadBox(
                         path: _selfiePath,
                         onTap: _pickSelfie,
-                        label: 'Сделать селфи',
+                        label: l10n.profileVerificationUploadSelfieLabel,
                       ),
                       const SizedBox(height: 14),
-
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
@@ -225,18 +218,24 @@ class _ProfileVerificationUploadPageState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Убедитесь, что:',
+                              l10n.profileVerificationChecklistTitle,
                               style: textTheme.titleMedium?.copyWith(
                                 color: const Color(0xFF001561),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const _BulletLine(text: 'Фото четкое'),
+                            _BulletLine(
+                              text: l10n.profileVerificationChecklistClearPhoto,
+                            ),
                             const SizedBox(height: 6),
-                            const _BulletLine(text: 'Без бликов'),
+                            _BulletLine(
+                              text: l10n.profileVerificationChecklistNoGlare,
+                            ),
                             const SizedBox(height: 6),
-                            const _BulletLine(text: 'Все края видны'),
+                            _BulletLine(
+                              text: l10n.profileVerificationChecklistAllEdges,
+                            ),
                           ],
                         ),
                       ),
@@ -246,7 +245,9 @@ class _ProfileVerificationUploadPageState
               ),
               const SizedBox(height: 20),
               AppPrimaryButton(
-                label: _isSubmitting ? 'Отправка...' : 'Отправить на проверку',
+                label: _isSubmitting
+                    ? l10n.profileVerificationSubmitting
+                    : l10n.profileVerificationSubmit,
                 onPressed: _canSubmit ? _submit : null,
                 textStyle: const TextStyle(
                   fontFamily: 'Gilroy',
@@ -275,52 +276,61 @@ class _UploadBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final uploaded = path != null && path!.trim().isNotEmpty;
+    final hasFile = path != null && path!.trim().isNotEmpty;
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
       child: DashedBorderContainer(
-        color: uploaded ? AppColors.primary : const Color(0xFFC6CAD6),
-        radius: 10,
-        height: 170,
-        child: uploaded
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  File(path!),
-                  width: double.infinity,
-                  height: 170,
-                  fit: BoxFit.cover,
+        radius: 18,
+        color: const Color(0xFFD6DAE6),
+        height: hasFile ? 250 : 150,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            children: [
+              if (hasFile) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.file(
+                    File(path!),
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 58,
-                    height: 58,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE3E4E8),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.arrow_downward_rounded,
-                      color: Color(0xFFA6AABB),
-                      size: 30,
-                    ),
+                const SizedBox(height: 12),
+              ] else ...[
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: const BoxDecoration(
+                    color: Color(0x147C3AED),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 14),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: const Color(0xFF001561),
-                          fontWeight: FontWeight.w600,
-                        ),
+                  child: const Icon(
+                    Icons.add_a_photo_outlined,
+                    color: AppColors.primary,
+                    size: 24,
                   ),
-                ],
+                ),
+                const SizedBox(height: 12),
+              ],
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: const Color(0xFF001561),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -334,26 +344,27 @@ class _BulletLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '•',
-          style: TextStyle(
+        const Padding(
+          padding: EdgeInsets.only(top: 6),
+          child: Icon(
+            Icons.circle,
+            size: 6,
             color: AppColors.primary,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: const Color(0xFF4E5884),
-                fontWeight: FontWeight.w500,
-              ),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF55607E),
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
         ),
       ],
     );
   }
 }
-
-

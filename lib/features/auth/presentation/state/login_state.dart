@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/app_exception.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class LoginState {
   const LoginState({
@@ -17,16 +18,9 @@ class LoginState {
   final bool rememberMe;
   final String identity;
   final String password;
-
   final String? identityErrorMessage;
   final String? passwordErrorMessage;
   final String? generalErrorMessage;
-
-  bool get isValid =>
-      identityErrorMessage == null &&
-      passwordErrorMessage == null &&
-      identity.trim().isNotEmpty &&
-      password.trim().isNotEmpty;
 
   LoginState copyWith({
     bool? useEmail,
@@ -47,12 +41,6 @@ class LoginState {
       generalErrorMessage: generalErrorMessage ?? this.generalErrorMessage,
     );
   }
-
-  LoginState clearErrors() => copyWith(
-        identityErrorMessage: null,
-        passwordErrorMessage: null,
-        generalErrorMessage: null,
-      );
 }
 
 class LoginController extends StateNotifier<LoginState> {
@@ -77,7 +65,7 @@ class LoginController extends StateNotifier<LoginState> {
     state = state.copyWith(password: value, passwordErrorMessage: null);
   }
 
-  bool validate() {
+  bool validate(AppLocalizations l10n) {
     String? idError;
     String? passError;
 
@@ -85,15 +73,15 @@ class LoginController extends StateNotifier<LoginState> {
     final pwd = state.password.trim();
 
     if (id.isEmpty) {
-      idError = state.useEmail ? 'Введите email' : 'Введите номер телефона';
+      idError = state.useEmail ? l10n.registerEmailError : l10n.errorValidation;
     } else if (state.useEmail && !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(id)) {
-      idError = 'Неверный формат email';
+      idError = l10n.registerEmailError;
     }
 
     if (pwd.isEmpty) {
-      passError = 'Введите пароль';
+      passError = l10n.registerPasswordError;
     } else if (pwd.length < 6) {
-      passError = 'Пароль слишком короткий';
+      passError = l10n.errorValidation;
     }
 
     state = state.copyWith(
@@ -105,38 +93,47 @@ class LoginController extends StateNotifier<LoginState> {
     return idError == null && passError == null;
   }
 
-  void applyBackendError(AppException exception) {
+  void applyBackendError(AppException exception, AppLocalizations l10n) {
+    final localized = switch (exception.code) {
+      AppErrorCode.invalidCredentials => l10n.errorInvalidCredentials,
+      AppErrorCode.emailAlreadyExists => l10n.errorEmailExists,
+      AppErrorCode.phoneAlreadyExists => l10n.errorPhoneExists,
+      AppErrorCode.invalidOrExpiredToken => l10n.errorSessionExpired,
+      AppErrorCode.network => l10n.errorNetwork,
+      AppErrorCode.validation => exception.field == 'identity' &&
+              exception.message == 'account_not_verified'
+          ? l10n.errorAccountNotVerified
+          : exception.field == 'identity' && exception.message == 'user_not_found'
+              ? l10n.errorUserNotFound
+              : l10n.errorValidation,
+      AppErrorCode.unknown => l10n.errorGeneric,
+    };
+
     switch (exception.code) {
       case AppErrorCode.invalidCredentials:
         state = state.copyWith(
-          passwordErrorMessage: exception.message,
+          passwordErrorMessage: localized,
           generalErrorMessage: null,
         );
         break;
-
       case AppErrorCode.emailAlreadyExists:
       case AppErrorCode.phoneAlreadyExists:
-        state = state.copyWith(identityErrorMessage: exception.message);
+        state = state.copyWith(identityErrorMessage: localized);
         break;
-
-      case AppErrorCode.network:
-        state = state.copyWith(generalErrorMessage: exception.message);
-        break;
-
       case AppErrorCode.invalidOrExpiredToken:
       case AppErrorCode.validation:
         if (exception.field == 'identity') {
           state = state.copyWith(
-            identityErrorMessage: exception.message,
+            identityErrorMessage: localized,
             generalErrorMessage: null,
           );
-          break;
+        } else {
+          state = state.copyWith(generalErrorMessage: localized);
         }
-        state = state.copyWith(generalErrorMessage: exception.message);
         break;
-
+      case AppErrorCode.network:
       case AppErrorCode.unknown:
-        state = state.copyWith(generalErrorMessage: exception.message);
+        state = state.copyWith(generalErrorMessage: localized);
         break;
     }
   }

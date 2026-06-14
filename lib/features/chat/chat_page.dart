@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/build_context_l10n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_sizes.dart';
@@ -28,6 +29,7 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final conversationsAsync = ref.watch(chatConversationsProvider);
 
     return Scaffold(
@@ -39,10 +41,10 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                children: const [
-                  Text('Сообщения', style: AppTextStyles.title),
-                  Spacer(),
-                  Icon(Icons.more_horiz),
+                children: [
+                  Text(l10n.messagesTitle, style: AppTextStyles.title),
+                  const Spacer(),
+                  const Icon(Icons.more_horiz),
                 ],
               ),
               const SizedBox(height: AppSpacing.headerGap),
@@ -61,8 +63,8 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
                       child: TextField(
                         controller: _searchController,
                         onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          hintText: 'Поиск',
+                        decoration: InputDecoration(
+                          hintText: l10n.search,
                           border: InputBorder.none,
                           isCollapsed: true,
                         ),
@@ -77,21 +79,21 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
                   loading: () => const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   ),
-                  error: (error, _) => Center(
+                  error: (_, __) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Не удалось загрузить чаты.\n$error',
+                            l10n.chatsLoadError,
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 12),
                           FilledButton(
                             onPressed: () =>
                                 ref.invalidate(chatConversationsProvider),
-                            child: const Text('Повторить'),
+                            child: Text(l10n.retry),
                           ),
                         ],
                       ),
@@ -108,8 +110,8 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
                     }).toList();
 
                     if (filtered.isEmpty) {
-                      return const Center(
-                        child: Text('У вас пока нет сообщений'),
+                      return Center(
+                        child: Text(l10n.messagesEmpty),
                       );
                     }
 
@@ -173,6 +175,7 @@ class _ChatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final lastText = (chat.lastMessageText ?? '').trim();
     final timeText = _formatTime(chat.lastMessageAt);
 
@@ -204,7 +207,7 @@ class _ChatTile extends StatelessWidget {
                 Text(chat.peerName, style: AppTextStyles.name),
                 const SizedBox(height: AppSpacing.nameToLastGap),
                 Text(
-                  lastText.isEmpty ? 'Начните переписку' : lastText,
+                  lastText.isEmpty ? l10n.startConversation : lastText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.secondary12,

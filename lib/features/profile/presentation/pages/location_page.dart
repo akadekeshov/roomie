@@ -1,10 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
@@ -21,28 +22,29 @@ class LocationPage extends ConsumerStatefulWidget {
 
 class _LocationPageState extends ConsumerState<LocationPage> {
   static const _cityDraftKey = 'profile_city_draft';
+
   String? _selectedCity;
   bool _isSubmitting = false;
 
   static const List<String> _cities = [
-    '\u0410\u0441\u0442\u0430\u043d\u0430',
-    '\u0410\u043a\u0442\u043e\u0431\u0435',
-    '\u0410\u043b\u043c\u0430\u0442\u044b',
-    '\u0422\u0430\u043b\u0434\u044b\u043a\u043e\u0440\u0433\u0430\u043d',
-    '\u0422\u0430\u0440\u0430\u0437',
-    '\u0428\u044b\u043c\u043a\u0435\u043d\u0442',
-    '\u0416\u0435\u0437\u043a\u0430\u0437\u0433\u0430\u043d',
-    '\u041e\u0440\u0430\u043b',
-    '\u0421\u0435\u043c\u0435\u0439',
-    '\u041a\u0430\u0440\u0430\u0433\u0430\u043d\u0434\u0430',
-    '\u041a\u043e\u0441\u0442\u0430\u043d\u0430\u0439',
-    '\u041a\u044b\u0437\u044b\u043b\u043e\u0440\u0434\u0430',
-    '\u041f\u0430\u0432\u043b\u043e\u0434\u0430\u0440',
-    '\u041f\u0435\u0442\u0440\u043e\u043f\u0430\u0432\u043b\u043e\u0432\u0441\u043a',
-    '\u0423\u0441\u0442\u044c-\u041a\u0430\u043c\u0435\u043d\u043e\u0433\u043e\u0440\u0441\u043a',
-    '\u0422\u0443\u0440\u043a\u0435\u0441\u0442\u0430\u043d',
-    '\u0410\u0442\u044b\u0440\u0430\u0443',
-    '\u0410\u043a\u0442\u0430\u0443',
+    'Астана',
+    'Актобе',
+    'Алматы',
+    'Талдыкорган',
+    'Тараз',
+    'Шымкент',
+    'Жезказган',
+    'Орал',
+    'Семей',
+    'Караганда',
+    'Костанай',
+    'Кызылорда',
+    'Павлодар',
+    'Петропавловск',
+    'Усть-Каменогорск',
+    'Туркестан',
+    'Атырау',
+    'Актау',
   ];
 
   Future<void> _openCitiesSheet() async {
@@ -75,12 +77,13 @@ class _LocationPageState extends ConsumerState<LocationPage> {
   }
 
   Future<void> _onContinue() async {
+    final l10n = context.l10n;
     final city = _selectedCity;
     if (city == null || _isSubmitting) return;
+
     setState(() => _isSubmitting = true);
     try {
-      final result =
-          await ref.read(onboardingRepositoryProvider).submitCity(city);
+      final result = await ref.read(onboardingRepositoryProvider).submitCity(city);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_cityDraftKey, city);
       if (!mounted) return;
@@ -89,17 +92,11 @@ class _LocationPageState extends ConsumerState<LocationPage> {
       ref.invalidate(homeAutoRecommendationsProvider);
       final route = OnboardingRouteMapper.fromStep(result.nextStep);
       Navigator.of(context).pushNamedAndRemoveUntil(route, (route) => false);
-    } on DioException catch (e) {
+    } on DioException {
       if (!mounted) return;
-      final serverMessage = e.response?.data is Map<String, dynamic>
-          ? (e.response?.data['message']?.toString())
-          : null;
-      final message = (serverMessage != null && serverMessage.isNotEmpty)
-          ? serverMessage
-          : 'Не удалось сохранить город';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorSaveCityFailed)),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -109,6 +106,7 @@ class _LocationPageState extends ConsumerState<LocationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -124,9 +122,8 @@ class _LocationPageState extends ConsumerState<LocationPage> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).pushReplacementNamed(AppRoutes.gender),
+                      onPressed: () => Navigator.of(context)
+                          .pushReplacementNamed(AppRoutes.gender),
                       icon: const Icon(Icons.arrow_back_ios_new),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
@@ -149,7 +146,8 @@ class _LocationPageState extends ConsumerState<LocationPage> {
               ),
               const SizedBox(height: 20),
               Text(
-                AppStrings.locationTitle,
+                l10n.locationTitle,
+                textAlign: TextAlign.center,
                 style: textTheme.headlineSmall?.copyWith(
                   fontFamily: 'Gilroy',
                   fontWeight: FontWeight.w600,
@@ -160,7 +158,7 @@ class _LocationPageState extends ConsumerState<LocationPage> {
               GestureDetector(
                 onTap: _openCitiesSheet,
                 child: Text(
-                  _selectedCity ?? AppStrings.locationYourCity,
+                  _selectedCity ?? l10n.locationYourCity,
                   style: textTheme.displaySmall?.copyWith(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w600,
@@ -168,11 +166,12 @@ class _LocationPageState extends ConsumerState<LocationPage> {
                         ? const Color(0x80001561)
                         : const Color(0xFF001561),
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
               const Spacer(),
               Text(
-                AppStrings.locationSkip,
+                l10n.locationSkip,
                 style: textTheme.titleSmall?.copyWith(
                   fontFamily: 'Gilroy',
                   fontWeight: FontWeight.w600,
@@ -181,7 +180,7 @@ class _LocationPageState extends ConsumerState<LocationPage> {
               ),
               const SizedBox(height: 18),
               AppPrimaryButton(
-                label: AppStrings.profileContinue,
+                label: l10n.profileContinue,
                 onPressed: (_selectedCity != null && !_isSubmitting)
                     ? _onContinue
                     : null,
@@ -228,6 +227,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final textTheme = Theme.of(context).textTheme;
     final query = _searchController.text.trim().toLowerCase();
     final filtered = widget.cities
@@ -268,7 +268,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                 controller: _searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: AppStrings.locationSearch,
+                  hintText: l10n.locationSearch,
                   hintStyle: const TextStyle(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w400,
@@ -292,7 +292,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
               child: ListView.separated(
                 itemCount: filtered.length,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                separatorBuilder: (_, index) => const SizedBox(height: 8),
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final city = filtered[index];
                   final active = city == _selected;
@@ -323,6 +323,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF001561),
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (active)
@@ -337,7 +338,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 4, 24, 16),
               child: AppPrimaryButton(
-                label: AppStrings.locationPick,
+                label: l10n.locationPick,
                 onPressed: _selected == null
                     ? null
                     : () => Navigator.of(context).pop(_selected),

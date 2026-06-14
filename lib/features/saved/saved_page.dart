@@ -1,25 +1,26 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/build_context_l10n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_sizes.dart';
+import '../chat/chat_detail_page.dart';
 import '../home/data/recommended_user_model.dart';
 import '../people/data/favorites_users_providers.dart';
-import 'package:roommate_app/features/people/data/hidden_users_provider.dart';
-
-import 'package:roommate_app/features/chat/chat_detail_page.dart';
-import 'package:roommate_app/features/saved/saved_profile_page.dart';
+import '../people/data/hidden_users_provider.dart';
+import 'saved_profile_page.dart';
 
 class SavedPage extends ConsumerWidget {
   const SavedPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final async = ref.watch(favoriteUsersProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Сохранённые'),
+        title: Text(l10n.favoritesTitle),
         centerTitle: true,
         leading: Navigator.of(context).canPop()
             ? IconButton(
@@ -32,21 +33,21 @@ class SavedPage extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
-        error: (err, _) => Center(
+        error: (_, __) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Не удалось загрузить избранных пользователей',
+                  l10n.favoritesLoadError,
                   style: Theme.of(context).textTheme.titleMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => ref.invalidate(favoriteUsersProvider),
-                  child: const Text('Повторить'),
+                  child: Text(l10n.retry),
                 ),
               ],
             ),
@@ -58,12 +59,12 @@ class SavedPage extends ConsumerWidget {
               users.where((u) => !hiddenIds.contains(u.id)).toList();
 
           if (visibleUsers.isEmpty) {
-            return const Center(child: Text('Пока пусто'));
+            return Center(child: Text(l10n.favoritesEmpty));
           }
 
           return GridView.builder(
             padding: const EdgeInsets.all(AppSizes.gridPadding),
-            itemCount: visibleUsers.length, // вњ… РґТ±СЂС‹СЃ
+            itemCount: visibleUsers.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: AppSizes.gridSpacing,
@@ -71,7 +72,7 @@ class SavedPage extends ConsumerWidget {
               childAspectRatio: AppSizes.gridAspectRatio,
             ),
             itemBuilder: (_, i) {
-              final user = visibleUsers[i]; // вњ… РґТ±СЂС‹СЃ
+              final user = visibleUsers[i];
               return _SavedUserCard(user: user);
             },
           );
@@ -88,9 +89,9 @@ class _SavedUserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final r = BorderRadius.circular(AppSizes.cardRadius);
     final imageUrl = user.avatarUrl ?? '';
-
     final match = user.compatibilityPercent;
     final verified = user.isVerified;
     final tag = (user.preferenceTag ?? '').trim();
@@ -100,13 +101,13 @@ class _SavedUserCard extends StatelessWidget {
       child: InkWell(
         borderRadius: r,
         onTap: () {
-           Navigator.push(
-             context,
-             MaterialPageRoute(
-                builder: (_) => SavedUserProfilePage(user: user),
-                ),
-               );
-              },
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SavedUserProfilePage(user: user),
+            ),
+          );
+        },
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: r,
@@ -136,26 +137,22 @@ class _SavedUserCard extends StatelessWidget {
                           ),
                         ),
                 ),
-
                 const Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0,
                   child: _BottomOverlay(height: 150),
                 ),
-
                 Positioned(
                   top: 10,
                   left: 10,
                   child: _MatchBadge(percent: match),
                 ),
-
                 Positioned(
                   top: 10,
                   right: 10,
                   child: _TopCheck(isActive: verified),
                 ),
-
                 Positioned(
                   left: 0,
                   right: 0,
@@ -197,10 +194,9 @@ class _SavedUserCard extends StatelessWidget {
                           _TagPill(text: tag),
                           const SizedBox(height: 10),
                         ],
-
                         _WriteButton(
+                          label: l10n.writeMessage,
                           onPressed: () {
-                            // вњ… "РќР°РїРёСЃР°С‚СЊ" -> ChatDetailPage
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -208,7 +204,7 @@ class _SavedUserCard extends StatelessWidget {
                                   peerUserId: user.id,
                                   title: user.displayName,
                                   imageUrl: user.avatarUrl,
-                                  online: true, // Т›Р°Р·С–СЂ Р±РµРє Р¶РѕТ›, placeholder
+                                  online: true,
                                   letter: user.displayName.isNotEmpty
                                       ? user.displayName.trim()[0]
                                       : '?',
@@ -316,7 +312,12 @@ class _TagPill extends StatelessWidget {
 }
 
 class _WriteButton extends StatelessWidget {
-  const _WriteButton({required this.onPressed});
+  const _WriteButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
   final VoidCallback onPressed;
 
   @override
@@ -327,7 +328,7 @@ class _WriteButton extends StatelessWidget {
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: const Icon(Icons.chat_bubble_outline, size: 18),
-        label: const Text('Написать'),
+        label: Text(label),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -340,4 +341,3 @@ class _WriteButton extends StatelessWidget {
     );
   }
 }
-

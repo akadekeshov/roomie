@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_routes.dart';
-import '../../../../core/constants/app_strings.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/app_segmented_control.dart';
@@ -19,6 +19,7 @@ class _BioAuthPageState extends State<BioAuthPage> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -41,8 +42,8 @@ class _BioAuthPageState extends State<BioAuthPage> {
               AppSegmentedControl(
                 isLeftSelected: _usePhone,
                 onChanged: (value) => setState(() => _usePhone = value),
-                leftLabel: AppStrings.authPhone,
-                rightLabel: AppStrings.authEmail,
+                leftLabel: l10n.authPhone,
+                rightLabel: l10n.authEmail,
                 leftIcon: Icons.phone_outlined,
                 rightIcon: Icons.mail_outline,
               ),
@@ -63,16 +64,17 @@ class _AuthHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppStrings.authTitle,
+          l10n.authTitle,
           style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: AppSpacing.spaceSubtitle),
         Text(
-          AppStrings.authSubtitle,
+          l10n.authSubtitle,
           style: textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
         ),
       ],
@@ -88,11 +90,12 @@ class _AuthForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          isPhone ? AppStrings.authPhoneLabel : AppStrings.authEmailLabel,
+          isPhone ? l10n.authPhoneLabel : l10n.authEmailLabel,
           style: textTheme.labelLarge?.copyWith(
             color: Colors.grey.shade700,
             fontWeight: FontWeight.w700,
@@ -104,7 +107,7 @@ class _AuthForm extends StatelessWidget {
               isPhone ? TextInputType.phone : TextInputType.emailAddress,
           decoration: InputDecoration(
             hintText:
-                isPhone ? AppStrings.authPhoneHint : AppStrings.authEmailHint,
+                isPhone ? l10n.authPhoneHint : l10n.authEmailHint,
             filled: true,
             fillColor: AppColors.fieldFill,
             border: OutlineInputBorder(
@@ -131,14 +134,14 @@ class _AuthForm extends StatelessWidget {
             ),
             onPressed: () =>
                 Navigator.of(context).pushReplacementNamed(AppRoutes.otp),
-            child: const Text(AppStrings.authContinue),
+            child: Text(l10n.authContinue),
           ),
         ),
         const SizedBox(height: AppSpacing.spaceAfterButton),
         SizedBox(
           width: double.infinity,
-          child: Text(
-            AppStrings.authTerms,
+        child: Text(
+            l10n.authTerms,
             textAlign: TextAlign.center,
             style: textTheme.bodySmall?.copyWith(color: Colors.grey.shade500),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class SocialAuthButtons extends StatelessWidget {
@@ -16,6 +17,7 @@ class SocialAuthButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final baseStyle = OutlinedButton.styleFrom(
       minimumSize: const Size.fromHeight(48),
@@ -34,7 +36,7 @@ class SocialAuthButtons extends StatelessWidget {
       children: [
         _SocialButton(
           style: baseStyle,
-          label: 'Войти через Google',
+          label: l10n.socialLoginGoogle,
           iconText: 'G',
           iconColor: const Color(0xFFDB4437),
           onPressed: isLoading ? null : onGoogle,
@@ -42,7 +44,7 @@ class SocialAuthButtons extends StatelessWidget {
         const SizedBox(height: 10),
         _SocialButton(
           style: baseStyle,
-          label: 'Войти через Facebook',
+          label: l10n.socialLoginFacebook,
           iconText: 'f',
           iconColor: AppColors.primary,
           onPressed: isLoading ? null : onFacebook,

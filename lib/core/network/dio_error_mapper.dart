@@ -9,26 +9,26 @@ AppException mapDioErrorToAppException(DioException error) {
       error.type == DioExceptionType.connectionError) {
     return const AppException(
       code: AppErrorCode.network,
-      message: 'Нет подключения к серверу. Проверьте интернет.',
+      message: 'network',
     );
   }
 
-  final res = error.response;
-  final data = res?.data;
+  final response = error.response;
+  final data = response?.data;
   String? rawMessage;
 
   if (data is Map<String, dynamic>) {
-    final m = data['message'];
-    if (m is String) {
-      rawMessage = m;
-    } else if (m is List && m.isNotEmpty) {
-      rawMessage = m.first.toString();
+    final message = data['message'];
+    if (message is String) {
+      rawMessage = message;
+    } else if (message is List && message.isNotEmpty) {
+      rawMessage = message.first.toString();
     }
   } else if (data is String) {
     rawMessage = data;
   }
 
-  final status = res?.statusCode;
+  final status = response?.statusCode;
   final normalized = (rawMessage ?? '').toLowerCase();
 
   if (status == 401 &&
@@ -36,7 +36,7 @@ AppException mapDioErrorToAppException(DioException error) {
       (normalized.contains('credential') || normalized.contains('password'))) {
     return const AppException(
       code: AppErrorCode.invalidCredentials,
-      message: 'Неверный логин или пароль.',
+      message: 'invalid_credentials',
       field: 'password',
     );
   }
@@ -44,7 +44,7 @@ AppException mapDioErrorToAppException(DioException error) {
   if (status == 401 && normalized.contains('not verified')) {
     return const AppException(
       code: AppErrorCode.validation,
-      message: 'Аккаунт не подтвержден. Завершите проверку кода.',
+      message: 'account_not_verified',
       field: 'identity',
     );
   }
@@ -54,7 +54,7 @@ AppException mapDioErrorToAppException(DioException error) {
       (normalized.contains('exist') || normalized.contains('already'))) {
     return const AppException(
       code: AppErrorCode.emailAlreadyExists,
-      message: 'Этот email уже был зарегистрирован.',
+      message: 'email_exists',
       field: 'email',
     );
   }
@@ -64,7 +64,7 @@ AppException mapDioErrorToAppException(DioException error) {
       (normalized.contains('exist') || normalized.contains('already'))) {
     return const AppException(
       code: AppErrorCode.phoneAlreadyExists,
-      message: 'Этот номер уже был зарегистрирован.',
+      message: 'phone_exists',
       field: 'phone',
     );
   }
@@ -76,56 +76,48 @@ AppException mapDioErrorToAppException(DioException error) {
           normalized.contains('revoked'))) {
     return const AppException(
       code: AppErrorCode.invalidOrExpiredToken,
-      message: 'Сессия истекла. Войдите снова.',
-    );
-  }
-
-  if (status == 400) {
-    return AppException(
-      code: AppErrorCode.validation,
-      message: rawMessage?.isNotEmpty == true
-          ? rawMessage!
-          : 'Проверьте корректность введенных данных.',
-    );
-  }
-
-  if (status == 401 || status == 403) {
-    return AppException(
-      code: AppErrorCode.validation,
-      message: rawMessage?.isNotEmpty == true
-          ? rawMessage!
-          : 'У вас нет доступа к этому действию.',
-    );
-  }
-
-  if (status == 429) {
-    return AppException(
-      code: AppErrorCode.validation,
-      message: rawMessage?.isNotEmpty == true
-          ? rawMessage!
-          : 'Слишком много попыток. Подождите немного и попробуйте снова.',
+      message: 'invalid_token',
     );
   }
 
   if (status == 404 && normalized.contains('user not found')) {
     return const AppException(
       code: AppErrorCode.validation,
-      message: 'Пользователь не найден. Сначала зарегистрируйтесь.',
+      message: 'user_not_found',
       field: 'identity',
     );
   }
 
+  if (status == 429) {
+    return const AppException(
+      code: AppErrorCode.validation,
+      message: 'too_many_attempts',
+    );
+  }
+
+  if (status == 401 || status == 403) {
+    return const AppException(
+      code: AppErrorCode.validation,
+      message: 'no_access',
+    );
+  }
+
+  if (status == 400) {
+    return const AppException(
+      code: AppErrorCode.validation,
+      message: 'validation',
+    );
+  }
+
   if (status != null && status >= 500) {
-    return AppException(
+    return const AppException(
       code: AppErrorCode.network,
-      message: rawMessage?.isNotEmpty == true
-          ? rawMessage!
-          : 'Ошибка сервера. Попробуйте позже.',
+      message: 'server_error',
     );
   }
 
   return const AppException(
     code: AppErrorCode.unknown,
-    message: 'Что-то пошло не так. Попробуйте еще раз.',
+    message: 'unknown',
   );
 }

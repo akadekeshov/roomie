@@ -1,5 +1,5 @@
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/errors/app_exception.dart';
@@ -56,7 +56,7 @@ class SocialAuthService {
       if (account == null) {
         throw const AppException(
           code: AppErrorCode.unknown,
-          message: 'Вход через Google был отменен.',
+          message: 'social_google_cancelled',
         );
       }
 
@@ -64,8 +64,7 @@ class SocialAuthService {
       if (auth.idToken == null && auth.accessToken == null) {
         throw const AppException(
           code: AppErrorCode.unknown,
-          message:
-              'Google не вернул токены. Проверьте OAuth client, SHA-1 и повторите попытку.',
+          message: 'social_google_missing_token',
         );
       }
 
@@ -79,11 +78,10 @@ class SocialAuthService {
       );
     } on AppException {
       rethrow;
-    } on PlatformException catch (e) {
-      throw AppException(
+    } on PlatformException {
+      throw const AppException(
         code: AppErrorCode.unknown,
-        message:
-            'Google Sign-In не настроен для Android. Проверьте package name, SHA-1 и Web Client ID. ${e.message ?? e.code}',
+        message: 'social_google_config',
       );
     }
   }
@@ -99,15 +97,14 @@ class SocialAuthService {
       if (result.status == LoginStatus.cancelled) {
         throw const AppException(
           code: AppErrorCode.unknown,
-          message: 'Вход через Facebook был отменен.',
+          message: 'social_facebook_cancelled',
         );
       }
 
       if (result.status != LoginStatus.success || result.accessToken == null) {
-        throw AppException(
+        throw const AppException(
           code: AppErrorCode.unknown,
-          message: result.message ??
-              'Не удалось получить данные для входа через Facebook.',
+          message: 'social_facebook_data',
         );
       }
 
@@ -127,11 +124,10 @@ class SocialAuthService {
       );
     } on AppException {
       rethrow;
-    } on PlatformException catch (e) {
-      throw AppException(
+    } on PlatformException {
+      throw const AppException(
         code: AppErrorCode.unknown,
-        message:
-            'Facebook Login не настроен для Android. Проверьте App ID, Client Token и key hashes. ${e.message ?? e.code}',
+        message: 'social_facebook_config',
       );
     }
   }

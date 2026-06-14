@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/localization/app_error_localizer.dart';
+import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
@@ -132,20 +134,18 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil(nextRoute, (route) => false);
-    } on AppException catch (e) {
+    } on AppException catch (error) {
       if (!mounted) return;
       setState(() => _showError = true);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(error.localized(context))));
     } catch (_) {
       if (!mounted) return;
       setState(() => _showError = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Не удалось подтвердить код. Попробуйте снова.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.errorOtpConfirmFailed)));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -165,12 +165,12 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
       _startTimer();
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Код отправлен повторно')));
-    } on AppException catch (e) {
+      ).showSnackBar(SnackBar(content: Text(context.l10n.codeResent)));
+    } on AppException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(error.localized(context))));
     } finally {
       if (mounted) {
         setState(() => _isResending = false);
@@ -186,6 +186,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -225,7 +226,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
               ),
               const SizedBox(height: 28),
               Text(
-                AppStrings.verifyTitle,
+                l10n.verifyTitle,
                 style: textTheme.headlineSmall?.copyWith(
                   fontFamily: 'Gilroy',
                   fontWeight: FontWeight.w600,
@@ -234,7 +235,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
               ),
               const SizedBox(height: 14),
               Text(
-                AppStrings.verifySubtitle,
+                l10n.verifySubtitle,
                 textAlign: TextAlign.center,
                 style: textTheme.bodyMedium?.copyWith(
                   fontFamily: 'Gilroy',
@@ -318,7 +319,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
                     const Icon(Icons.error, color: Color(0xFFFF0D0D), size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      AppStrings.verifyInvalidCode,
+                      l10n.verifyInvalidCode,
                       style: textTheme.bodyMedium?.copyWith(
                         fontFamily: 'Gilroy',
                         fontWeight: FontWeight.w400,
@@ -329,7 +330,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  AppStrings.verifyResendNow,
+                  l10n.verifyResendNow,
                   style: textTheme.titleSmall?.copyWith(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w600,
@@ -339,8 +340,8 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
               ] else if (_code.isEmpty) ...[
                 Text(
                   _secondsLeft > 0
-                      ? '${AppStrings.verifyResendInPrefix}$_secondsLeft${AppStrings.verifyResendInSuffix}'
-                      : AppStrings.verifyResendNow,
+                      ? l10n.verifyResendIn(_secondsLeft)
+                      : l10n.verifyResendNow,
                   style: textTheme.titleSmall?.copyWith(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w600,
@@ -353,8 +354,8 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
                 onTap: _secondsLeft == 0 ? _onResend : null,
                 child: Text(
                   _secondsLeft == 0
-                      ? AppStrings.verifyResendNow
-                      : AppStrings.verifyChangeEmail,
+                      ? l10n.verifyResendNow
+                      : l10n.verifyChangeEmail,
                   style: textTheme.titleSmall?.copyWith(
                     fontFamily: 'Gilroy',
                     fontWeight: FontWeight.w600,
@@ -364,7 +365,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
               ),
               const SizedBox(height: 14),
               AppPrimaryButton(
-                label: AppStrings.verifyConfirm,
+                label: l10n.verifyConfirm,
                 enabledColor: const Color(0xFF7C3AED),
                 disabledColor: const Color(0x4D7C3AED),
                 enabledTextColor: Colors.white,
