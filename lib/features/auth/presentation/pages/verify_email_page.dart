@@ -11,6 +11,7 @@ import '../../../../core/errors/app_exception.dart';
 import '../../../../core/localization/app_error_localizer.dart';
 import '../../../../core/localization/build_context_l10n.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/ui/app_snackbar.dart';
 import '../../../../core/utils/onboarding_route_mapper.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../home/data/home_providers.dart';
@@ -40,6 +41,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
   bool _isResending = false;
   bool _useEmail = true;
   String _identity = '';
+  String? _debugOtp;
 
   String get _code => _codeController.text;
   bool get _isButtonEnabled => _code.length == _codeLength;
@@ -61,6 +63,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     _useEmail = args?['useEmail'] as bool? ?? true;
     _identity = args?['identity'] as String? ?? '';
+    _debugOtp = args?['debugOtp'] as String?;
   }
 
   @override
@@ -158,24 +161,30 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
 
     setState(() => _isResending = true);
     try {
-      await ref
+      final result = await ref
           .read(authRepositoryProvider)
           .resendOtp(useEmail: _useEmail, identity: _identity);
       if (!mounted) return;
+      setState(() => _debugOtp = result.debugOtp);
       _startTimer();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.l10n.codeResent)));
+      showAppSnackBar(context, context.l10n.codeResent);
     } on AppException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.localized(context))));
+      showAppSnackBar(context, error.localized(context), isError: true);
     } finally {
       if (mounted) {
         setState(() => _isResending = false);
       }
     }
+  }
+
+  Future<void> _copyDebugOtp() async {
+    final code = _debugOtp;
+    if (code == null || code.isEmpty) return;
+
+    await Clipboard.setData(ClipboardData(text: code));
+    if (!mounted) return;
+    showAppSnackBar(context, context.l10n.otpDebugCodeCopied);
   }
 
   void _focusCodeInput() {
@@ -252,6 +261,79 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
                   color: const Color(0x80001561),
                 ),
               ),
+              if (_debugOtp != null && _debugOtp!.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                InkWell(
+                  onTap: _copyDebugOtp,
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F1FF),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE3D8FF)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          height: 40,
+                          width: 40,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE9DFFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.key_rounded,
+                            color: Color(0xFF7C3AED),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.otpDebugCodeTitle,
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontFamily: 'Gilroy',
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF001561),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _debugOtp!,
+                                style: textTheme.titleLarge?.copyWith(
+                                  fontFamily: 'Gilroy',
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 4,
+                                  color: const Color(0xFF7C3AED),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.otpDebugCodeHint,
+                                style: textTheme.bodySmall?.copyWith(
+                                  fontFamily: 'Gilroy',
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0x99001561),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.copy_rounded,
+                          color: Color(0xFF7C3AED),
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 26),
               GestureDetector(
                 onTap: _focusCodeInput,

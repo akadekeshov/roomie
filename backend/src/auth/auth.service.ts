@@ -89,6 +89,10 @@ export class AuthService {
     return this.configService.get<string>('NODE_ENV') === 'production';
   }
 
+  private shouldExposeDebugOtp(): boolean {
+    return this.configService.get<string>('OTP_DEV_LOG') === 'true';
+  }
+
   private normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
   }
@@ -440,7 +444,11 @@ export class AuthService {
         console.log(`[OTP EMAIL] ${email}: ${code}`);
       }
 
-      return { next: 'VERIFY_EMAIL', alreadyExists: true };
+      return {
+        next: 'VERIFY_EMAIL',
+        alreadyExists: true,
+        debugOtp: this.shouldExposeDebugOtp() ? code : undefined,
+      };
     }
 
     // new user
@@ -472,7 +480,11 @@ export class AuthService {
       console.log(`[OTP EMAIL] ${email}: ${code}`);
     }
 
-    return { next: 'VERIFY_EMAIL', alreadyExists: false };
+    return {
+      next: 'VERIFY_EMAIL',
+      alreadyExists: false,
+      debugOtp: this.shouldExposeDebugOtp() ? code : undefined,
+    };
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
@@ -537,7 +549,11 @@ export class AuthService {
         console.log(`[OTP SMS] ${phone}: ${code}`);
       }
 
-      return { next: 'VERIFY_PHONE', alreadyExists: true };
+      return {
+        next: 'VERIFY_PHONE',
+        alreadyExists: true,
+        debugOtp: this.shouldExposeDebugOtp() ? code : undefined,
+      };
     }
 
     // new user
@@ -569,7 +585,11 @@ export class AuthService {
       console.log(`[OTP SMS] ${phone}: ${code}`);
     }
 
-    return { next: 'VERIFY_PHONE', alreadyExists: false };
+    return {
+      next: 'VERIFY_PHONE',
+      alreadyExists: false,
+      debugOtp: this.shouldExposeDebugOtp() ? code : undefined,
+    };
   }
 
   async verifyPhone(verifyPhoneDto: VerifyPhoneDto) {
@@ -694,10 +714,16 @@ export class AuthService {
     }
 
     if (resendOtpDto.channel === OTPChannel.EMAIL) {
-      return { next: 'VERIFY_EMAIL' };
+      return {
+        next: 'VERIFY_EMAIL',
+        debugOtp: this.shouldExposeDebugOtp() ? code : undefined,
+      };
     }
 
-    return { next: 'VERIFY_PHONE' };
+    return {
+      next: 'VERIFY_PHONE',
+      debugOtp: this.shouldExposeDebugOtp() ? code : undefined,
+    };
   }
 
   // =========================

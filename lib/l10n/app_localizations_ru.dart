@@ -195,6 +195,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get otpResend => 'Отправить код еще раз';
 
   @override
+  String get otpDebugCodeTitle => 'Тестовый код';
+
+  @override
+  String get otpDebugCodeHint =>
+      'Используйте этот код, если письмо или SMS не пришли. Нажмите, чтобы скопировать.';
+
+  @override
+  String get otpDebugCodeCopied => 'Код скопирован';
+
+  @override
   String get loginTitle => 'Вход';
 
   @override

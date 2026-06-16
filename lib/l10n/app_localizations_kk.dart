@@ -198,6 +198,16 @@ class AppLocalizationsKk extends AppLocalizations {
   String get otpResend => 'Кодты қайта жіберу';
 
   @override
+  String get otpDebugCodeTitle => 'Тест коды';
+
+  @override
+  String get otpDebugCodeHint =>
+      'Егер хат не SMS келмесе, осы кодты пайдаланыңыз. Көшіру үшін басыңыз.';
+
+  @override
+  String get otpDebugCodeCopied => 'Код көшірілді';
+
+  @override
   String get loginTitle => 'Кіру';
 
   @override

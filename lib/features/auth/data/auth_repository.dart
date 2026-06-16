@@ -18,8 +18,15 @@ class LoginResult {
 }
 
 class AuthFlowResult {
-  const AuthFlowResult({required this.next});
+  const AuthFlowResult({
+    required this.next,
+    this.debugOtp,
+    this.alreadyExists = false,
+  });
+
   final String? next;
+  final String? debugOtp;
+  final bool alreadyExists;
 }
 
 class CurrentUser {
@@ -106,7 +113,11 @@ class AuthRepository {
         data: body,
       );
 
-      return AuthFlowResult(next: response.data?['next'] as String?);
+      return AuthFlowResult(
+        next: response.data?['next'] as String?,
+        debugOtp: response.data?['debugOtp'] as String?,
+        alreadyExists: response.data?['alreadyExists'] as bool? ?? false,
+      );
     } on DioException catch (error) {
       throw mapDioErrorToAppException(error);
     } catch (_) {
@@ -172,12 +183,12 @@ class AuthRepository {
     }
   }
 
-  Future<void> resendOtp({
+  Future<AuthFlowResult> resendOtp({
     required bool useEmail,
     required String identity,
   }) async {
     try {
-      await _dio.post(
+      final response = await _dio.post<Map<String, dynamic>>(
         '/auth/otp/resend',
         data: {
           'channel': useEmail ? 'EMAIL' : 'PHONE',
@@ -186,6 +197,10 @@ class AuthRepository {
               ? _normalizeEmail(identity)
               : _normalizePhone(identity.trim()),
         },
+      );
+      return AuthFlowResult(
+        next: response.data?['next'] as String?,
+        debugOtp: response.data?['debugOtp'] as String?,
       );
     } on DioException catch (error) {
       throw mapDioErrorToAppException(error);

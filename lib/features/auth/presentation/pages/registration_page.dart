@@ -61,7 +61,11 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
       if (result.next == 'VERIFY_EMAIL' || result.next == 'VERIFY_PHONE') {
         Navigator.of(context).pushReplacementNamed(
           AppRoutes.verifyEmail,
-          arguments: {'useEmail': state.useEmail, 'identity': identity},
+          arguments: {
+            'useEmail': state.useEmail,
+            'identity': identity,
+            'debugOtp': result.debugOtp,
+          },
         );
         return;
       }

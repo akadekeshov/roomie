@@ -446,6 +446,24 @@ abstract class AppLocalizations {
   /// **'Отправить код еще раз'**
   String get otpResend;
 
+  /// No description provided for @otpDebugCodeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тестовый код'**
+  String get otpDebugCodeTitle;
+
+  /// No description provided for @otpDebugCodeHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Используйте этот код, если письмо или SMS не пришли. Нажмите, чтобы скопировать.'**
+  String get otpDebugCodeHint;
+
+  /// No description provided for @otpDebugCodeCopied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Код скопирован'**
+  String get otpDebugCodeCopied;
+
   /// No description provided for @loginTitle.
   ///
   /// In ru, this message translates to:
